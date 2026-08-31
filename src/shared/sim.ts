@@ -1,24 +1,47 @@
-import type { Level, ModifierId } from './types.ts';
+import type {
+  ImpactKind,
+  Level,
+  ModifierId,
+  Point,
+  ShotResult,
+} from './types.ts';
 import {
   ANGLE_MAX_DEG,
   ANGLE_MIN_DEG,
+  BULLSEYE_SCORE,
   D_MAX,
   D_MIN,
+  G,
+  GAUGE_PERIOD_MS,
+  GUST_SPAN_S,
   GUST_TABLE_SIZE,
+  gustAmp,
   H_MAX,
   H_MIN,
   LONG_SHOT_D_MAX,
   LONG_SHOT_D_MIN,
+  MAT_DROP,
+  MAT_EXP,
   MODIFIER_WEIGHTS,
   MODIFIER_WIND_RANGE,
   MOON_GRAVITY_FACTOR,
+  MUZZLE_X,
+  MUZZLE_Y,
+  OUT_EXP,
+  OUT_MAX,
+  OUT_SPAN,
   PALETTE_VARIANTS,
+  PERFECT_RADIUS,
+  PLATEAU_HALF_WIDTH,
+  SIM_DT,
+  SIM_MAX_STEPS,
+  SPACE_W,
   TARGET_R,
   TINY_TARGET_FACTOR,
+  V_MAX,
+  V_MIN,
   WIND_BASE_MAX,
   WIND_BASE_MIN,
-  G,
-  gustAmp,
 } from './tunables.ts';
 
 /**
@@ -73,9 +96,7 @@ export const mulberry32 = (seed: number): (() => number) => {
  * when the validity guard-rail rejects a degenerate level (GDD 9.3).
  */
 export const seedStringFor = (dayNumber: number, rerollK: number): string =>
-  rerollK === 0
-    ? `oneshot:${dayNumber}`
-    : `oneshot:${dayNumber}:r${rerollK}`;
+  rerollK === 0 ? `oneshot:${dayNumber}` : `oneshot:${dayNumber}:r${rerollK}`;
 
 const rngFor = (dayNumber: number, rerollK: number): (() => number) =>
   mulberry32(xmur3(seedStringFor(dayNumber, rerollK))());
@@ -189,4 +210,296 @@ export const generateLevel = (dayNumber: number, rerollK = 0): Level => {
     targetR: modifier === 'TINY' ? TARGET_R * TINY_TARGET_FACTOR : TARGET_R,
     paletteVariant: Math.floor(uPalette * PALETTE_VARIANTS),
   };
+};
+
+// ---------------------------------------------------------------------------
+// Input mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Samples the power gauge for a press of `holdMs` milliseconds.
+ *
+ * The gauge is a triangular wave, not a sine: a sine slows at its extremes and
+ * would make the top of the gauge far easier to hit than the middle, which is
+ * exactly the part of the skill we want to keep honest (GDD 6).
+ */
+export const powerForHold = (holdMs: number): number => {
+  const phase = (holdMs % GAUGE_PERIOD_MS) / GAUGE_PERIOD_MS;
+  return phase < 0.5 ? 2 * phase : 2 * (1 - phase);
+};
+
+// ---------------------------------------------------------------------------
+// Scoring (GDD II.8, normative summary in 9.4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Score for a horizontal miss distance, out of 100, rounded half-up to two
+ * decimals.
+ *
+ * Three zones, all measured on `dx` so overshoot and undershoot are symmetric:
+ *
+ *   1. `dx <= PERFECT_RADIUS`     -> 100.00, a Perfect.
+ *   2. on the mat                 -> 100 down to `100 - MAT_DROP` at the rim.
+ *   3. up to `OUT_SPAN` beyond it -> `OUT_MAX` down to 0.
+ *
+ * The zone boundaries follow `targetR` rather than a hard-coded 60. GDD II.8
+ * writes the default mat radius into the formula, but Tiny Target halves the
+ * mat (GDD 11.7) and would otherwise be a purely cosmetic modifier instead of
+ * "the day of legends". At the default radius of 60 this reproduces the
+ * document's 4 / 60 / 660 boundaries exactly.
+ *
+ * `Math.pow` is implementation-approximated rather than correctly rounded, so
+ * two engines may differ in the last bit or so of the raw curve. That cannot
+ * survive rounding to two decimals except on a measure-zero boundary, the
+ * server score is authoritative anyway, and GDD 31 already specifies the
+ * "recalibrated" path for a divergence.
+ */
+export const scoreForDx = (dx: number, targetR: number): number => {
+  if (dx <= PERFECT_RADIUS) return 100;
+
+  if (dx <= targetR) {
+    const u = (dx - PERFECT_RADIUS) / (targetR - PERFECT_RADIUS);
+    // Capped just below 100 so that "the scoreboard says 100.00" and "this was
+    // a Perfect" can never disagree. The raw curve still rounds to 100.00 for
+    // roughly a sixth of a unit past the Perfect radius, which would show a
+    // player a perfect score with no Perfect celebration behind it.
+    return Math.min(round2(100 - MAT_DROP * Math.pow(u, MAT_EXP)), 99.99);
+  }
+
+  if (dx <= targetR + OUT_SPAN) {
+    const u = (dx - targetR) / OUT_SPAN;
+    return round2(OUT_MAX * (1 - Math.pow(u, OUT_EXP)));
+  }
+
+  return 0;
+};
+
+// ---------------------------------------------------------------------------
+// Simulation
+// ---------------------------------------------------------------------------
+
+/**
+ * Horizontal acceleration at flight time `t`.
+ *
+ * A constant on a normal day. On a Gusty day the seeded 16-entry table is
+ * interpolated linearly over `GUST_SPAN_S` and wraps — deterministic, with no
+ * trigonometry at run time, and visible on screen as drifting particles so that
+ * an unfair day is always legible (GDD 33).
+ */
+export const windAt = (level: Level, t: number): number => {
+  if (level.gustAmp === 0) return level.windBase;
+
+  const f = (t / GUST_SPAN_S) * GUST_TABLE_SIZE;
+  const i = Math.floor(f);
+  const frac = f - i;
+  const a = level.gustTable[wrapGustIndex(i)] ?? 0;
+  const b = level.gustTable[wrapGustIndex(i + 1)] ?? 0;
+
+  return level.windBase + level.gustAmp * (a + (b - a) * frac);
+};
+
+const wrapGustIndex = (i: number): number =>
+  ((i % GUST_TABLE_SIZE) + GUST_TABLE_SIZE) % GUST_TABLE_SIZE;
+
+const buildResult = (
+  level: Level,
+  power: number,
+  impact: ImpactKind,
+  impactX: number,
+  impactY: number,
+  flightMs: number,
+  trajectory: readonly Point[]
+): ShotResult => {
+  const dx = Math.abs(impactX - level.distance);
+  const score = impact === 'OFF_THE_MAP' ? 0 : scoreForDx(dx, level.targetR);
+
+  return {
+    power,
+    score,
+    dx,
+    impactX,
+    impactY,
+    flightMs,
+    impact,
+    isPerfect: score === 100,
+    isBullseye: score >= BULLSEYE_SCORE,
+    trajectory,
+  };
+};
+
+/**
+ * Runs the shot for an already-sampled gauge value.
+ *
+ * Semi-implicit Euler at a fixed `dt`, using nothing but `+ - * /` so that two
+ * devices produce bit-identical trajectories. Do not reassociate the arithmetic
+ * in this loop: IEEE-754 addition is not associative, and a tidier rewrite is a
+ * silent desync.
+ */
+export const simulateWithPower = (level: Level, power: number): ShotResult => {
+  const v0 = V_MIN + power * (V_MAX - V_MIN);
+
+  let x = MUZZLE_X;
+  let y = MUZZLE_Y;
+  let vx = v0 * level.cosTheta;
+  let vy = v0 * level.sinTheta;
+  let t = 0;
+
+  const trajectory: Point[] = [{ x, y }];
+  const wallX = level.distance - PLATEAU_HALF_WIDTH;
+  const plateauRightX = level.distance + PLATEAU_HALF_WIDTH;
+
+  for (let step = 0; step < SIM_MAX_STEPS; step++) {
+    const prevX = x;
+    const prevY = y;
+
+    vx = vx + windAt(level, t) * SIM_DT;
+    vy = vy - level.gravity * SIM_DT;
+    x = x + vx * SIM_DT;
+    y = y + vy * SIM_DT;
+    t = t + SIM_DT;
+
+    // The face of the plateau stops the ball dead: a CLIFF, the day's comedy.
+    if (prevX < wallX && x >= wallX) {
+      const s = (wallX - prevX) / (x - prevX);
+      const crossY = prevY + (y - prevY) * s;
+      if (crossY < level.height) {
+        trajectory.push({ x: wallX, y: crossY });
+        return buildResult(
+          level,
+          power,
+          'CLIFF',
+          wallX,
+          crossY,
+          (t - SIM_DT + s * SIM_DT) * 1000,
+          trajectory
+        );
+      }
+    }
+
+    // Effective ground: the plateau top inside its span, the ground plane
+    // everywhere else.
+    const onPlateau = x >= wallX && x <= plateauRightX;
+    const groundY = onPlateau ? level.height : 0;
+
+    if (y <= groundY && prevY > groundY) {
+      const s = (prevY - groundY) / (prevY - y);
+      const impactX = prevX + (x - prevX) * s;
+      trajectory.push({ x: impactX, y: groundY });
+      const impact: ImpactKind =
+        impactX > SPACE_W ? 'OFF_THE_MAP' : onPlateau ? 'MAT' : 'GROUND';
+      return buildResult(
+        level,
+        power,
+        impact,
+        impactX,
+        groundY,
+        (t - SIM_DT + s * SIM_DT) * 1000,
+        trajectory
+      );
+    }
+
+    trajectory.push({ x, y });
+
+    // Left the logical space entirely. A zero, and it is meant to be funny.
+    if (x > SPACE_W) {
+      return buildResult(
+        level,
+        power,
+        'OFF_THE_MAP',
+        x,
+        y,
+        t * 1000,
+        trajectory
+      );
+    }
+  }
+
+  // Unreachable for every level the generator can produce; a shot that somehow
+  // outran the step budget is treated as having left the world.
+  return buildResult(level, power, 'OFF_THE_MAP', x, y, t * 1000, trajectory);
+};
+
+/** Runs the shot for a press duration, in milliseconds. */
+export const simulateLevel = (level: Level, holdMs: number): ShotResult =>
+  simulateWithPower(level, powerForHold(holdMs));
+
+/**
+ * The public contract of GDD 9.4: same integers in, same score out, on the
+ * client and on the server.
+ */
+export const simulate = (
+  dayNumber: number,
+  holdMs: number,
+  rerollK = 0
+): ShotResult => simulateLevel(generateLevel(dayNumber, rerollK), holdMs);
+
+// ---------------------------------------------------------------------------
+// Validity guard-rail (GDD 9.3)
+// ---------------------------------------------------------------------------
+
+/** Step of the power sweep used to certify a day, as specified in GDD 9.3. */
+export const SWEEP_STEP = 0.001;
+
+/** Result of sweeping the whole gauge across a level. */
+export type Sweep = {
+  readonly bestScore: number;
+  readonly bestPower: number;
+};
+
+/**
+ * Sweeps the gauge from 0 to 1 and reports the best release.
+ *
+ * Server and tooling only. The client bundle must never import this: the whole
+ * anti-cheat posture rests on the optimum being computable but not *published*
+ * (GDD 32.3), and Vite drops the export as long as nothing under `src/client`
+ * reaches for it.
+ */
+export const sweepLevel = (level: Level): Sweep => {
+  let bestScore = -1;
+  let bestPower = 0;
+
+  const steps = Math.round(1 / SWEEP_STEP);
+  for (let i = 0; i <= steps; i++) {
+    const power = i * SWEEP_STEP;
+    const { score } = simulateWithPower(level, power);
+    if (score > bestScore) {
+      bestScore = score;
+      bestPower = power;
+    }
+    if (bestScore === 100) break;
+  }
+
+  return { bestScore, bestPower };
+};
+
+/** Maximum reroll attempts before the least-bad variant is accepted. */
+const MAX_REROLL_K = 64;
+
+/**
+ * Resolves the reroll index for a day.
+ *
+ * A seed can in principle produce a level nobody can win — a target tucked
+ * behind a cliff too tall to clear, say. That day would be broken for the whole
+ * planet, so the server sweeps the gauge before creating the post and rerolls
+ * with a salted seed until a Bullseye is reachable. The chosen `k` is persisted
+ * so that every client generates the same level (GDD 9.3).
+ */
+export const resolveRerollK = (dayNumber: number): number => {
+  let fallbackK = 0;
+  let fallbackScore = -1;
+
+  for (let k = 0; k < MAX_REROLL_K; k++) {
+    const { bestScore } = sweepLevel(generateLevel(dayNumber, k));
+    if (bestScore >= BULLSEYE_SCORE) return k;
+    if (bestScore > fallbackScore) {
+      fallbackScore = bestScore;
+      fallbackK = k;
+    }
+  }
+
+  console.warn(
+    `[sim] no reroll reached ${BULLSEYE_SCORE} for day ${dayNumber}; ` +
+      `falling back to k=${fallbackK} (best ${fallbackScore})`
+  );
+  return fallbackK;
 };
