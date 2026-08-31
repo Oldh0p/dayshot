@@ -74,7 +74,7 @@ point at the thread.
 | No external fetch, LLM or payments | ✅ `devvit.json` declares only `redis` and `reddit` |
 | Data minimisation and TTLs | ✅ 90 days on everything but the streak record |
 | Terms and privacy policy | ✅ written, though not required — see below |
-| No Reddit or third-party IP | ✅ Pip is original; nothing borrows from Snoo |
+| No Reddit or third-party IP | ✅ Pip is original. `public/snoo.png` shipped unused in 0.0.4 -- a starter-template leftover, removed after submission; see below |
 
 ---
 
@@ -152,3 +152,22 @@ app should confirm.
 - [ ] Whether `setPostData` reaches a card already in the feed. The probe that
       would have answered this went with the rest of the `[DEV]` surface; it is
       a V1 question (the dynamic splash of GDD 12), not an MVP one.
+
+---
+
+## 6. Snoo shipped in 0.0.4
+
+`public/snoo.png` arrived with the official Devvit Web template and was never
+referenced by a single line of the game, but Vite copies `public/` verbatim, so
+110 KB of Reddit's mascot went into every build -- including the one submitted
+for review, under a checklist line that claimed the opposite.
+
+Removed here. **Not worth a re-publish on its own**: the asset is Reddit's own
+template art, unused and unreferenced, so it misleads nobody about endorsement,
+and re-uploading to fix it would resubmit the app for the sake of a file no
+player ever sees. Fold it into the next version -- whether that is a fix review
+asks for, or the first update after approval.
+
+The general lesson, which is why this is written down: `public/` is copied
+wholesale into the bundle. Anything dropped there ships, whether or not the code
+imports it.
