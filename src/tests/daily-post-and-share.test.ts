@@ -78,7 +78,11 @@ describe('ensureDailyPost', () => {
     assert.equal(seed.runAs, 'APP');
     assert.equal(seed.sticky, true);
     assert.equal(seed.distinguished, true);
-    assert.match(seed.text, /^Day #\d+ — .+\. Post your score below\./);
+    // The first line has to stand alone: a reader who only sees the collapsed
+    // header should still understand what lands underneath.
+    assert.ok(seed.text.startsWith('🎯 **Drop your shot below**'));
+    assert.match(seed.text, /Day #\d+ — .+\. Tap POST MY SHOT/);
+    assert.match(seed.text, /One shot per player, per day/);
 
     const meta = await ensureDayMeta(redis, DAY);
     assert.equal(meta.seedCommentId, seed.id);
@@ -165,7 +169,8 @@ describe('ensureDailyPost', () => {
     const reddit = new FakeReddit();
     await ensureDailyPost(dailyDeps(redis, reddit));
     const seed = reddit.comments[0]?.text ?? '';
-    assert.equal(seed.endsWith('Post your score below.'), true);
+    assert.equal(seed.endsWith('everyone resets at 00:00 UTC.'), true);
+    assert.ok(!/Perfect/.test(seed));
   });
 });
 
@@ -228,6 +233,7 @@ describe('shareShot', () => {
         percentile: 100,
         streak: 1,
         signedDx: stored.signedDx,
+        targetR: level.targetR,
       })
     );
     assert.equal(reddit.comments[1]?.text, outcome.card);

@@ -12,6 +12,7 @@ import {
   MODIFIER_LABEL,
   nextShotLine,
   perfectRarityLine,
+  ringBoundaries,
   ringForDx,
   seedComment,
   shareFormatA,
@@ -26,6 +27,10 @@ import {
 } from '../shared/copy.ts';
 import type { ShareCardInput } from '../shared/copy.ts';
 import type { ModifierId } from '../shared/types.ts';
+import { PERFECT_RADIUS, TARGET_R } from '../shared/tunables.ts';
+
+/** Spelled out so the escape survives every layer of tooling in between. */
+const NEWLINE = String.fromCharCode(10);
 
 /** The worked example from GDD IV.17, reproduced exactly. */
 const REFERENCE_CARD: ShareCardInput = {
@@ -36,6 +41,7 @@ const REFERENCE_CARD: ShareCardInput = {
   percentile: 4.2,
   streak: 12,
   signedDx: 6.4,
+  targetR: TARGET_R,
 };
 
 describe('copy — contractual wordings (GDD 9.9)', () => {
@@ -158,6 +164,31 @@ describe('share Format B', () => {
     assert.equal(ringForDx(9999), 4);
   });
 
+  it('scales its buckets with the mat, so Tiny Target reads truthfully', () => {
+    // The document's absolute buckets are right at the default radius...
+    assert.deepEqual(ringBoundaries(TARGET_R), [4, 12, 35, 60]);
+
+    // ...and wrong at any other. On a Tiny Target day the mat is 30 units
+    // across, so a shot 35 out is well off it and must not draw as though it
+    // had landed on the mat.
+    const tiny = TARGET_R / 2;
+    assert.equal(ringForDx(35, tiny), 4, 'off the mat entirely');
+    assert.equal(ringForDx(35, TARGET_R), 2, 'well inside the mat');
+
+    // The Perfect radius is absolute, not relative: a bullseye is a bullseye.
+    assert.equal(ringBoundaries(tiny)[0], PERFECT_RADIUS);
+    // The outermost boundary is always the rim of that day's mat.
+    assert.equal(ringBoundaries(tiny).at(-1), tiny);
+  });
+
+  it('keeps the grid legible on a Tiny Target day', () => {
+    const tiny = TARGET_R / 2;
+    // A shot that is a Bullseye on a tiny mat still lands on the inner ring.
+    assert.equal(ringForDx(6, tiny), 1);
+    // The same distance that filled ring 1 at full size now reads further out.
+    assert.ok(ringForDx(12, tiny) > ringForDx(12, TARGET_R));
+  });
+
   it('mirrors an undershoot to the left of the bullseye', () => {
     const over = shareGrid(6.4);
     const under = shareGrid(-6.4);
@@ -226,27 +257,36 @@ describe('reddit-side copy', () => {
     );
   });
 
-  it('opens the daily thread with a rule-built headline', () => {
+  it('opens the daily thread as an invitation, not an announcement', () => {
+    // Every score card replies to this comment, so its first line has to read
+    // as the thread it is -- a reader who only sees the collapsed header should
+    // still know what is underneath.
     assert.equal(
+      seedComment(1, 'CLEAR', 12, null),
+      [
+        '🎯 **Drop your shot below**',
+        '',
+        'Day #1 — Clear Skies +12. Tap POST MY SHOT on your result and your ' +
+          'card replies here. One shot per player, per day — everyone resets ' +
+          'at 00:00 UTC.',
+      ].join(NEWLINE)
+    );
+  });
+
+  it('closes with a rule-built line about yesterday', () => {
+    assert.ok(
       seedComment(247, 'CROSSWIND', -380, {
         perfects: 1,
         topScore: 99.94,
         shots: 42617,
-      }),
-      'Day #247 — Crosswind −380. Post your score below. Only 1 Perfect yesterday.'
+      }).endsWith(`${NEWLINE}${NEWLINE}Only 1 Perfect yesterday.`)
     );
-    assert.equal(
+    assert.ok(
       seedComment(247, 'CROSSWIND', -380, {
         perfects: 0,
         topScore: 99.94,
         shots: 42617,
-      }),
-      'Day #247 — Crosswind −380. Post your score below. ' +
-        'Nobody hit a Perfect yesterday — best was 99.94.'
-    );
-    assert.equal(
-      seedComment(1, 'CLEAR', 12, null),
-      'Day #1 — Clear Skies +12. Post your score below.'
+      }).endsWith('Nobody hit a Perfect yesterday — best was 99.94.')
     );
   });
 });

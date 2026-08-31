@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { TaskRequest, TaskResponse } from '@devvit/web/server';
 
+import * as analytics from '../core/analytics.ts';
+import { dayNumberAt } from '../core/clock.ts';
 import { ensureDailyPost } from '../core/post.ts';
 import { currentSubreddit, nonce, now, redditApi, store } from '../platform.ts';
 
@@ -17,6 +19,10 @@ schedulerRoutes.post('/daily', async (c) => {
   const input = await c.req.json<TaskRequest>();
   const subredditName = currentSubreddit();
 
+  // Counted as well as logged: during a playtest the question "did the
+  // scheduler actually fire?" has to be answerable from the app itself.
+  await analytics.bump(store, dayNumberAt(now()), 'scheduler_fired');
+
   if (!subredditName) {
     console.error(`[daily] task "${input.name}" ran without a subreddit`);
     return c.json<TaskResponse>({}, 200);
@@ -31,7 +37,7 @@ schedulerRoutes.post('/daily', async (c) => {
       nonce,
     });
     console.log(
-      `[daily] day ${outcome.dayNumber} (#${outcome.displayDay}) ` +
+      `[daily] task="${input.name}" day ${outcome.dayNumber} (#${outcome.displayDay}) ` +
         `post=${outcome.postId ?? 'none'} created=${outcome.created}` +
         (outcome.reason ? ` reason=${outcome.reason}` : '')
     );

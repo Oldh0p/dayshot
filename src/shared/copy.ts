@@ -1,3 +1,4 @@
+import { PERFECT_RADIUS, TARGET_R } from './tunables.ts';
 import type { ImpactKind, ModifierId } from './types.ts';
 
 /**
@@ -246,15 +247,30 @@ const yesterdayHeadline = (stats: YesterdayStats): string => {
   return ` ${formatCount(stats.perfects)} Perfects yesterday.`;
 };
 
-/** GDD 15 — the stickied comment the app posts and pins under the daily post. */
+/**
+ * The stickied comment the app posts and pins under the daily post (GDD 15).
+ *
+ * It is not an announcement, it is *the thread*: every score card is published
+ * as a reply to it, because Reddit requires user-attributed score comments to
+ * reply to a single stickied comment. So the first line has to read as an
+ * invitation and the second has to explain what lands underneath — a reader who
+ * sees only the collapsed header should still understand what this is.
+ */
 export const seedComment = (
   displayDay: number,
   modifier: ModifierId,
   windBase: number,
   yesterday: YesterdayStats | null
 ): string =>
+  `🎯 **Drop your shot below**
+
+` +
   `Day #${displayDay} — ${MODIFIER_LABEL[modifier]} ${formatWind(windBase)}. ` +
-  `Post your score below.${yesterday ? yesterdayHeadline(yesterday) : ''}`;
+  `Tap POST MY SHOT on your result and your card replies here. ` +
+  `One shot per player, per day — everyone resets at 00:00 UTC.` +
+  (yesterday ? `
+
+${yesterdayHeadline(yesterday).trim()}` : '');
 
 // ---------------------------------------------------------------------------
 // Share cards (GDD IV.17, exact formats)
@@ -269,6 +285,8 @@ export type ShareCardInput = {
   readonly streak: number;
   /** Signed miss: positive is an overshoot, negative an undershoot. */
   readonly signedDx: number;
+  /** The day's mat radius. Halved on Tiny Target, and the grid follows it. */
+  readonly targetR: number;
 };
 
 /**
@@ -280,8 +298,28 @@ export const shareFormatA = (card: ShareCardInput): string =>
   `🎯 ONE SHOT #${card.displayDay} · ${formatScore(card.score)} · ` +
   `Top ${formatPercent(card.percentile)}% · 🔥 ${card.streak}`;
 
-/** Distance buckets that pick the impact ring, from GDD 9.9. */
-const RING_BUCKETS = [4, 12, 35, 60] as const;
+/**
+ * Where the impact rings change, as fractions of the mat beyond the Perfect
+ * radius.
+ *
+ * GDD 9.9 gives the buckets as the absolute distances {4, 12, 35, 60}, which
+ * are correct at the default mat radius and *wrong everywhere else*: on a Tiny
+ * Target day the mat is 30 units across, so a shot 35 units out is well off the
+ * mat and would still draw at ring 2 as though it had landed on it. The
+ * boundaries have to follow `targetR` for the same reason the scoring zones do.
+ *
+ * These fractions reproduce 4 / 12 / 35 / 60 exactly at `TARGET_R = 60`.
+ */
+const RING_FRACTIONS = [8 / 56, 31 / 56, 1] as const;
+
+/** Bucket boundaries for a mat radius, innermost first. */
+export const ringBoundaries = (targetR: number): number[] => {
+  const span = targetR - PERFECT_RADIUS;
+  return [
+    PERFECT_RADIUS,
+    ...RING_FRACTIONS.map((fraction) => PERFECT_RADIUS + span * fraction),
+  ];
+};
 
 const GLYPH_CENTER = '🎯';
 const GLYPH_RING_1 = '🟨';
@@ -292,13 +330,14 @@ const GLYPH_MARKER = '⚫';
 const GRID_SIZE = 5;
 const GRID_CENTER = 2;
 
-/** Ring index 0-4 for a miss distance. */
-export const ringForDx = (dx: number): number => {
-  for (let i = 0; i < RING_BUCKETS.length; i++) {
-    const bound = RING_BUCKETS[i];
+/** Ring index 0-4 for a miss distance on a mat of radius `targetR`. */
+export const ringForDx = (dx: number, targetR: number = TARGET_R): number => {
+  const bounds = ringBoundaries(targetR);
+  for (let i = 0; i < bounds.length; i++) {
+    const bound = bounds[i];
     if (bound !== undefined && dx <= bound) return i;
   }
-  return RING_BUCKETS.length;
+  return bounds.length;
 };
 
 /**
@@ -361,8 +400,11 @@ const ringGlyph = (row: number, col: number): string => {
  * covering it with the marker — the ball and the centre coincide, and a Perfect
  * card should read as a hit, not as a missing target.
  */
-export const shareGrid = (signedDx: number): readonly string[] => {
-  const ring = ringForDx(Math.abs(signedDx));
+export const shareGrid = (
+  signedDx: number,
+  targetR: number = TARGET_R
+): readonly string[] => {
+  const ring = ringForDx(Math.abs(signedDx), targetR);
   const side = signedDx < 0 ? -1 : 1;
   const [markerRow, markerCol] = markerCell(ring, side);
 

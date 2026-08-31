@@ -47,6 +47,14 @@ import { MODIFIER_LABEL } from '../shared/copy.ts';
  * No choice of scoring constants changes that — it is a property of the input
  * granularity and the error model, not of the curve.
  *
+ * The whole millisecond is not only a limitation, it is the fairness floor.
+ * `performance.now()` is deliberately coarsened against timing attacks and the
+ * clamp differs by browser and by isolation state — Chrome quantises to 100 µs,
+ * Firefox to 1 ms unless the page is cross-origin isolated. A sub-millisecond
+ * Perfect window would therefore be reachable on some browsers and not on
+ * others, which is a worse outcome than a Perfect rate above target: the day is
+ * supposed to be the same for the whole planet.
+ *
  * The report therefore sweeps past the 30-60 ms of 9.5. Those three values
  * describe motor jitter for a player who already knows the answer, which is a
  * practice-mode player. An official first shot also has to *judge* the day's

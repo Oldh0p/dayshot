@@ -76,6 +76,7 @@ export const shareShot = async (
       percentile: summary.percentile,
       streak: user.streak,
       signedDx: stored.signedDx,
+      targetR: level.targetR,
     });
 
     const comment = await reddit.submitComment({

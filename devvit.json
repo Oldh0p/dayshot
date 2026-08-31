@@ -6,7 +6,9 @@
     "reddit": {
       "enable": true,
       "scope": "user",
-      "asUser": ["SUBMIT_COMMENT"]
+      "asUser": [
+        "SUBMIT_COMMENT"
+      ]
     }
   },
   "post": {
@@ -34,6 +36,27 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/dev-create-today"
+      },
+      {
+        "label": "[DEV] Schedule daily task in 2 min",
+        "description": "Prove the scheduler pipeline without waiting for midnight",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/dev/schedule-daily"
+      },
+      {
+        "label": "[DEV] Refresh splash data",
+        "description": "Write a probe into postData and see if the feed card updates",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/dev/refresh-splash"
+      },
+      {
+        "label": "[DEV] Verify redis ranking",
+        "description": "Self-check zRank ordering against the assumption the leaderboard makes",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/dev/verify-redis"
       }
     ]
   },
@@ -45,11 +68,17 @@
       "daily-post": {
         "endpoint": "/internal/scheduler/daily",
         "cron": "0 0 * * *"
+      },
+      "daily-post-once": {
+        "endpoint": "/internal/scheduler/daily"
       }
     }
   },
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build"
+  },
+  "dev": {
+    "subreddit": "daily_one_shot_dev"
   }
 }

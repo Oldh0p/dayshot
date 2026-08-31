@@ -27,6 +27,13 @@ type SplashData = {
   readonly modifier: ModifierId;
   readonly modifierLabel: string;
   readonly modifierEmoji: string;
+  /**
+   * Set only by the `[DEV] Refresh splash data` action, to find out whether an
+   * updated `postData` reaches a card that is already in the feed (GDD 9.13.2).
+   * Absent in production, and nothing renders when it is absent — which is why
+   * the card carries no counter at creation, when the count would be zero.
+   */
+  readonly devProbe: string | null;
 };
 
 const MODIFIERS: readonly ModifierId[] = [
@@ -48,12 +55,14 @@ const readSplashData = (): SplashData => {
   const modifierRaw = (data as Record<string, unknown>)['modifier'];
   const modifier = isModifier(modifierRaw) ? modifierRaw : 'CLEAR';
   const dayRaw = (data as Record<string, unknown>)['displayDay'];
+  const probeRaw = (data as Record<string, unknown>)['devProbe'];
 
   return {
     displayDay: typeof dayRaw === 'number' ? dayRaw : 0,
     modifier,
     modifierLabel: MODIFIER_LABEL[modifier],
     modifierEmoji: MODIFIER_EMOJI[modifier],
+    devProbe: typeof probeRaw === 'string' ? probeRaw : null,
   };
 };
 
@@ -95,6 +104,10 @@ export const Splash = (): JSX.Element => {
       <div className="mt-3 text-[13px] text-[color:var(--color-mist)]">
         {COPY.tagline}
       </div>
+
+      {data.devProbe && (
+        <div className="mt-2 text-[11px] opacity-50">probe {data.devProbe}</div>
+      )}
     </div>
   );
 };

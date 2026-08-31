@@ -54,7 +54,20 @@ browser console into the terminal and live-reloads on save.
 Installing the app fires `onAppInstall`, which creates today's post immediately.
 You should not have to wait for midnight.
 
-## 4. Create a post on demand
+## 4. The [DEV] menu
+
+Four moderator-only actions, all prefixed `[DEV]`. **They must be removed from
+`devvit.json` before publishing** — a shipped game has no business carrying
+scheduler triggers and Redis self-checks in its moderation menu.
+
+| Action | Where | What it answers |
+| --- | --- | --- |
+| Create today's post | subreddit | Runs the daily handler now. |
+| Schedule daily task in 2 min | subreddit | Does the scheduler pipeline work, without waiting for midnight? |
+| Refresh splash data | post | Does an updated `postData` reach a card already in the feed? (GDD 9.13.2) |
+| Verify redis ranking | subreddit | Is `zRank` really the ascending index, and does a reversed window slice as the leaderboard assumes? |
+
+## 5. Create a post on demand
 
 The scheduler runs at `0 0 * * *` UTC. To test without waiting:
 
@@ -65,7 +78,7 @@ already exists it navigates to it and says so, because that is exactly what the
 scheduler would do. To get a genuinely new post, wait for the next UTC day or
 run the action on a fresh install.
 
-## 5. Walk the loop
+## 6. Walk the loop
 
 1. Find the post in the feed. The card shows `ONE SHOT`, the day number, the
    modifier and `TAP TO SHOOT`.
@@ -92,7 +105,7 @@ run the action on a fresh install.
 There is no reset endpoint by design — a way to clear the daily lock would be a
 way to shoot twice. Use a second Reddit account, or wait for the UTC rollover.
 
-## 6. Reading the logs
+## 7. Reading the logs
 
 `devvit playtest` streams server logs. Worth grepping for:
 
@@ -101,6 +114,80 @@ way to shoot twice. Use a second Reddit account, or wait for the UTC rollover.
   should never appear. If it does, the shared simulation has diverged and that
   is a release blocker.
 - `[api] … failed` — any endpoint that threw.
+- `[daily] task="daily-post-once"` — the one-off scheduler probe fired.
+
+---
+
+# Platform questions to settle during this playtest
+
+The GDD 9.13 items, plus the two assumptions the build makes. Each has a
+concrete way to answer it.
+
+## A. Redis ranking — is `zRank` what the leaderboard assumes?
+
+Every rank in the game is `zCard - zRank(member)`, because Devvit's Redis has no
+`zRevRank`. The in-memory fake reproduces that, but a fake is only as right as
+the reading of the docs behind it.
+
+- [ ] Run the `Verify redis ranking` action.
+- [ ] The toast says **Redis ranking OK**. Anything starting with `FAIL:` names
+      the exact assumption that broke, and is a release blocker.
+
+It writes five members to a scratch key, checks the descending order, the tie
+break by arrival, the decoded score and a ranked window, then deletes the key.
+It never touches a real day.
+
+## B. The scheduler — does the pipeline work, and is the cron UTC?
+
+Two questions, and only the first can be answered today.
+
+- [ ] Run `Schedule daily task in 2 min`. Note the count in the toast.
+- [ ] Wait two minutes. The playtest log should print
+      `[daily] task="daily-post-once" …`.
+- [ ] Run the action again: the count in the toast should have gone up by one.
+      That proves declaration, dispatch and handler all work.
+- [ ] **Tomorrow morning**, look for a `[daily] task="daily-post"` line and
+      confirm its timestamp is 00:00 UTC and not local midnight. That is the
+      only way to verify the cron expression's timezone: the docs say UTC and a
+      0.11 example says "every day at 12:00 UTC", but neither is proof.
+
+## C. Splash refresh — does `setPostData` reach a card in the feed? (9.13.2)
+
+- [ ] Find the post in the feed. The card shows the day, the modifier and
+      `TAP TO SHOOT`, and **no counter** — at 00:00 UTC the count would be zero,
+      and "0 shots so far" is not an invitation.
+- [ ] From the post's moderation menu, run `Refresh splash data`. The toast
+      reports the timestamp it wrote.
+- [ ] Go back to the feed **without reloading**. Does a small `probe hh:mm:ss`
+      line appear on the card?
+- [ ] Now pull to refresh the feed. Does it appear?
+- [ ] Repeat in the mobile app.
+
+Record which of the three worked. If none do, the dynamic-splash idea in
+BACKLOG.md is dead and the urgency counter of GDD 12 has to live inside the
+game.
+
+## D. Logged out — what actually renders? (9.13.5)
+
+The docs say behaviour varies by surface, so check all four combinations.
+
+- [ ] Desktop web, logged out, **in the feed**: does the card render at all, or
+      a placeholder?
+- [ ] Desktop web, logged out, **expanded**: the day's scene behind
+      `Log in to take your shot`, with a working login button?
+- [ ] Mobile app, logged out, in the feed.
+- [ ] Mobile app, logged out, expanded.
+
+Note anywhere the game shows a blank frame instead of the day. A logged-out
+visitor who sees nothing has no reason to log in.
+
+## E. runAs USER — who is credited? (9.13.3)
+
+- [ ] Post a score card as the app owner. Check whether the comment is
+      attributed to you or to the app account.
+- [ ] If you have a second account that is *not* the app owner, do the same and
+      compare. The documented behaviour is that only an approved, published
+      version acts as the user.
 
 ---
 
@@ -236,8 +323,16 @@ Rendering → *Emulate prefers-reduced-motion*.
 - [ ] Declining posts nothing.
 - [ ] Accepting posts the Format B grid as a **reply to the stickied seed
       comment**, not as a top-level comment.
+- [ ] The seed comment itself is visible and expanded, and its first line reads
+      `Drop your shot below`.
+- [ ] The score cards underneath it **are** folded away. That is deliberate:
+      Reddit's guidance says replying to a stickied comment keeps repetitive,
+      low-discussion content in an area that has to be expanded to view. If the
+      cards were prominent, the pattern would be doing the opposite of its job.
 - [ ] The grid's ⚫ is right of the bullseye on an overshoot and left on an
       undershoot.
+- [ ] On a **Tiny Target** day the rings still read truthfully: a shot that
+      misses the small mat must not draw as though it had landed on it.
 - [ ] The card contains the score, the percentile and the streak, and **nothing
       about the power or the hold**.
 - [ ] Pressing the button again says `Already posted today` and does not post a

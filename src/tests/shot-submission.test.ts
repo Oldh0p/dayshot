@@ -396,6 +396,36 @@ describe('analytics', () => {
     );
   });
 
+  it('counts the three numbers the first week will be judged on', async () => {
+    const redis = new FakeRedis();
+    const meta = await ensureDayMeta(redis, DAY);
+    const level = generateLevel(DAY, meta.rerollK);
+
+    // A client that disagrees with the server, which is the alarm case.
+    await submit(redis, { holdMs: 640, clientScore: 12.34 });
+    const expected = simulateLevel(level, 640);
+
+    const stats = await redis.hGetAll(keys.dayStats(DAY));
+    assert.equal(stats['shots'], '1');
+    assert.equal(stats['bullseyes'], expected.isBullseye ? '1' : undefined);
+    assert.equal(stats['perfects'], expected.isPerfect ? '1' : undefined);
+    assert.equal(
+      stats['sim_mismatch'],
+      '1',
+      'a client/server divergence has to be countable, not just loggable'
+    );
+  });
+
+  it('does not raise the mismatch alarm when the client agrees', async () => {
+    const redis = new FakeRedis();
+    const meta = await ensureDayMeta(redis, DAY);
+    const expected = simulateLevel(generateLevel(DAY, meta.rerollK), 640);
+    await submit(redis, { holdMs: 640, clientScore: expected.score });
+    const stats = await redis.hGetAll(keys.dayStats(DAY));
+    assert.equal(stats['sim_mismatch'], undefined);
+    assert.equal(stats['shots'], '1');
+  });
+
   it('drops event names that are not on the allow list', async () => {
     const redis = new FakeRedis();
     assert.equal(

@@ -343,6 +343,7 @@ export const App = (): JSX.Element => {
       percentile: result.percentile,
       streak: streakCount,
       signedDx: result.signedDx,
+      targetR: level.targetR,
     };
     void copyToClipboard(`${shareFormatA(card)}\n\n${shareFormatB(card)}`);
     track({ name: 'share_copy' });

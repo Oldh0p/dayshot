@@ -6,7 +6,7 @@ Produced by `npm run tune` (GDD 9.5). Re-run it after any change to
 ## What changed
 
 The **scoring curve is untouched**. GDD II.8's constants are right: they put the
-median at 75 and a quarter of shots above 90 — exactly GDD 8's targets — for a
+median at 75 and a quarter of shots above 90 -- exactly GDD 8's targets -- for a
 population whose release error is about 90 ms.
 
 The **launch geometry was broken and is fixed**:
@@ -20,6 +20,11 @@ The **launch geometry was broken and is fixed**:
 | `ANGLE_RANGE` | 38-62 | **40-58** | The extremes made far mats unreachable and near ones impossible to undershoot on the same day. |
 | `LONG_SHOT_D` | 780-880 | **720-800** | Follows `D_RANGE`; still the top slice. |
 
+Everything else is unchanged: `GAUGE_PERIOD_MS` 1400, `G` 1700, `TARGET_R` 60,
+`PERFECT_RADIUS` 4, `BULLSEYE_SCORE` 99, `MAT_DROP` 13, `MAT_EXP` 1.35,
+`OUT_MAX` 87, `OUT_EXP` 0.75, `OUT_SPAN` 600, `MISFIRE_MS` 120,
+`SIM_MAX_STEPS` 400, `SLOWMO_TRIGGER_DX` 30, `ROLLOVER_GRACE_S` 90.
+
 Measured effect:
 
 | | before | after |
@@ -31,22 +36,65 @@ Measured effect:
 The validity guard-rail of GDD 9.3 was doing the game's structural work. It is
 now what it was meant to be: a safety net that almost never fires.
 
+## The modifiers, after indexing the scoring zones on `targetR`
+
+At sigma = 90 ms, the sigma at which the mass targets are met:
+
+| Day | median | p90 | >=90% | Bullseye | Perfect | zero |
+| --- | --- | --- | --- | --- | --- | --- |
+| Clear Skies | 76.70 | 98.06 | 27.9% | 6.94% | 2.46% | 8.3% |
+| Crosswind | 81.44 | 98.84 | 35.0% | 9.35% | 2.95% | 0.7% |
+| Tailwind | 74.40 | 97.51 | 24.9% | 6.17% | 2.14% | 12.9% |
+| Gusty | 77.05 | 98.06 | 28.1% | 7.09% | 2.26% | 8.3% |
+| Moon Gravity | 70.61 | 96.84 | 21.7% | 5.10% | 1.73% | 12.9% |
+| **Tiny Target** | **71.24** | 94.71 | **14.6%** | 4.51% | 2.26% | 8.1% |
+| **Long Shot** | 75.45 | 98.01 | 26.2% | 6.88% | 2.34% | **14.9%** |
+
+Three of those readings are the point of the exercise:
+
+- **Tiny Target is now the hardest day**, at 14.6% above 90 against 27.9% on a
+  Clear day. Before the scoring zones followed `targetR` it scored identically
+  to Clear, because halving the mat changed nothing about the curve. It is "the
+  day of legends" again -- and note its Perfect rate is *not* lower, because the
+  Perfect radius is absolute: the mat shrinks, the golden pixel does not.
+- **Long Shot loses the most shots off the map** (14.9%), which is exactly the
+  overshoot trap GDD 11.8 describes as "everyone underestimates it".
+- **Crosswind is the easiest**, not the hardest. The headwind shortens every
+  flight, so almost nothing leaves the world -- 0.7% zeros against 12.9% on a
+  tailwind. That inverts the intuition in GDD 11.2 and is worth watching in the
+  live data: if Crosswind reads as a soft day rather than the
+  "hated-and-loved classic", its wind range is the lever.
+
+The share card's rings follow `targetR` for the same reason the zones do. With
+the document's absolute buckets, a shot 35 units out on a Tiny Target day drew
+at ring 2 as though it had landed on the mat, when the mat is only 30 across --
+the card would have been lying on precisely the day people most want to post.
+
 ## What was not chased
 
 Two GDD 8 targets are unreachable under GDD 9.5's own player model, and no
 choice of scoring constants changes that:
 
-- **Bullseyes 1-3%** — measured 6.5% at sigma = 90 ms.
-- **Perfects 0.05-0.3%** — measured 2.3% at sigma = 90 ms.
+- **Bullseyes 1-3%** -- measured 6.6% at sigma = 90 ms.
+- **Perfects 0.05-0.3%** -- measured 2.3% at sigma = 90 ms.
 
 `holdMs` is an integer, so the finest a Perfect can be is the chance of hitting
 the single best millisecond, roughly `0.8 / sigma`: 2.7% at sigma = 30 ms, 0.9%
-at 90 ms. Reaching 0.1% needs an effective sigma above ~270 ms. This is a
-property of the input granularity and the error model, not of the curve.
+at 90 ms. Reaching 0.1% needs an effective sigma above ~270 ms.
 
-Recommendation: ship as calibrated, measure the live Perfect rate for a week,
-and only then consider shrinking `PERFECT_RADIUS`. Tuning it now would be tuning
-against a model already shown to be optimistic.
+The whole millisecond is also the **fairness floor**, not just a limitation.
+`performance.now()` is deliberately coarsened as a timing-attack mitigation, and
+the clamp differs by browser and by isolation state -- Chrome quantises to
+100 microseconds, Firefox to 1 ms unless the page is cross-origin isolated. A
+sub-millisecond Perfect window would be reachable on some browsers and not on
+others. A Perfect rate above target is a smaller problem than a day that is not
+the same for the whole planet.
+
+Recommendation: ship as calibrated, measure for a week, and only then consider
+moving `PERFECT_RADIUS` or `BULLSEYE_SCORE`. `stats:daily:{n}` counts `shots`,
+`bullseyes`, `perfects` and `sim_mismatch` as named fields for exactly that
+decision -- `sim_mismatch` in particular is the drift alarm, and a log line
+nobody greps is not an alarm.
 
 ## On sigma
 
@@ -62,57 +110,57 @@ gauge cycle. That is the number to verify in production.
 ONE SHOT — calibration report
 ==============================================================================
 tunables: GAUGE_PERIOD_MS=1400 G=1700 V=[400,1350] D=[500,800] H=[0,280] R=60 PERFECT_RADIUS=4
-sample: 100000 shots per sigma, 40 days per modifier, sigmas 30/45/60/90 ms
+sample: 120000 shots per sigma, 40 days per modifier, sigmas 30/45/60/90 ms
 geometry: mean landing sensitivity 1.66 u/ms, mean reachable span 712 u, 0/280 days needed a reroll
           a Perfect needs the release within 2.41 ms of the optimum, so the finest achievable Perfect rate is ~0.027% at sigma=30 and ~0.021% at sigma=90
 sigma = 30 ms
   population        n     p10  median     p90   >=90%   bull%    perf%   zero%    off%  cliff%  mean dx
 -------------------------------------------------------------------------------------------------------
-         ALL    99960   77.97   94.08   99.83    65.1   19.32    6.802     0.4     0.4     0.7     40.6
-       Clear    14280   80.27   95.01   99.87    70.9   20.65    6.891     0.3     0.3     0.4     39.0
-   Crosswind    14280   84.29   96.27   99.95    79.6   25.20    8.081     0.0     0.0     0.2     31.7
-    Tailwind    14280   78.39   94.16   99.80    66.1   18.62    6.274     0.5     0.5     0.8     43.1
-       Gusty    14280   80.73   94.94   99.88    71.0   21.04    6.933     0.2     0.2     0.2     38.4
-        Moon    14280   74.41   92.40   99.69    58.3   16.38    5.504     1.1     1.1     2.2     52.7
-        Tiny    14280   73.55   86.23   99.73    42.0   13.88    7.521     0.3     0.3     0.6     38.4
-        Long    14280   79.38   94.43   99.81    68.0   19.47    6.408     0.4     0.4     0.3     40.6
-  ✗ median 94.08 too high; 65.14% above 90 is too generous; bullseyes 19.32% too common; perfects 6.8017% too common
+         ALL   120120   77.99   94.05   99.83    65.2   19.31    6.706     0.4     0.4     0.7     40.5
+       Clear    17160   80.10   95.06   99.87    71.3   20.65    6.748     0.2     0.2     0.5     38.8
+   Crosswind    17160   84.06   96.24   99.95    79.5   25.17    8.141     0.0     0.0     0.3     31.9
+    Tailwind    17160   78.44   94.06   99.79    65.8   18.76    6.340     0.5     0.5     0.7     43.2
+       Gusty    17160   80.64   94.97   99.88    71.6   21.28    6.946     0.2     0.2     0.3     38.2
+        Moon    17160   74.33   92.55   99.69    58.6   16.29    5.414     1.1     1.1     2.1     52.4
+        Tiny    17160   73.82   86.48   99.70    42.6   13.96    7.121     0.3     0.3     0.7     37.9
+        Long    17160   79.27   94.27   99.79    66.8   19.07    6.230     0.4     0.4     0.4     41.3
+  ✗ median 94.05 too high; 65.16% above 90 is too generous; bullseyes 19.31% too common; perfects 6.7058% too common
 sigma = 45 ms
   population        n     p10  median     p90   >=90%   bull%    perf%   zero%    off%  cliff%  mean dx
 -------------------------------------------------------------------------------------------------------
-         ALL    99960   69.63   89.04   99.45    47.5   13.04    4.538     2.2     2.2     3.2     62.4
-       Clear    14280   71.67   90.77   99.56    52.2   14.68    4.650     1.7     1.7     2.8     60.3
-   Crosswind    14280   75.91   92.91   99.70    60.2   16.60    5.364     0.2     0.2     1.3     48.3
-    Tailwind    14280   69.45   89.13   99.37    47.6   12.31    4.076     2.9     2.9     3.7     67.1
-       Gusty    14280   71.75   90.80   99.55    52.5   14.14    4.776     1.7     1.7     2.3     59.7
-        Moon    14280   67.80   85.74   99.17    41.7   10.96    3.691     4.2     4.2     6.5     80.8
-        Tiny    14280   66.30   81.17   98.89    29.0    9.64    4.895     1.5     1.5     3.0     58.9
-        Long    14280   70.65   89.73   99.43    49.1   12.95    4.314     3.0     3.0     2.7     61.9
-  ✗ median 89.04 too high; 47.46% above 90 is too generous; bullseyes 13.04% too common; perfects 4.5378% too common
+         ALL   120120   69.68   88.99   99.45    47.4   12.96    4.527     2.1     2.1     3.1     62.2
+       Clear    17160   71.65   90.74   99.56    52.4   14.42    4.709     1.8     1.8     3.0     60.5
+   Crosswind    17160   75.77   92.90   99.70    60.0   16.68    5.431     0.1     0.1     1.3     48.4
+    Tailwind    17160   69.38   89.13   99.39    47.7   12.45    4.161     2.9     2.9     3.6     67.3
+       Gusty    17160   72.01   90.78   99.55    52.3   14.18    4.703     1.8     1.8     2.3     59.5
+        Moon    17160   67.80   85.72   99.19    41.7   11.03    3.596     3.8     3.8     6.5     79.3
+        Tiny    17160   66.57   81.03   98.66    28.6    8.83    4.650     1.6     1.6     2.6     58.8
+        Long    17160   70.70   89.72   99.43    49.2   13.10    4.441     2.9     2.9     2.5     61.8
+  ✗ median 88.99 too high; 47.4% above 90 is too generous; bullseyes 12.96% too common; perfects 4.5271% too common
 sigma = 60 ms
   population        n     p10  median     p90   >=90%   bull%    perf%   zero%    off%  cliff%  mean dx
 -------------------------------------------------------------------------------------------------------
-         ALL    99960   63.30   82.98   98.91    36.8    9.58    3.391     4.6     4.6     6.6     83.1
-       Clear    14280   67.80   85.43   99.08    40.7   10.46    3.536     3.7     3.7     6.3     82.1
-   Crosswind    14280   69.88   89.64   99.37    48.8   12.55    4.048     0.3     0.3     3.2     62.9
-    Tailwind    14280   57.41   82.92   98.82    36.7    9.05    3.270     6.8     6.8     7.2     90.2
-       Gusty    14280   67.80   85.47   99.15    41.2   10.81    3.613     3.8     3.8     6.0     80.2
-        Moon    14280   46.66   79.25   98.50    31.4    7.79    2.605     7.1     7.1    10.8    104.5
-        Tiny    14280   62.62   77.14   97.36    21.4    6.69    3.473     3.3     3.3     6.0     80.2
-        Long    14280   65.78   83.48   98.94    37.5    9.75    3.193     7.2     7.2     6.5     81.8
-  ✗ median 82.98 too high; 36.81% above 90 is too generous; bullseyes 9.58% too common; perfects 3.3914% too common
+         ALL   120120   63.14   82.96   98.92    36.8    9.66    3.434     4.6     4.6     6.6     83.1
+       Clear    17160   67.80   85.24   99.10    40.8   10.61    3.438     3.9     3.9     6.4     81.9
+   Crosswind    17160   69.89   89.51   99.38    48.6   12.57    4.225     0.4     0.4     3.3     63.2
+    Tailwind    17160   57.72   82.85   98.79    37.1    9.10    3.193     6.6     6.6     7.6     89.7
+       Gusty    17160   67.80   85.24   99.13    40.7   10.73    3.462     3.9     3.9     5.9     80.5
+        Moon    17160   46.19   79.38   98.37    31.3    7.86    2.791     7.2     7.2    10.5    104.6
+        Tiny    17160   62.62   77.15   97.45    21.3    6.50    3.467     3.6     3.6     6.2     80.5
+        Long    17160   65.48   83.56   99.03    38.0   10.25    3.462     7.0     7.0     6.3     81.2
+  ✗ median 82.96 too high; 36.83% above 90 is too generous; bullseyes 9.66% too common; perfects 3.4341% too common
 sigma = 90 ms
   population        n     p10  median     p90   >=90%   bull%    perf%   zero%    off%  cliff%  mean dx
 -------------------------------------------------------------------------------------------------------
-         ALL    99960   32.12   75.39   97.78    25.6    6.57    2.286     9.3     9.3    11.9    115.6
-       Clear    14280   34.65   76.93   98.11    28.1    7.08    2.416     8.1     8.1    13.5    117.0
-   Crosswind    14280   62.37   81.66   98.83    35.1    9.22    2.955     0.5     0.5     6.7     88.5
-    Tailwind    14280    0.00   74.26   97.69    25.1    6.27    2.101    13.4    13.4    13.5    125.2
-       Gusty    14280   36.28   76.89   97.96    27.9    6.90    2.269     8.4     8.4    11.8    115.2
-        Moon    14280    0.00   70.84   96.94    21.9    5.46    1.877    12.9    12.9    14.2    140.8
-        Tiny    14280   39.35   70.90   94.35    14.2    4.24    2.080     7.8     7.8    12.1    113.1
-        Long    14280    0.00   75.85   97.87    26.8    6.82    2.304    14.2    14.2    11.8    109.7
-  ✗ bullseyes 6.57% too common; perfects 2.2859% too common
+         ALL   120120   31.19   75.31   97.76    25.5    6.58    2.304     9.4     9.4    11.9    116.0
+       Clear    17160   34.64   76.70   98.06    27.9    6.94    2.459     8.3     8.3    13.2    117.8
+   Crosswind    17160   62.04   81.44   98.84    35.0    9.35    2.949     0.7     0.7     7.0     89.0
+    Tailwind    17160    0.00   74.40   97.51    24.9    6.17    2.144    12.9    12.9    13.9    124.9
+       Gusty    17160   36.43   77.05   98.06    28.1    7.09    2.255     8.3     8.3    11.6    114.0
+        Moon    17160    0.00   70.61   96.84    21.7    5.10    1.731    12.9    12.9    14.6    141.4
+        Tiny    17160   37.23   71.24   94.71    14.6    4.51    2.255     8.1     8.1    11.6    113.6
+        Long    17160    0.00   75.45   98.01    26.2    6.88    2.337    14.9    14.9    11.5    110.9
+  ✗ bullseyes 6.58% too common; perfects 2.3044% too common
 verdict
 ------------------------------------------------------------------------------
   median and >=90% land inside GDD 8 at sigma = 90 ms.

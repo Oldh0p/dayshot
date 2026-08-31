@@ -291,9 +291,18 @@ export const submitShot = async (
       score: analytics.scoreBucket(shot.score),
       modifier: level.modifier.toLowerCase(),
       impact: shot.impact.toLowerCase(),
-      mismatch: simMismatch,
     },
   });
+
+  // Named counters rather than event props, because these three are what the
+  // first week's decisions rest on: whether BULLSEYE_SCORE and PERFECT_RADIUS
+  // need moving, and whether the shared simulation has drifted. `sim_mismatch`
+  // in particular is an alarm, not a statistic -- a log line nobody greps is
+  // not an alarm.
+  await analytics.bump(redis, dayNumber, 'shots');
+  if (shot.isBullseye) await analytics.bump(redis, dayNumber, 'bullseyes');
+  if (shot.isPerfect) await analytics.bump(redis, dayNumber, 'perfects');
+  if (simMismatch) await analytics.bump(redis, dayNumber, 'sim_mismatch');
 
   const perfectsRaw = await redis.hGet(keys.dayMeta(dayNumber), 'perfects');
 
