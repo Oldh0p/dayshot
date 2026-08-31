@@ -38,6 +38,15 @@ Nothing here may be implemented until the MVP ships and is validated.
 - **Server-side audit of `SIM_MISMATCH`.** The MVP logs and counts mismatches.
   A dashboard or mod-visible report would make the anti-cheat monitoring of
   GDD 32.4 actionable.
+- **Self-hosting the leaderboard window on the result screen.** The board sits
+  below the CTAs and is reached by scrolling. GDD 29 lists the leaderboard as
+  its own surface with tabs (Global / My Sub / League / My Shots); the MVP has
+  only the global view, so a tab bar would be a tab bar of one.
+- **rAF pauses while the tab is hidden.** If a player backgrounds the app
+  mid-flight the animation freezes and resumes on return. The shot is already
+  submitted at release, so nothing is lost, but the frozen ball looks like a
+  bug for the instant before it resumes. A visibility handler that fast-forwards
+  the flight to impact would be tidier.
 - **Streak reset copy is shown from a derived flag.** The reset is only
   persisted on the next submission, so a player who never comes back keeps a
   stale `streak` value in Redis. Harmless today; worth a nightly sweep if the
