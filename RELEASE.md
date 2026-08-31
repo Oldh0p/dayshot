@@ -1,316 +1,152 @@
-# Release checklist
+# Release checklist — DAYSHOT
 
 Everything between the current state of the tree and `npx devvit publish`.
-Nothing here is done. Work top to bottom; the blockers gate the rest.
 
-Current state: **220 tests green**, Devvit **0.14.2**, two accounts played on
-r/daily_one_shot_dev.
+Current state: **223 tests green**, Devvit **0.14.2**, app renamed to `dayshot`,
+`[DEV]` surface removed, Terms and Privacy written.
 
 ---
 
-## 0. Blockers — the app cannot be submitted without these
+## 1. What would fail review today
 
-### 0.1 Write `README.md`
+Only two things, and one of them is not mine to do.
 
-**This is a hard rejection criterion, not a nicety.** Devvit Rules,
-[App README requirements](https://developers.reddit.com/docs/devvit_rules#app-readme-requirements):
+### 1.1 The app has never been uploaded under its new name — **blocking**
 
-> Apps submitted with a missing, empty, default template README, or vague
-> README will be rejected.
+`devvit.json` now says `name: "dayshot"`. There is no rename command in the CLI
+(`devvit --help` lists none, and the name field *is* the app's identity), so
+uploading registers a **new app**. Nothing has been uploaded yet, so the version
+under review would not exist.
 
-The repository still carries the template's README. It must be replaced with:
+Consequence, and it is a feature: a new app means a **new Redis namespace**. On
+the test subreddit every streak, warm-up flag and lock starts empty, which
+re-tests the brand-new-account path for free — this time with the cliff
+gradient, the streak fix and the demo mode that the installed build predates.
 
-- an overview of 1000 words or fewer, **written for a non-developer**, saying
-  what the app does, who it is for, and any critical operational notes;
-- instructions to configure, deploy and interact with the full feature set.
-
-Note that reviewers read it — and may run an LLM over it — as part of deciding
-whether the app is approved.
-
-- [x] `README.md` rewritten: overview for a non-developer, install and moderator
-      instructions, how to play, developer notes, and a plain-language privacy
-      section.
-- [ ] Read by someone who is not the author.
-
-### 0.2 Decide the logged-out experience
-
-**The build currently walls it, and Reddit's guidance says not to.**
-
-`src/client/machine.ts` sends a visitor with no account straight to a
-`logged_out` phase where holding the screen does nothing. That follows GDD 31
-("Log in to take your shot"). It does not follow
-[Building for Logged Out Players](https://developers.reddit.com/docs/guides/logged-out-users):
-
-> Make your game playable for logged out users: don't gate the core experience
-> behind a login wall. […] Don't require login to start gameplay. Reserve
-> advanced features (saved progress, leaderboards, social) for logged-in users.
-
-This is a product decision, not an implementation detail, and it is the largest
-open question on this list. The consequences of each choice:
-
-| | Keep the wall (GDD 31) | Open the shot (Reddit's guide) |
-| --- | --- | --- |
-| Review | Not a stated rejection criterion, but it is guidance in the launch path | Aligned |
-| Reach | Every logged-out arrival bounces | Search and shared-link traffic can play |
-| Complexity | None, already built | Moderate |
-
-If you open it, the cheap path already exists: a logged-out visitor gets the
-**warm-up** — a real shot, a real score, clearly marked as not counting — and
-`showLoginPrompt()` at the moment the result screen would have shown a rank.
-Nothing new has to be built; the warm-up phase is reused with a different exit.
-
-Note that logged-out traffic does **not** count toward Reddit Developer Funds
-qualified engagement, so this is a reach-and-conversion argument, not a revenue
-one.
-
-- [x] **Decided: follow Reddit's guidance, with an anti-scouting refinement.**
-      A logged-out visitor shoots a *fixed demo level* (`DEMO_DAY`), never the
-      day's — otherwise a private window would be free reconnaissance of the
-      wind and the distance before the real attempt, and the planning beat the
-      game is built on would be gone. Same verb, same physics, nothing leaked.
-      The day bar shows `DEMO` in place of the day and its modifier. After the
-      shot lands, where the rank would have been, the screen offers
-      *Log in to take today's real shot*.
-- [ ] Verified from a private window on web and on the mobile app.
-
-### 0.3 Set `LAUNCH_DAY`
-
-```bash
-npm run launch-day <first public date, YYYY-MM-DD>
-```
-
-Paste the number into `src/shared/tunables.ts`. The first public post must read
-**ONE SHOT #1**. This constant cannot be corrected after launch without
-renumbering every day anyone has already played.
-
-- [ ] Set, and the next post verified to read `#1`.
-
-### 0.4 Move to a real home subreddit
+### 1.2 A dedicated non-test subreddit — **your call, low risk**
 
 The [launch guide](https://developers.reddit.com/docs/guides/launch/launch-guide)
-requires a game to have "a dedicated, **non-test** subreddit (e.g. r/Pixelary)".
-r/daily_one_shot_dev is a test subreddit and cannot be the home.
+lists, for games: "Has a dedicated, non-test subreddit (e.g. r/Pixelary)."
 
-Per GDD M4 the game lives in a single home subreddit — Redis is namespaced per
-installation, so the home subreddit *is* the world. Create it, install there,
-and keep r/daily_one_shot_dev for playtests.
+The home subreddit exists. You have decided not to install there before
+approval. That is defensible — published apps are unlisted by default and are
+installed after approval — but note the reviewer will only see the app running
+on r/daily_one_shot_dev. If review comes back asking to see it on the home
+community, installing takes a minute and is not a code change.
 
-- [ ] Home subreddit created, named, and the app installed in it.
+### 1.3 Account deletion — **not blocking. Submit.**
 
-### 0.5 Strip the `[DEV]` surface
+My ruling, with the reasoning, because you asked for a decision rather than a
+hedge:
 
-Remove from `devvit.json`:
+- The requirement is real: the rules say a deleted account's `t2_*` must be
+  removed from the app's datastores.
+- **No account-deletion trigger exists.** Verified against the `devvit.json`
+  trigger schema: post, comment, mod-action, mod-mail and app-lifecycle events
+  only. So no Devvit app holding per-user state can satisfy it reactively, and
+  a daily streak is per-user state by definition.
+- The exposure is already minimal: the only author-identifying data is a
+  username cache that expires in 90 days; everything else is keyed by an opaque
+  id and every per-day key expires.
+- Reddit reviews with knowledge of its own platform's capabilities. Blocking a
+  submission on a requirement the platform provides no mechanism for would mean
+  never submitting.
 
-- [ ] all five `[DEV]` menu items;
-- [ ] the `daily-post-once` scheduler task;
-- [ ] `dev.subreddit` (or leave it — it only affects `devvit playtest`).
+Send the modmail (`docs/modmail-account-deletion.md`) **in parallel with**
+submitting, not before it. If review raises it, you have already asked and can
+point at the thread.
 
-And from the client:
+### Everything else is at the required level
 
-- [ ] the `devProbe` line in `splash.tsx`, once question C below is answered.
-
-`src/server/routes/dev.ts` may stay in the tree; nothing routes to it once the
-menu entries are gone. Re-validate `devvit.json` against
-<https://developers.reddit.com/schema/config-file.v1.json> afterwards.
-
----
-
-## 1. Done
-
-- [x] **Devvit 0.14.2.** Bumped from 0.14.1, exact-pinned, 206 tests green,
-      build clean, no API surface change. The
-      [changelog](https://developers.reddit.com/docs/changelog) describes 0.14.2
-      as documentation-only: clarified Markdown support for comment text and
-      character limits for post and removal notes. Zero functional risk.
-
-      Beware: npm shows a `devvit@1.0.0`. It was published in **February 2022**
-      and is a stale artefact, not a newer release. `latest` is `0.14.2`.
-
-- [x] **Score comments reply to a stickied comment.** Required twice over —
-      [Devvit Rules, user action requirements](https://developers.reddit.com/docs/devvit_rules#user-action-requirements)
-      ("For generic score comments, reply to a sticky comment") and the
-      [user actions guide](https://developers.reddit.com/docs/capabilities/server/userActions).
-
-- [x] **The consent sheet shows the card itself**, and names the account it will
-      come from. The rules require the player to understand "what will appear on
-      Reddit and when their username is shown to others" before confirming; a
-      description of a card is not the card.
-
-- [x] **Comment deletion is honoured.** An `onCommentDelete` trigger drops the
-      app's record of a published card, which is all the app holds about it, and
-      hands the player their share back.
-
-- [x] **Actions are never merged.** `POST MY SHOT`, `Practice` and `Copy card`
-      are three separate controls, and nothing in the game is gated behind
-      posting or subscribing.
-
----
-
-## 2. Terms of Service and Privacy Policy
-
-**Probably not required, and worth a deliberate decision rather than an
-assumption.** The
-[quality rules](https://developers.reddit.com/docs/devvit_rules#build-for-a-quality-experience)
-say you must:
-
-> Include your own terms of service and privacy policy if your app uses premium
-> features (for example, payments, fetching, or using LLMs) **or if requested by
-> Reddit**
-
-This app uses none of the three: `devvit.json` declares only `redis` and
-`reddit`, with no `http`, no `payments`, no LLM. So no URLs are required today.
-
-Two caveats:
-
-- The MVP's own roadmap adds payments in V2 (GDD 38), which would make both
-  documents mandatory.
-- Reddit may request them anyway during review.
-
-- [ ] Decide: publish without them, and be ready to produce them within a day
-      if review asks. Or write them now — a short privacy policy is easy here,
-      because the honest answer is short: the app stores a Reddit user id, the
-      day's shot, a streak, and aggregate counters; nothing leaves Reddit; there
-      is no third party, no tracking, and no external fetch.
-- [ ] If written, host them and add the URLs to the app's Developer Portal
-      listing.
-
----
-
-## 3. Data and deletion — one open question for Reddit
-
-The rules require that on **account deletion**, "the related user ID (`t2_*`)
-must be completely removed from your hosted datastores".
-
-There is **no account-deletion trigger** in Devvit. The available triggers are
-post and comment events only — verified against the `devvit.json` schema. So the
-requirement cannot be met reactively by any app that keeps per-user state, and a
-daily streak is per-user state by definition.
-
-What the app already does to minimise the exposure:
-
-| Key | Contents | Retention |
-| --- | --- | --- |
-| `user:{id}` | streak, longest, best, counters, flags. **No username, no profile data.** | No TTL — a streak is the point of the game |
-| `user:{id}:played:{n}` | the day's shot, for audit | 90 days |
-| `user:{id}:shared:{n}` | a permalink | 90 days, and dropped on comment delete |
-| `day:{n}:names` | userId → username, for the leaderboard | 90 days |
-| `day:{n}:scores` | userId → score | 90 days |
-
-The only author-identifying data is the username cache, and it expires in 90
-days. Everything else is keyed by an opaque id.
-
-Both candidate resolutions remain on the table:
-
-- a rolling TTL on `user:{id}`, refreshed whenever the player returns, so a
-  deleted account's record disappears within a quarter;
-- resolving usernames at read time via `reddit.getUserById()` and caching none
-  — about ten calls per result screen, affordable at this leaderboard size,
-  and it removes the only author-identifying field the app holds.
-
-- [x] Modmail drafted: `docs/modmail-account-deletion.md`. It asks one question,
-      states what the app stores, and proposes both resolutions so a reviewer
-      can answer in a line.
-- [ ] Sent, and the answer recorded here.
-
----
-
-## 4. Finish PLAYTEST.md
-
-The playtest is one player, one shot, one day. These remain.
-
-### Tonight, at 00:00 UTC
-
-- [ ] **B, second half — is the cron read as UTC?** `npm run dev` must be
-      running. Look for `[daily] task="daily-post" …` and confirm its timestamp
-      is UTC midnight. This is the only proof; the docs say UTC and a 0.11
-      example says "12:00 UTC", but neither is evidence.
-- [ ] **9.11.4 — the rollover.** Sit on `HOLD TO AIM` before midnight, fire
-      after: `New day just dropped`, no shot spent.
-- [ ] Then the grace window: fire offline just before midnight, restore the
-      connection within 90 s, confirm the shot counts for **yesterday**.
-
-### Multi-player — the solo run could not test these
-
-- [ ] **9.11.2 — one shot a day across devices.** Two devices, same account,
-      both on `HOLD TO AIM`, fire within a second. Exactly one score; both
-      devices show it.
-- [ ] **The leaderboard with a real field.** Get three or more accounts to
-      shoot. Confirm the podium, the ±3 window, and that the headline switches
-      from `#N TODAY` to `TOP x%` once the day passes 50 players — which will
-      not happen on a dev sub, so verify the boundary another way or accept it
-      on the unit tests.
-- [ ] **Tie-breaking.** Two accounts on the same score: the earlier submission
-      must rank higher.
-- [ ] **9.11.5 — the warm-up**, on an account that has never opened the game.
-- [ ] **E — who is credited by `runAs: 'USER'`**, as owner and as a non-owner.
-
-### Surfaces
-
-- [ ] **C — does `setPostData` reach a card already in the feed?** Run
-      `[DEV] Refresh splash data`, then check the feed without reloading, after
-      a pull-to-refresh, and in the mobile app.
-- [ ] **D — logged out**, on web and mobile app, in feed and expanded. Blocked
-      on 0.2 above: test whichever behaviour you decide on.
-- [ ] **Mobile, logged in**, the whole loop. The launch guide requires testing
-      "across mobile and web" and "from multiple accounts (developer,
-      moderator, regular user), since permissions differ".
-- [ ] **9.11.10 — 60 fps** on a mid-range phone.
-- [ ] **9.11.12 — reduced motion, contrast, 48 px targets.**
-
-### One rule to re-read against the build
-
-> Avoids inline scrolling (scrolling inside inline webviews is prohibited).
-
-The splash does not scroll. The result panel does — but it lives in `game.html`,
-which is only ever reached through `requestExpandedMode`, never rendered inline.
-
-- [ ] Confirm on a real device that the inline card never scrolls, and that the
-      expanded view's scrolling is not read as a violation.
-
----
-
-## 5. Publish
-
-- [ ] `npm run test` green, `npm run tune` re-run if any tunable moved.
-- [ ] Cross-post to r/Devvit with the **Feedback Friday** flair, and to
-      r/GamesOnReddit with the **Feedback** flair. The launch guide recommends
-      both before submitting.
-- [ ] `npx devvit publish` — **not** `--public`. The default is unlisted, which
-      is what a single-home-subreddit game wants; the guide explicitly advises
-      against listing apps built for one subreddit.
-- [ ] Expect **1–2 business days** for a version update, longer for a first
-      submission. Reviews pause during some holiday periods; check r/Devvit.
-- [ ] Every subsequent publish is re-reviewed, so batch changes weekly or less
-      often.
-
----
-
-## What Reddit's review actually checks
-
-Drawn from [Devvit Rules](https://developers.reddit.com/docs/devvit_rules) and
-the [launch guide](https://developers.reddit.com/docs/guides/launch/launch-guide).
-Reviewers read the code, the README and example posts, test the app, and may use
-third-party LLMs to assist.
-
-**Where this app stands:**
-
-| Area | Status |
+| Requirement | Where it stands |
 | --- | --- |
-| README present and non-vague | ✅ written, unread by a second pair of eyes |
-| Dedicated non-test subreddit | ❌ **blocker**, see 0.4 — waiting on the name |
+| `README.md` present, non-vague, non-developer audience | ✅ rewritten; overview, install, how to play, privacy in plain words |
+| Score comments as the user, replying to a sticky | ✅ replies to the day's stickied thread |
+| Player knows what will be published before confirming | ✅ the consent sheet renders the exact card and names `u/<username>` |
+| Explicit manual action, no automation | ✅ one button, one confirmation |
+| Actions never merged, nothing gated behind sharing | ✅ `POST MY SHOT`, `Practice`, `Copy card` are three controls |
+| Honours comment deletion | ✅ `onCommentDelete` drops the app's record |
 | Custom launch screen | ✅ the splash entrypoint |
-| Immediately understandable to a new user | ✅ warm-up, one instruction, one input |
-| Responsive, mobile and web | ⚠️ untested on mobile |
-| No inline scrolling | ✅ believed, unverified on device |
-| Score comments as the user, replying to a sticky | ✅ |
-| Explicit manual action, no automation | ✅ |
-| Player knows what will be published | ✅ the consent sheet shows the card |
-| Actions not merged, nothing gated behind sharing | ✅ |
-| `userGeneratedContent` set | n/a — required for `submitCustomPost` as user; this app only comments |
-| Honours comment deletion | ✅ trigger added |
-| Honours account deletion | ⚠️ no trigger exists, see 3; modmail drafted |
-| Data minimisation, TTLs | ✅ 90 days on everything but the streak record |
-| No external fetch, no LLM, no payments | ✅ none declared |
-| ToS / privacy policy | ⚠️ not required today, see 2 |
+| Immediately understandable | ✅ warm-up, one instruction, one input |
+| Core experience not behind a login wall | ✅ logged-out visitors shoot a demo level |
+| No inline scrolling | ✅ the splash does not scroll; the scrolling panel is expanded-only |
+| No external fetch, LLM or payments | ✅ `devvit.json` declares only `redis` and `reddit` |
+| Data minimisation and TTLs | ✅ 90 days on everything but the streak record |
+| Terms and privacy policy | ✅ written, though not required — see below |
 | No Reddit or third-party IP | ✅ Pip is original; nothing borrows from Snoo |
-| Accurate app description | ⚠️ written at publish time |
+
+---
+
+## 2. Terms and Privacy
+
+**Not required**, and written anyway. The
+[quality rules](https://developers.reddit.com/docs/devvit_rules#build-for-a-quality-experience)
+require them only if the app uses payments, `fetch` or an LLM — this app
+declares none — "or if requested by Reddit". Having them costs nothing and
+removes a round trip if review asks.
+
+`docs/privacy.md` and `docs/terms.md`. They are short because the honest answer
+is short: an opaque account id, the day's shot, a streak, a 90-day username
+cache, and nothing that leaves Reddit.
+
+**Simplest hosting, no infrastructure: GitHub Pages.** The files already sit in
+`docs/`, one of the two folders Pages serves natively, and its default renderer
+turns Markdown into HTML with no build step.
+
+---
+
+## 3. Day numbering — solved, not deferred
+
+The problem: approval lands on an unknown date, so a compile-time `LAUNCH_DAY`
+is a guess, and a wrong guess means a post titled `#0` or a second review cycle
+to fix a constant.
+
+**The number is now anchored on the first day the installation ever creates a
+post**, claimed with `SET NX` and never moved. That gives exactly what the
+constant was for — the first public post reads `#1` — without predicting
+anything. Whenever approval lands, whenever the home community installs, its
+first day is its day one.
+
+Levels are unaffected: they come from the absolute day number, and the anchor
+only decides what the title calls it. Redis is per installation, so a community
+that joins later counts from its own first day, which is what a community would
+expect.
+
+Three tests cover it: the first day is `#1`, six racing cold requests agree, and
+a fresh installation gets its own `#1`.
+
+`LAUNCH_DAY` survives only as a constant for pure unit tests, and
+`npm run launch-day` as an inspection tool. Neither is on the runtime path.
+
+---
+
+## 4. What the rename changed
+
+- `devvit.json` and `package.json` name → `dayshot`.
+- Brand strings in `copy.ts`: the splash title, the warm-up interstitial, the
+  daily post title, and both share formats.
+- **The seed string `oneshot:` is deliberately unchanged.** It is not a brand
+  string: it is the input to the hash that decides every level, and renaming it
+  would silently regenerate every day the game has ever had. A test and a
+  comment both say so.
+- `PREFIX = 'oneshot:'` in `storage.ts` is likewise left alone. It only names
+  browser-local conveniences, and churning it would orphan them for no gain.
+- CSS keyframe names (`one-shot-rise`) are internal and not worth the churn.
+
+---
+
+## 5. What is still unverified
+
+None of these blocks submitting. They are what a careful playtest on the renamed
+app should confirm.
+
+- [ ] The rollover: `[daily] task="daily-post"` at 00:00 UTC, and the title
+      advancing by one.
+- [ ] Two accounts on the same wall, with the gradient in place — the two 67.80s
+      should now differ.
+- [ ] Mobile, logged in, the whole loop.
+- [ ] Logged out, on web and the mobile app, in feed and expanded.
+- [ ] `prefers-reduced-motion`, contrast, 48 px targets.
+- [ ] Whether `setPostData` reaches a card already in the feed. The probe that
+      would have answered this went with the rest of the `[DEV]` surface; it is
+      a V1 question (the dynamic splash of GDD 12), not an MVP one.

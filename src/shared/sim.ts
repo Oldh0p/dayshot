@@ -46,7 +46,7 @@ import {
 } from './tunables.ts';
 
 /**
- * The deterministic core of ONE SHOT: PRNG, daily level generation, ballistic
+ * The deterministic core of DAYSHOT: PRNG, daily level generation, ballistic
  * simulation and scoring. Imported *verbatim* by the client and the server.
  *
  * Contract (GDD 9.2, 9.4):
@@ -95,6 +95,12 @@ export const mulberry32 = (seed: number): (() => number) => {
 /**
  * Seed string for a day. `rerollK` is 0 on virtually every day; it only moves
  * when the validity guard-rail rejects a degenerate level (GDD 9.3).
+ *
+ * **The literal `oneshot:` is frozen for life and is not a brand string.** It
+ * names nothing a player ever sees; it is the input to the hash that decides
+ * every level. The game was called ONE SHOT when this was written and is called
+ * DAYSHOT now — changing this prefix would silently regenerate every day the
+ * game has ever had. A test asserts it.
  */
 export const seedStringFor = (dayNumber: number, rerollK: number): string =>
   rerollK === 0 ? `oneshot:${dayNumber}` : `oneshot:${dayNumber}:r${rerollK}`;

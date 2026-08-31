@@ -131,7 +131,7 @@ gauge cycle. That is the number to verify in production.
 ## Full report
 
 ```
-ONE SHOT — calibration report
+DAYSHOT — calibration report
 ==============================================================================
 tunables: GAUGE_PERIOD_MS=1400 G=1700 V=[400,1350] D=[500,800] H=[0,280] R=60 PERFECT_RADIUS=4
 sample: 120000 shots per sigma, 40 days per modifier, sigmas 30/45/60/90 ms

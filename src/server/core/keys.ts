@@ -50,3 +50,12 @@ export const userShared = (userId: string, dayNumber: number): string =>
  * carries a comment id and nothing else useful.
  */
 export const sharedIndex = (): string => 'shared:by-comment';
+
+/**
+ * The UTC day this installation's game began, written once and never again.
+ *
+ * Day numbering is anchored here rather than on a compile-time constant,
+ * because the date a submission is approved is not knowable when it is
+ * submitted. See `day.ts`.
+ */
+export const anchorDay = (): string => 'game:anchor-day';

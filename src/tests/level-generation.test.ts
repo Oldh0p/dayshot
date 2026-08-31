@@ -64,6 +64,9 @@ describe('PRNG', () => {
   });
 
   it('builds the reroll seed string exactly as specified', () => {
+    // The `oneshot:` prefix is frozen for life and is not a brand string. The
+    // game was called ONE SHOT when it was written and is called DAYSHOT now;
+    // changing this would silently regenerate every day the game has ever had.
     assert.equal(seedStringFor(247, 0), 'oneshot:247');
     assert.equal(seedStringFor(247, 1), 'oneshot:247:r1');
     assert.equal(seedStringFor(247, 12), 'oneshot:247:r12');

@@ -15,7 +15,7 @@ export const menu = new Hono();
  * idempotency: if today's post already exists it navigates there and says so,
  * because that is what the scheduler would do too.
  */
-menu.post('/dev-create-today', async (c) => {
+menu.post('/create-today', async (c) => {
   const subredditName = currentSubreddit();
   if (!subredditName) {
     return c.json<UiResponse>({ showToast: 'No subreddit in context' }, 400);
@@ -40,8 +40,8 @@ menu.post('/dev-create-today', async (c) => {
     return c.json<UiResponse>(
       {
         showToast: outcome.created
-          ? `Created ONE SHOT #${outcome.displayDay}`
-          : `ONE SHOT #${outcome.displayDay} already exists`,
+          ? `Created DAYSHOT #${outcome.displayDay}`
+          : `DAYSHOT #${outcome.displayDay} already exists`,
         navigateTo: `https://reddit.com/r/${context.subredditName}/comments/${outcome.postId.replace('t3_', '')}`,
       },
       200

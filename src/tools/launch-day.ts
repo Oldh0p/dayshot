@@ -35,7 +35,7 @@ console.log(`LAUNCH_DAY:          ${dayNumber}`);
 console.log('');
 console.log(`Current LAUNCH_DAY:  ${LAUNCH_DAY}`);
 console.log(
-  `Today would show as: ONE SHOT #${todayDisplay}` +
+  `Today would show as: DAYSHOT #${todayDisplay}` +
     (todayDisplay < 1
       ? '  <-- before launch, so the number is not yet meaningful'
       : '')
@@ -44,4 +44,4 @@ console.log('');
 console.log(
   `Set LAUNCH_DAY = ${dayNumber} in src/shared/tunables.ts so that the first`
 );
-console.log('public post reads ONE SHOT #1, then never change it again.');
+console.log('public post reads DAYSHOT #1, then never change it again.');

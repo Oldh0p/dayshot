@@ -21,7 +21,6 @@ describe('splash data', () => {
     assert.equal(data.displayDay, 1);
     assert.equal(data.modifier, 'CROSSWIND');
     assert.equal(data.modifierLabel, 'Crosswind');
-    assert.equal(data.devProbe, null);
   });
 
   it('tells a missing day number apart from a pre-launch one', () => {
@@ -48,16 +47,10 @@ describe('splash data', () => {
     // and one instruction; the world's shot count belongs inside the game.
     const data = parseSplashData({ displayDay: 12, modifier: 'MOON' });
     assert.deepEqual(Object.keys(data).sort(), [
-      'devProbe',
       'displayDay',
       'modifier',
       'modifierEmoji',
       'modifierLabel',
     ]);
-  });
-
-  it('shows the dev probe only when one was written', () => {
-    assert.equal(parseSplashData({ devProbe: '21:54:03' }).devProbe, '21:54:03');
-    assert.equal(parseSplashData({ devProbe: 7 }).devProbe, null);
   });
 });

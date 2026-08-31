@@ -1,4 +1,4 @@
-# ONE SHOT — working conventions
+# DAYSHOT — working conventions
 
 A daily one-attempt skill game for Reddit, built on Devvit Web.
 `ONE-SHOT-GDD.md` is the design document; **Part IX is the contract**. Anything

@@ -90,7 +90,7 @@ export const formatCount = (value: number): string =>
 
 export const COPY = {
   // -- Identity -------------------------------------------------------------
-  title: 'ONE SHOT',
+  title: 'DAYSHOT',
   /** GDD 9.9 */
   tagline: 'One attempt. Every day.',
 
@@ -103,7 +103,7 @@ export const COPY = {
   warmupBanner: "WARM-UP — this one doesn't count",
   /** GDD 9.9 */
   warmupOver: 'That was practice. Now for real.',
-  warmupOverSub: 'ONE SHOT — make it count.',
+  warmupOverSub: 'DAYSHOT — make it count.',
   warmupResultLead: 'Warm-up shot',
 
   // -- Aiming ---------------------------------------------------------------
@@ -291,7 +291,7 @@ export const dailyPostTitle = (
   displayDay: number,
   modifier: ModifierId
 ): string =>
-  `🎯 ONE SHOT #${displayDay} — ${MODIFIER_LABEL[modifier]}. One try. 24 hours.`;
+  `🎯 DAYSHOT #${displayDay} — ${MODIFIER_LABEL[modifier]}. One try. 24 hours.`;
 
 export const splashDescription = (modifier: ModifierId): string =>
   `${MODIFIER_EMOJI[modifier]} ${MODIFIER_LABEL[modifier]} — one try, 24 hours.`;
@@ -371,10 +371,10 @@ export type ShareCardInput = {
 /**
  * Format A — one line, for comments and for pasting anywhere.
  *
- * `🎯 ONE SHOT #247 · 98.73 · Top 4.2% · 🔥 12`
+ * `🎯 DAYSHOT #247 · 98.73 · Top 4.2% · 🔥 12`
  */
 export const shareFormatA = (card: ShareCardInput): string =>
-  `🎯 ONE SHOT #${card.displayDay} · ${formatScore(card.score)} · ` +
+  `🎯 DAYSHOT #${card.displayDay} · ${formatScore(card.score)} · ` +
   `Top ${formatPercent(card.percentile)}% · 🔥 ${card.streak}`;
 
 /**
@@ -499,10 +499,10 @@ export const shareGrid = (
 };
 
 /**
- * Format B — the target grid, ONE SHOT's Wordle grid.
+ * Format B — the target grid, DAYSHOT's Wordle grid.
  *
  * ```
- * ONE SHOT #247 🌬️−380
+ * DAYSHOT #247 🌬️−380
  * 🟦🟦🟥🟦🟦
  * 🟦🟥🟨🟥🟦
  * 🟥🟨🎯⚫🟥
@@ -513,7 +513,7 @@ export const shareGrid = (
  */
 export const shareFormatB = (card: ShareCardInput): string => {
   const header =
-    `ONE SHOT #${card.displayDay} ` +
+    `DAYSHOT #${card.displayDay} ` +
     `${MODIFIER_EMOJI[card.modifier]}${formatWind(card.windBase)}`;
   const footer =
     `${formatScore(card.score)} · Top ${formatPercent(card.percentile)}% · ` +

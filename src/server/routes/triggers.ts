@@ -39,7 +39,7 @@ triggers.post('/on-app-install', async (c) => {
       {
         status: 'success',
         message:
-          `ONE SHOT #${outcome.displayDay} ` +
+          `DAYSHOT #${outcome.displayDay} ` +
           `${outcome.created ? 'created' : 'already present'} in ` +
           `${subredditName} (trigger: ${input.type})`,
       },

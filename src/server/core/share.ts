@@ -1,8 +1,8 @@
 import { shareFormatB } from '../../shared/copy.ts';
 import { generateLevel } from '../../shared/sim.ts';
 import { DAY_TTL_S } from '../../shared/tunables.ts';
-import { dayNumberAt, displayDayFor } from './clock.ts';
-import { ensureDayMeta } from './day.ts';
+import { dayNumberAt } from './clock.ts';
+import { displayDayFrom, ensureDayMeta, resolveAnchorDay } from './day.ts';
 import * as keys from './keys.ts';
 import { asThingId, type RedditLike } from './reddit-port.ts';
 import type { RedisLike } from './redis-port.ts';
@@ -69,7 +69,10 @@ export const shareShot = async (
     const level = generateLevel(dayNumber, meta.rerollK);
 
     const card = shareFormatB({
-      displayDay: displayDayFor(dayNumber),
+      displayDay: displayDayFrom(
+        dayNumber,
+        await resolveAnchorDay(redis, dayNumber)
+      ),
       modifier: level.modifier,
       windBase: level.windBase,
       score: summary.score,

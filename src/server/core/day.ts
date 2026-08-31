@@ -125,3 +125,44 @@ export const freezeDay = async (
 ): Promise<void> => {
   await redis.hSet(keys.dayMeta(dayNumber), { frozen: '1' });
 };
+
+/**
+ * The day this installation calls #1.
+ *
+ * A compile-time `LAUNCH_DAY` cannot work here: an app is submitted for review
+ * and approved some unknown number of days later, so any date baked in before
+ * submitting is a guess, and getting it wrong means either a post titled #0 or
+ * a second review cycle to correct a constant.
+ *
+ * So the anchor is the first day this installation ever created a post. It is
+ * claimed with `SET NX` and never moves after that, which gives exactly the
+ * property the constant was for — the first public post reads #1 — without
+ * anybody having to predict a date.
+ *
+ * Levels are unaffected either way: they come from the absolute `dayNumber`,
+ * and this only decides the number in the title. Redis is namespaced per
+ * installation, so each community that installs the game counts from its own
+ * first day, which is what a community would expect.
+ */
+export const resolveAnchorDay = async (
+  redis: RedisLike,
+  dayNumber: number
+): Promise<number> => {
+  const existing = await redis.get(keys.anchorDay());
+  if (existing !== undefined) {
+    const parsed = Number(existing);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  await redis.set(keys.anchorDay(), String(dayNumber), { nx: true });
+
+  // Read back rather than assume: two cold requests at midnight both try, and
+  // only one wins.
+  const settled = await redis.get(keys.anchorDay());
+  const parsed = Number(settled);
+  return Number.isFinite(parsed) ? parsed : dayNumber;
+};
+
+/** The number shown to players, from an anchor rather than a constant. */
+export const displayDayFrom = (dayNumber: number, anchor: number): number =>
+  dayNumber - anchor + 1;

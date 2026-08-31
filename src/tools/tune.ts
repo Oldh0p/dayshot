@@ -308,7 +308,7 @@ const verdictFor = (row: Summary): string[] => {
 const main = (): void => {
   const options = parseOptions(process.argv.slice(2));
 
-  console.log('ONE SHOT — calibration report');
+  console.log('DAYSHOT — calibration report');
   console.log('='.repeat(78));
   console.log(
     `tunables: GAUGE_PERIOD_MS=${GAUGE_PERIOD_MS} G=${G} ` +

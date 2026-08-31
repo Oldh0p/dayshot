@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "daily-one-shot",
+  "name": "dayshot",
   "permissions": {
     "redis": true,
     "reddit": {
@@ -31,39 +31,11 @@
   "menu": {
     "items": [
       {
-        "label": "[DEV] Create today's post",
-        "description": "Run the daily handler now for the current UTC day",
+        "label": "Create today's post",
+        "description": "Post today's DAYSHOT challenge now, if it is missing",
         "location": "subreddit",
         "forUserType": "moderator",
-        "endpoint": "/internal/menu/dev-create-today"
-      },
-      {
-        "label": "[DEV] Schedule daily task in 2 min",
-        "description": "Prove the scheduler pipeline without waiting for midnight",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/dev/schedule-daily"
-      },
-      {
-        "label": "[DEV] Refresh splash data",
-        "description": "Write a probe into postData and see if the feed card updates",
-        "location": "post",
-        "forUserType": "moderator",
-        "endpoint": "/internal/dev/refresh-splash"
-      },
-      {
-        "label": "[DEV] Verify redis ranking",
-        "description": "Self-check zRank ordering against the assumption the leaderboard makes",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/dev/verify-redis"
-      },
-      {
-        "label": "[DEV] Unbind today's post",
-        "description": "Forget the day's post so a fresh one can be created",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/dev/unbind-post"
+        "endpoint": "/internal/menu/create-today"
       }
     ]
   },
@@ -76,9 +48,6 @@
       "daily-post": {
         "endpoint": "/internal/scheduler/daily",
         "cron": "0 0 * * *"
-      },
-      "daily-post-once": {
-        "endpoint": "/internal/scheduler/daily"
       }
     }
   },

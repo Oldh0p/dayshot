@@ -7,12 +7,14 @@ import {
   type YesterdayStats,
 } from '../../shared/copy.ts';
 import { generateLevel } from '../../shared/sim.ts';
-import { dayNumberAt, displayDayFor } from './clock.ts';
+import { dayNumberAt } from './clock.ts';
 import {
   attachPost,
   attachSeedComment,
+  displayDayFrom,
   ensureDayMeta,
   freezeDay,
+  resolveAnchorDay,
 } from './day.ts';
 import * as keys from './keys.ts';
 import { decodeScore } from './ranking.ts';
@@ -84,7 +86,12 @@ export const ensureDailyPost = async (
 
   const at = now();
   const dayNumber = dayNumberAt(at);
-  const displayDay = displayDayFor(dayNumber);
+  // Claimed on the very first post this installation makes, so the first one
+  // reads #1 whenever review happens to land.
+  const displayDay = displayDayFrom(
+    dayNumber,
+    await resolveAnchorDay(redis, dayNumber)
+  );
   const meta = await ensureDayMeta(redis, dayNumber);
 
   if (meta.postId) {
@@ -111,15 +118,6 @@ export const ensureDailyPost = async (
       created: false,
       reason: 'creation already in flight',
     };
-  }
-
-  if (displayDay < 1) {
-    // Correct arithmetic, wrong constant: LAUNCH_DAY is still in the future.
-    // Harmless on a playtest subreddit, unshippable in public.
-    console.warn(
-      `[daily] this post will be numbered #${displayDay}. LAUNCH_DAY is set ` +
-        `to a future date — run \`npm run launch-day\` before publishing.`
-    );
   }
 
   const level = generateLevel(dayNumber, meta.rerollK);

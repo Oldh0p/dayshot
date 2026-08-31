@@ -1,4 +1,4 @@
-# ONE SHOT
+# DAYSHOT
 
 **One shot. Every day. No second chances.**
 
@@ -69,7 +69,8 @@ together.
 | --- | --- |
 | Create today's post | Runs the daily routine now. Safe to press twice: if today's post already exists it takes you to it. |
 
-Actions prefixed `[DEV]` are development probes and are removed before release.
+That is the only moderator action, and it is a safety net rather than a chore —
+the post normally creates itself.
 
 ---
 
@@ -111,6 +112,19 @@ server behind `/api/*` endpoints, configured by `devvit.json`.
 | `src/tests/` | Unit tests |
 | `src/tools/` | `npm run tune`, `npm run launch-day` |
 
+### Day numbering
+
+The number in the title is anchored on the first day the installation ever
+created a post, stored once in Redis. A compile-time constant cannot work: an
+app is submitted for review and approved an unknown number of days later, so any
+date baked in beforehand is a guess, and a wrong guess means either a post
+titled `#0` or a second review cycle to fix a constant. Anchoring gives the
+property the constant was for — the first post reads `#1` — without predicting
+anything.
+
+Levels are unaffected either way. They come from the absolute day number; the
+anchor only decides what the title calls it.
+
 ### How the daily challenge works
 
 The day number is `floor(epochMilliseconds / 86400000)` — an absolute UTC day,
@@ -136,7 +150,7 @@ npm run test         # types, lint and unit tests — the gate before any commit
 npm run dev          # devvit playtest
 npm run build        # vite build into dist/
 npm run tune         # Monte-Carlo calibration report
-npm run launch-day   # compute the LAUNCH_DAY constant for a launch date
+npm run launch-day   # inspect day numbering
 npm run harness      # serve the client locally against a stubbed API
 ```
 
@@ -150,7 +164,7 @@ unreachable, and why.
 
 | File | Contents |
 | --- | --- |
-| `ONE-SHOT-GDD.md` | The design document. Part IX is the specification this implements. |
+| `ONE-SHOT-GDD.md` | The design document, written under the game's working title. Part IX is the specification this implements. |
 | `CALIBRATION.md` | What `npm run tune` established, and which constants moved |
 | `PLAYTEST.md` | How to run a playtest, and what to verify by hand |
 | `RELEASE.md` | Everything between here and publishing |

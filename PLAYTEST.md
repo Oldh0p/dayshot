@@ -1,6 +1,6 @@
 # Playtest guide
 
-How to run ONE SHOT on a real subreddit, and what to check by hand once it is
+How to run DAYSHOT on a real subreddit, and what to check by hand once it is
 there. The automated suite covers everything it can (`npm run test`, 182 tests);
 this document covers what only a human on a real device can judge.
 
@@ -74,7 +74,7 @@ npm run dev
 ```
 
 The CLI prints two links: the subreddit, and the same URL with
-`?playtest=daily-one-shot` appended. **Use the second one** — it streams the
+`?playtest=dayshot` appended. **Use the second one** — it streams the
 browser console into the terminal and live-reloads on save.
 
 Installing the app fires `onAppInstall`, which creates today's post immediately.
@@ -111,7 +111,7 @@ run `[DEV] Unbind today's post`, delete the old post on Reddit by hand, then
 
 ## 7. Walk the loop
 
-1. Find the post in the feed. The card shows `ONE SHOT`, the day number, the
+1. Find the post in the feed. The card shows `DAYSHOT`, the day number, the
    modifier and `TAP TO SHOOT`.
 2. Tap it. The game opens expanded.
 3. A brand new account gets the warm-up first.
@@ -375,7 +375,7 @@ Rendering → *Emulate prefers-reduced-motion*.
 
 ## The daily post (GDD 9.11.8)
 
-- [ ] The title reads `🎯 ONE SHOT #N — <Modifier>. One try. 24 hours.`
+- [ ] The title reads `🎯 DAYSHOT #N — <Modifier>. One try. 24 hours.`
 - [ ] The seed comment is stickied and distinguished.
 - [ ] On the second day the seed comment quotes yesterday's numbers.
 - [ ] Running `[DEV] Create today's post` twice produces one post.
@@ -407,7 +407,7 @@ this list before the app leaves the dev subreddit.
 
 - [ ] **Set `LAUNCH_DAY`.** Run `npm run launch-day <first public date>` and
       paste the number into `src/shared/tunables.ts`. Confirm the next post
-      reads **ONE SHOT #1**. This is the one constant that cannot be corrected
+      reads **DAYSHOT #1**. This is the one constant that cannot be corrected
       later without renumbering days people have already played.
 - [ ] **Remove every `[DEV]` menu item from `devvit.json`**, and the
       `daily-post-once` scheduler task with them. A shipped game has no business

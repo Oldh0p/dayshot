@@ -60,10 +60,6 @@ export const Splash = (): JSX.Element => {
       <div className="mt-3 text-[13px] text-[color:var(--color-mist)]">
         {COPY.tagline}
       </div>
-
-      {data.devProbe && (
-        <div className="mt-2 text-[11px] opacity-50">probe {data.devProbe}</div>
-      )}
     </div>
   );
 };

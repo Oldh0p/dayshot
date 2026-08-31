@@ -1,7 +1,7 @@
 import { generateLevel } from '../../shared/sim.ts';
 import type { StateResponse } from '../../shared/types.ts';
-import { dayNumberAt, displayDayFor } from './clock.ts';
-import { ensureDayMeta } from './day.ts';
+import { dayNumberAt } from './clock.ts';
+import { displayDayFrom, ensureDayMeta, resolveAnchorDay } from './day.ts';
 import * as keys from './keys.ts';
 import { decodeScore } from './ranking.ts';
 import type { RedisLike } from './redis-port.ts';
@@ -29,6 +29,7 @@ export const buildState = async (
   const { userId, username, now } = params;
 
   const dayNumber = dayNumberAt(now);
+  const anchor = await resolveAnchorDay(redis, dayNumber);
   const meta = await ensureDayMeta(redis, dayNumber);
   const level = generateLevel(dayNumber, meta.rerollK);
 
@@ -45,7 +46,7 @@ export const buildState = async (
 
   const base = {
     dayNumber,
-    displayDay: displayDayFor(dayNumber),
+    displayDay: displayDayFrom(dayNumber, anchor),
     rerollK: meta.rerollK,
     serverNow: now,
     modifier: level.modifier,

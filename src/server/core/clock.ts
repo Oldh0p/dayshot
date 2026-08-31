@@ -12,7 +12,7 @@ const MS_PER_DAY = 86400000;
 export const dayNumberAt = (epochMs: number): number =>
   Math.floor(epochMs / MS_PER_DAY);
 
-/** The number shown to players: the game opens on ONE SHOT #1. */
+/** The number shown to players: the game opens on DAYSHOT #1. */
 export const displayDayFor = (dayNumber: number): number =>
   dayNumber - LAUNCH_DAY + 1;
 

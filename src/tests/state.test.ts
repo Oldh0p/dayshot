@@ -39,7 +39,10 @@ describe('buildState', () => {
     });
 
     assert.equal(state.dayNumber, DAY);
-    assert.equal(state.displayDay, DAY - LAUNCH_DAY + 1);
+    // The first day this installation ever sees is its #1, whenever that
+    // happens to be -- the approval date of a submission is not knowable when
+    // it is submitted.
+    assert.equal(state.displayDay, 1);
     assert.equal(state.serverNow, NOON);
     assert.equal(
       state.modifier,
@@ -241,5 +244,58 @@ describe('leaderboard entries carry decoded scores', () => {
     assert.equal(board.top[0]?.score, 98.73);
     assert.equal(board.top[0]?.username, 'alice');
     assert.equal(board.top[0]?.isMe, true);
+  });
+});
+
+describe('day numbering', () => {
+  it('calls the first day it ever sees #1, and counts up from there', async () => {
+    const redis = new FakeRedis();
+
+    const first = await buildState(redis, {
+      userId: 't2_alice',
+      username: 'alice',
+      now: NOON,
+    });
+    assert.equal(first.displayDay, 1);
+
+    const later = await buildState(redis, {
+      userId: 't2_alice',
+      username: 'alice',
+      now: NOON + 9 * 86400000,
+    });
+    assert.equal(later.displayDay, 10);
+  });
+
+  it('never re-anchors, however many cold requests race', async () => {
+    const redis = new FakeRedis(1);
+    const states = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        buildState(redis, { userId: null, username: null, now: NOON })
+      )
+    );
+    assert.deepEqual(new Set(states.map((s) => s.displayDay)), new Set([1]));
+
+    // And a later day still counts from the same anchor.
+    const tomorrow = await buildState(redis, {
+      userId: null,
+      username: null,
+      now: NOON + 86400000,
+    });
+    assert.equal(tomorrow.displayDay, 2);
+  });
+
+  it('gives a fresh installation its own #1', async () => {
+    // Redis is namespaced per installation, so a second community starting
+    // later counts from its own first day rather than inheriting ours.
+    const older = new FakeRedis();
+    await buildState(older, { userId: null, username: null, now: NOON });
+
+    const newer = new FakeRedis();
+    const state = await buildState(newer, {
+      userId: null,
+      username: null,
+      now: NOON + 100 * 86400000,
+    });
+    assert.equal(state.displayDay, 1);
   });
 });

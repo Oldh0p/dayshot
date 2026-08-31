@@ -152,7 +152,7 @@ describe('share Format A', () => {
   it('reproduces the document example exactly', () => {
     assert.equal(
       shareFormatA(REFERENCE_CARD),
-      '🎯 ONE SHOT #247 · 98.73 · Top 4.2% · 🔥 12'
+      '🎯 DAYSHOT #247 · 98.73 · Top 4.2% · 🔥 12'
     );
   });
 });
@@ -162,7 +162,7 @@ describe('share Format B', () => {
     assert.equal(
       shareFormatB(REFERENCE_CARD),
       [
-        'ONE SHOT #247 🌬️−380',
+        'DAYSHOT #247 🌬️−380',
         '🟦🟦🟥🟦🟦',
         '🟦🟥🟨🟥🟦',
         '🟥🟨🎯⚫🟥',
@@ -293,7 +293,7 @@ describe('reddit-side copy', () => {
   it('builds the daily post title in the contractual shape', () => {
     assert.equal(
       dailyPostTitle(247, 'CROSSWIND'),
-      '🎯 ONE SHOT #247 — Crosswind. One try. 24 hours.'
+      '🎯 DAYSHOT #247 — Crosswind. One try. 24 hours.'
     );
   });
 

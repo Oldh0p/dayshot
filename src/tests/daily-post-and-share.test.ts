@@ -229,7 +229,7 @@ describe('shareShot', () => {
     assert.equal(
       outcome.card,
       shareFormatB({
-        displayDay: DAY - LAUNCH_DAY + 1,
+        displayDay: 1,
         modifier: level.modifier,
         windBase: level.windBase,
         score: stored.score,
