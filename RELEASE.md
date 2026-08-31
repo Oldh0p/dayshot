@@ -2,7 +2,7 @@
 
 Everything between the current state of the tree and `npx devvit publish`.
 
-Current state: **223 tests green**, Devvit **0.14.2**, app renamed to `dayshot`,
+Current state: **223 tests green**, Devvit **0.14.2**, app renamed to `dayshot-game`,
 `[DEV]` surface removed, Terms and Privacy written.
 
 ---
@@ -13,7 +13,8 @@ Only two things, and one of them is not mine to do.
 
 ### 1.1 The app has never been uploaded under its new name — **blocking**
 
-`devvit.json` now says `name: "dayshot"`. There is no rename command in the CLI
+`devvit.json` now says `name: "dayshot-game"` — `dayshot` was already taken on
+the platform. There is no rename command in the CLI
 (`devvit --help` lists none, and the name field *is* the app's identity), so
 uploading registers a **new app**. Nothing has been uploaded yet, so the version
 under review would not exist.
@@ -31,7 +32,7 @@ lists, for games: "Has a dedicated, non-test subreddit (e.g. r/Pixelary)."
 The home subreddit is **r/DayShot**. You have decided not to install there
 before approval. That is defensible — published apps are unlisted by default and are
 installed after approval — but note the reviewer will only see the app running
-on r/daily_one_shot_dev. If review comes back asking to see it on the home
+on r/dayshot_game_dev. If review comes back asking to see it on the home
 community, installing takes a minute and is not a code change.
 
 ### 1.3 Account deletion — **not blocking. Submit.**
@@ -122,7 +123,8 @@ a fresh installation gets its own `#1`.
 
 ## 4. What the rename changed
 
-- `devvit.json` and `package.json` name → `dayshot`.
+- `devvit.json` and `package.json` name → `dayshot-game`. The CLI claimed the
+  name at upload time and rewrote both files itself; `dayshot` was taken.
 - Brand strings in `copy.ts`: the splash title, the warm-up interstitial, the
   daily post title, and both share formats.
 - **The seed string `oneshot:` is deliberately unchanged.** It is not a brand

@@ -13,12 +13,12 @@ npm install
 npm run login
 ```
 
-The playtest subreddit is **r/daily_one_shot_dev**, already set in
+The playtest subreddit is **r/dayshot_game_dev**, already set in
 `devvit.json`:
 
 ```json
 {
-  "dev": { "subreddit": "daily_one_shot_dev" }
+  "dev": { "subreddit": "dayshot_game_dev" }
 }
 ```
 
@@ -74,7 +74,7 @@ npm run dev
 ```
 
 The CLI prints two links: the subreddit, and the same URL with
-`?playtest=dayshot` appended. **Use the second one** — it streams the
+`?playtest=dayshot-game` appended. **Use the second one** — it streams the
 browser console into the terminal and live-reloads on save.
 
 Installing the app fires `onAppInstall`, which creates today's post immediately.

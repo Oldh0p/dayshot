@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "dayshot",
+  "name": "dayshot-game",
   "permissions": {
     "redis": true,
     "reddit": {
@@ -56,6 +56,6 @@
     "build": "vite build"
   },
   "dev": {
-    "subreddit": "daily_one_shot_dev"
+    "subreddit": "dayshot_game_dev"
   }
 }
