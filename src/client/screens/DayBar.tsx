@@ -8,17 +8,20 @@ import type { ModifierId } from '../../shared/types.ts';
  * question mark that leads to the rules. Nothing else earns a place up here.
  */
 export const DayBar = (props: {
-  readonly displayDay: number;
-  readonly modifier: ModifierId;
+  /** `null` for a logged-out visitor: the day is not theirs to see yet. */
+  readonly displayDay: number | null;
+  readonly modifier: ModifierId | null;
   readonly streak: number;
   readonly onHelp: () => void;
 }): JSX.Element => (
   <header className="flex items-center gap-3 px-4 py-3 text-[13px] text-[color:var(--color-mist)]">
     <span className="font-bold tracking-wide text-[color:var(--color-ink)] tabular">
-      {dayLabel(props.displayDay)}
+      {props.displayDay === null ? COPY.title : dayLabel(props.displayDay)}
     </span>
     <span className="truncate">
-      {MODIFIER_EMOJI[props.modifier]} {MODIFIER_LABEL[props.modifier]}
+      {props.modifier === null
+        ? COPY.demoLabel
+        : `${MODIFIER_EMOJI[props.modifier]} ${MODIFIER_LABEL[props.modifier]}`}
     </span>
     <span className="ml-auto flex items-center gap-3">
       {props.streak > 0 && (

@@ -45,6 +45,22 @@ export const MUZZLE_Y = 120;
 /** Half-width of the target plateau; its face is the cliff at `D - 140`. */
 export const PLATEAU_HALF_WIDTH = 140;
 
+/**
+ * Logical units of penalty per unit of height missed on the cliff face.
+ *
+ * GDD 9.4 measures a CLIFF at the wall plane, which makes `dx` a constant 140
+ * and every wall impact score exactly the same — a playtest turned up two
+ * different players with byte-identical results, which reads as a bug even
+ * though it was arithmetic. A ball that grazed the lip and one that hit the
+ * base did not play the same shot, and the score should say so.
+ *
+ * The ceiling is set by the far edge of zone 3: the worst possible impact
+ * (`H_MAX` below the top) must still score above zero, including on a Tiny
+ * Target day where zone 3 ends earlier. At 1.5 the worst cliff lands near 8,
+ * and grazing the lip still scores what it always did.
+ */
+export const CLIFF_HEIGHT_PENALTY = 1.5;
+
 // -- Input -------------------------------------------------------------------
 
 /** Full up-and-down period of the triangular power gauge, in milliseconds. */
@@ -179,6 +195,22 @@ export const SLOWMO_TRIGGER_DX = 30;
 export const PALETTE_VARIANTS = 4;
 
 // -- Calendar ----------------------------------------------------------------
+
+/**
+ * The level a logged-out visitor plays.
+ *
+ * Reddit's launch guidance asks games not to gate the core experience behind a
+ * login wall, so a visitor with no account can take a shot. That shot must not
+ * use today's seed: a private window would otherwise be free reconnaissance of
+ * the wind and the distance before the real attempt, which is the planning beat
+ * the whole game is built on (GDD 5).
+ *
+ * A negative day number can never collide with a real one — every real day is
+ * positive — so this is a fixed level living outside the calendar. Same verb,
+ * same physics, nothing leaked. This particular seed draws a Clear Skies day
+ * with 80% of its gauge scoring, which is the gentlest possible introduction.
+ */
+export const DEMO_DAY = -3;
 
 /**
  * `dayNumber` of ONE SHOT #1 — currently 2026-09-01 UTC.

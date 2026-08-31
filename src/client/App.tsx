@@ -4,7 +4,12 @@ import { showLoginPrompt, showToast } from '@devvit/web/client';
 
 import { COPY, shareFormatA, shareFormatB } from '../shared/copy.ts';
 import { generateLevel } from '../shared/sim.ts';
-import type { ResultSummary, ShotResult } from '../shared/types.ts';
+import { DEMO_DAY } from '../shared/tunables.ts';
+import type {
+  ResultSummary,
+  ShotResponse,
+  ShotResult,
+} from '../shared/types.ts';
 import {
   alreadySharedUrl,
   completeWarmup,
@@ -63,7 +68,11 @@ export const App = (): JSX.Element => {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const queue = useRef<ShotQueue>(new ShotQueue());
-  const confirmed = useRef<ResultSummary | null>(null);
+  /** The server's answer, held until the flight is over. */
+  const confirmed = useRef<{
+    result: ResultSummary;
+    response: ShotResponse | null;
+  } | null>(null);
 
   const server = state.server;
 
@@ -79,7 +88,10 @@ export const App = (): JSX.Element => {
   const handleQueueOutcome = useCallback(
     (outcome: QueueOutcome): void => {
       if (outcome.status === 'confirmed') {
-        confirmed.current = outcome.result;
+        confirmed.current = {
+          result: outcome.result,
+          response: outcome.response ?? null,
+        };
         dispatch({
           type: 'confirmed',
           result: outcome.result,
@@ -156,10 +168,15 @@ export const App = (): JSX.Element => {
 
   // -- The day ---------------------------------------------------------------
 
-  const level = useMemo(
-    () => (server ? generateLevel(server.dayNumber, server.rerollK) : null),
-    [server]
-  );
+  const loggedOut = state.loggedOut;
+
+  // A visitor with no account plays a level that exists outside the calendar,
+  // so a private window is not free reconnaissance of today's conditions.
+  const level = useMemo(() => {
+    if (!server) return null;
+    if (loggedOut) return generateLevel(DEMO_DAY);
+    return generateLevel(server.dayNumber, server.rerollK);
+  }, [server, loggedOut]);
 
   const practiceMode = isPractice(state.phase);
 
@@ -233,8 +250,8 @@ export const App = (): JSX.Element => {
       if (confirmed.current) {
         dispatch({
           type: 'confirmed',
-          result: confirmed.current,
-          response: null,
+          result: confirmed.current.result,
+          response: confirmed.current.response,
         });
       } else {
         dispatch({ type: 'awaiting_server' });
@@ -274,6 +291,9 @@ export const App = (): JSX.Element => {
 
   useEffect(() => {
     if (phase !== 'warmup_result') return;
+    // The logged-out demo stops here and offers the account instead: there is
+    // no warm-up to finish and nobody to record it against.
+    if (loggedOut) return;
     const timer = window.setTimeout(() => {
       void (async () => {
         // Tell the server first, so the reload that follows sees the flag.
@@ -283,7 +303,7 @@ export const App = (): JSX.Element => {
       })();
     }, 2200);
     return () => window.clearTimeout(timer);
-  }, [phase]);
+  }, [phase, loggedOut]);
 
   useEffect(() => {
     if (phase !== 'interstitial') return;
@@ -471,7 +491,7 @@ export const App = (): JSX.Element => {
         <section className="mt-auto max-h-[88%] w-full overflow-y-auto pb-2">
         {isWarmup(phase) && phase !== 'warmup_result' && (
           <div className="pb-3 text-center text-[15px] font-bold tracking-wide text-[color:var(--color-gold)]">
-            {COPY.warmupBanner}
+            {loggedOut ? COPY.demoBanner : COPY.warmupBanner}
           </div>
         )}
 
@@ -511,6 +531,23 @@ export const App = (): JSX.Element => {
             <div className="text-[15px] text-[color:var(--color-mist)]">
               🎯 {state.shot.dx.toFixed(1)} from center
             </div>
+
+            {/* Where the rank would have been. The visitor has just felt the
+                shot, which is the moment the account is worth something. */}
+            {loggedOut && (
+              <div className="rise mt-5 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={showLoginPrompt}
+                  className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-7 text-[17px] font-extrabold text-[#141A26]"
+                >
+                  {COPY.loggedOut}
+                </button>
+                <span className="text-[13px] text-[color:var(--color-mist)]">
+                  {COPY.loggedOutSub}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -565,6 +602,7 @@ export const App = (): JSX.Element => {
 
       {state.transient === 'day_rolled' && <DayRolled onReload={onReload} />}
 
+      {/* Only reached if a submission comes back LOGGED_OUT mid-session. */}
       {phase === 'logged_out' && <LoggedOut onLogin={showLoginPrompt} />}
     </div>
   );
@@ -592,6 +630,7 @@ const optimisticResult = (shot: ShotResult | null): ResultSummary => ({
   dx: shot?.dx ?? 0,
   signedDx: 0,
   impact: shot?.impact ?? 'GROUND',
+  cliffDrop: shot?.cliffDrop ?? 0,
   holdMs: 0,
   rank: 0,
   total: 0,

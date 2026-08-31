@@ -32,6 +32,7 @@ import {
   OUT_SPAN,
   PALETTE_VARIANTS,
   PERFECT_RADIUS,
+  CLIFF_HEIGHT_PENALTY,
   PLATEAU_HALF_WIDTH,
   SIM_DT,
   SIM_MAX_STEPS,
@@ -308,10 +309,20 @@ const buildResult = (
   impactX: number,
   impactY: number,
   flightMs: number,
-  trajectory: readonly Point[]
+  trajectory: readonly Point[],
+  cliffDrop = 0
 ): ShotResult => {
   const dx = Math.abs(impactX - level.distance);
-  const score = impact === 'OFF_THE_MAP' ? 0 : scoreForDx(dx, level.targetR);
+
+  // A cliff is scored through the wall: the horizontal miss is the same for
+  // everyone who hits it, so the height missed is what separates the shots.
+  // `dx` itself stays the honest horizontal distance, because the result screen
+  // reports it as one.
+  const scoringDx =
+    impact === 'CLIFF' ? dx + CLIFF_HEIGHT_PENALTY * cliffDrop : dx;
+
+  const score =
+    impact === 'OFF_THE_MAP' ? 0 : scoreForDx(scoringDx, level.targetR);
 
   return {
     power,
@@ -321,6 +332,7 @@ const buildResult = (
     impactY,
     flightMs,
     impact,
+    cliffDrop,
     isPerfect: score === 100,
     isBullseye: score >= BULLSEYE_SCORE,
     trajectory,
@@ -371,7 +383,8 @@ export const simulateWithPower = (level: Level, power: number): ShotResult => {
           wallX,
           crossY,
           (t - SIM_DT + s * SIM_DT) * 1000,
-          trajectory
+          trajectory,
+          level.height - crossY
         );
       }
     }

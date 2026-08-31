@@ -3,8 +3,8 @@
 Everything between the current state of the tree and `npx devvit publish`.
 Nothing here is done. Work top to bottom; the blockers gate the rest.
 
-Current state: **206 tests green**, Devvit **0.14.2**, one playtest run on
-r/daily_one_shot_dev with a single player.
+Current state: **220 tests green**, Devvit **0.14.2**, two accounts played on
+r/daily_one_shot_dev.
 
 ---
 
@@ -27,7 +27,10 @@ The repository still carries the template's README. It must be replaced with:
 Note that reviewers read it — and may run an LLM over it — as part of deciding
 whether the app is approved.
 
-- [ ] `README.md` rewritten and reviewed by someone who is not the author.
+- [x] `README.md` rewritten: overview for a non-developer, install and moderator
+      instructions, how to play, developer notes, and a plain-language privacy
+      section.
+- [ ] Read by someone who is not the author.
 
 ### 0.2 Decide the logged-out experience
 
@@ -60,8 +63,15 @@ Note that logged-out traffic does **not** count toward Reddit Developer Funds
 qualified engagement, so this is a reach-and-conversion argument, not a revenue
 one.
 
-- [ ] Decision recorded, with reasoning, in `BACKLOG.md` or the GDD.
-- [ ] If opening: implemented and tested from a private window.
+- [x] **Decided: follow Reddit's guidance, with an anti-scouting refinement.**
+      A logged-out visitor shoots a *fixed demo level* (`DEMO_DAY`), never the
+      day's — otherwise a private window would be free reconnaissance of the
+      wind and the distance before the real attempt, and the planning beat the
+      game is built on would be gone. Same verb, same physics, nothing leaked.
+      The day bar shows `DEMO` in place of the day and its modifier. After the
+      shot lands, where the rank would have been, the screen offers
+      *Log in to take today's real shot*.
+- [ ] Verified from a private window on web and on the mobile app.
 
 ### 0.3 Set `LAUNCH_DAY`
 
@@ -189,11 +199,18 @@ What the app already does to minimise the exposure:
 The only author-identifying data is the username cache, and it expires in 90
 days. Everything else is keyed by an opaque id.
 
-- [ ] Raise it with Reddit via r/Devvit modmail before or during review, and
-      record the answer. Two candidate resolutions: shorten `user:{id}` to a
-      rolling TTL that a returning player refreshes, or resolve usernames at
-      read time via `reddit.getUserById()` and stop caching them at all — ten
-      calls per result screen, which is affordable at this leaderboard size.
+Both candidate resolutions remain on the table:
+
+- a rolling TTL on `user:{id}`, refreshed whenever the player returns, so a
+  deleted account's record disappears within a quarter;
+- resolving usernames at read time via `reddit.getUserById()` and caching none
+  — about ten calls per result screen, affordable at this leaderboard size,
+  and it removes the only author-identifying field the app holds.
+
+- [x] Modmail drafted: `docs/modmail-account-deletion.md`. It asks one question,
+      states what the app stores, and proposes both resolutions so a reviewer
+      can answer in a line.
+- [ ] Sent, and the answer recorded here.
 
 ---
 
@@ -279,8 +296,8 @@ third-party LLMs to assist.
 
 | Area | Status |
 | --- | --- |
-| README present and non-vague | ❌ **blocker**, see 0.1 |
-| Dedicated non-test subreddit | ❌ **blocker**, see 0.4 |
+| README present and non-vague | ✅ written, unread by a second pair of eyes |
+| Dedicated non-test subreddit | ❌ **blocker**, see 0.4 — waiting on the name |
 | Custom launch screen | ✅ the splash entrypoint |
 | Immediately understandable to a new user | ✅ warm-up, one instruction, one input |
 | Responsive, mobile and web | ⚠️ untested on mobile |
@@ -291,7 +308,7 @@ third-party LLMs to assist.
 | Actions not merged, nothing gated behind sharing | ✅ |
 | `userGeneratedContent` set | n/a — required for `submitCustomPost` as user; this app only comments |
 | Honours comment deletion | ✅ trigger added |
-| Honours account deletion | ⚠️ no trigger exists, see 3 |
+| Honours account deletion | ⚠️ no trigger exists, see 3; modmail drafted |
 | Data minimisation, TTLs | ✅ 90 days on everything but the streak record |
 | No external fetch, no LLM, no payments | ✅ none declared |
 | ToS / privacy policy | ⚠️ not required today, see 2 |

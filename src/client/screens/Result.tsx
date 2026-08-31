@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 
 import {
+  cliffLine,
   COPY,
   formatScore,
   fromCenterLine,
@@ -149,7 +150,9 @@ export const Result = (props: {
       </div>
 
       <div className="text-[15px] text-[color:var(--color-mist)]">
-        🎯 {fromCenterLine(props.result.dx)}
+        {props.result.impact === 'CLIFF'
+          ? cliffLine(props.result.cliffDrop)
+          : `🎯 ${fromCenterLine(props.result.dx)}`}
       </div>
 
       {props.practice ? (

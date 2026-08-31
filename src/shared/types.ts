@@ -69,6 +69,12 @@ export type ShotResult = {
   readonly impactX: number;
   readonly impactY: number;
   readonly impact: ImpactKind;
+  /**
+   * On a CLIFF, how far below the top of the plateau the ball hit the wall.
+   * Zero on every other impact. Grades the wall so that grazing the lip and
+   * hitting the base are not the same shot.
+   */
+  readonly cliffDrop: number;
   readonly isPerfect: boolean;
   readonly isBullseye: boolean;
   /** Flight duration in milliseconds, for the client's animation clock. */
@@ -107,6 +113,8 @@ export type ResultSummary = {
   /** Signed miss: positive overshoots, negative undershoots. Drives Format B. */
   readonly signedDx: number;
   readonly impact: ImpactKind;
+  /** See `ShotResult.cliffDrop`. */
+  readonly cliffDrop: number;
   readonly holdMs: number;
   readonly rank: number;
   readonly total: number;

@@ -43,6 +43,7 @@ const shot = (over: Partial<ShotResult> = {}): ShotResult => ({
   impactX: 640,
   impactY: 0,
   impact: 'MAT',
+  cliffDrop: 0,
   isPerfect: false,
   isBullseye: false,
   flightMs: 1200,
@@ -50,11 +51,29 @@ const shot = (over: Partial<ShotResult> = {}): ShotResult => ({
   ...over,
 });
 
+const response = {
+  score: 82.5,
+  dx: 40,
+  signedDx: -40,
+  impact: 'MAT' as const,
+  cliffDrop: 0,
+  holdMs: 640,
+  rank: 2,
+  total: 2,
+  percentile: 100,
+  isBullseye: false,
+  isPerfect: false,
+  perfectCountToday: 0,
+  streak: { current: 1, longest: 1, justReset: false },
+  simMismatch: false,
+};
+
 const result: ResultSummary = {
   score: 82.5,
   dx: 40,
   signedDx: -40,
   impact: 'MAT',
+  cliffDrop: 0,
   holdMs: 640,
   rank: 12,
   total: 400,
@@ -98,8 +117,23 @@ describe('opening phase', () => {
     );
   });
 
-  it('asks a logged-out visitor to log in', () => {
-    assert.equal(openingPhase(serverState({ username: null })), 'logged_out');
+  it('lets a logged-out visitor shoot rather than walling them out', () => {
+    // Reddit's launch guidance: don't gate the core experience behind a login
+    // wall. Having felt the shot is what makes the account worth creating.
+    assert.equal(openingPhase(serverState({ username: null })), 'warmup_aim');
+  });
+
+  it('marks the session as logged out so the demo level is used', () => {
+    const anonymous = reduce(INITIAL_STATE, {
+      type: 'loaded',
+      server: serverState({ username: null }),
+      clockOffset: 0,
+      practiceBest: 0,
+      practiceTries: 0,
+    });
+    assert.equal(anonymous.loggedOut, true);
+    // ...and a signed-in session is not.
+    assert.equal(loaded().loggedOut, false);
   });
 });
 
@@ -291,5 +325,66 @@ describe('transverse states', () => {
       { type: 'confirmed', result, response: null }
     );
     assert.equal(state.transient, null);
+  });
+});
+
+describe('a server answer that arrives mid-flight', () => {
+  // Reported from a real playtest: a brand new account shot, and the result
+  // screen said "streak 0". A second account on a slower connection said 1.
+  // The server had answered before the ball landed.
+
+  it('does not cut the flight short', () => {
+    const state = run(
+      loaded(),
+      { type: 'aim_start' },
+      { type: 'fired', shot: shot() },
+      { type: 'confirmed', result, response }
+    );
+    assert.equal(
+      state.phase,
+      'in_flight',
+      'the shot must stay in the air until it lands'
+    );
+    assert.equal(state.result?.score, 82.5, 'but the answer is recorded');
+  });
+
+  it('keeps the streak the server sent', () => {
+    // The confirmation is dispatched twice: once when it arrives, once at
+    // impact. The second carried no response, and overwriting the first with
+    // null sent the result screen back to the state loaded before the shot --
+    // which for a new account is a streak of zero.
+    const state = run(
+      loaded(),
+      { type: 'aim_start' },
+      { type: 'fired', shot: shot() },
+      { type: 'confirmed', result, response },
+      { type: 'impact' },
+      { type: 'confirmed', result, response: null }
+    );
+    assert.equal(state.phase, 'result');
+    assert.equal(state.submission?.streak.current, 1);
+  });
+
+  it('reaches the same place whichever order the two arrive in', () => {
+    const serverFirst = run(
+      loaded(),
+      { type: 'aim_start' },
+      { type: 'fired', shot: shot() },
+      { type: 'confirmed', result, response },
+      { type: 'impact' },
+      { type: 'confirmed', result, response: null }
+    );
+    const impactFirst = run(
+      loaded(),
+      { type: 'aim_start' },
+      { type: 'fired', shot: shot() },
+      { type: 'impact' },
+      { type: 'awaiting_server' },
+      { type: 'confirmed', result, response }
+    );
+
+    assert.equal(serverFirst.phase, impactFirst.phase);
+    assert.deepEqual(serverFirst.submission, impactFirst.submission);
+    assert.deepEqual(serverFirst.result, impactFirst.result);
   });
 });

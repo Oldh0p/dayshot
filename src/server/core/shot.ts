@@ -52,6 +52,8 @@ export type StoredShot = {
   /** Positive overshoots the mat, negative undershoots it. Drives Format B. */
   readonly signedDx: number;
   readonly impact: ImpactKind;
+  /** How far below the plateau top a wall impact landed; 0 otherwise. */
+  readonly cliffDrop: number;
   readonly ts: number;
   readonly nonce: string;
 };
@@ -94,6 +96,8 @@ const parseStored = (raw: string): StoredShot | null => {
       dx: typeof record['dx'] === 'number' ? record['dx'] : 0,
       signedDx: typeof record['signedDx'] === 'number' ? record['signedDx'] : 0,
       impact: (record['impact'] as ImpactKind) ?? 'GROUND',
+      cliffDrop:
+        typeof record['cliffDrop'] === 'number' ? record['cliffDrop'] : 0,
       ts: typeof record['ts'] === 'number' ? record['ts'] : 0,
       nonce: typeof record['nonce'] === 'string' ? record['nonce'] : '',
     };
@@ -149,6 +153,7 @@ export const summarise = async (
     dx: shot.dx,
     signedDx: shot.signedDx,
     impact: shot.impact,
+    cliffDrop: shot.cliffDrop,
     holdMs: shot.holdMs,
     rank,
     total,
@@ -218,6 +223,7 @@ export const submitShot = async (
     dx: shot.dx,
     signedDx: shot.impactX - level.distance,
     impact: shot.impact,
+    cliffDrop: shot.cliffDrop,
     ts: at,
     nonce: nonce(),
   };

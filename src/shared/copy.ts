@@ -141,10 +141,15 @@ export const COPY = {
     'Hold to charge, release to shoot. Closest to center wins. One official shot per day.',
   soundToggle: 'Sound',
 
-  // -- System states --------------------------------------------------------
-  /** GDD 31 */
-  loggedOut: 'Log in to take your shot',
+  // -- Logged out -----------------------------------------------------------
+  /** Shown in the day bar in place of a day and a modifier the visitor has
+   *  not earned the right to see yet. */
+  demoLabel: 'DEMO',
+  demoBanner: "DEMO SHOT — the real one needs an account",
+  /** Offered after the demo shot lands, where the rank would have been. */
+  loggedOut: "Log in to take today's real shot",
   loggedOutCta: 'Log in',
+  loggedOutSub: 'One attempt, every day, ranked against everyone.',
   offline: 'You are offline. Your shot is safe.',
   retry: 'Retry',
   submitQueued: 'Saving your shot…',
@@ -213,6 +218,17 @@ export const betterThanLine = (percent: number): string =>
 
 export const fromCenterLine = (dx: number): string =>
   `${formatDx(dx)} from center`;
+
+/**
+ * What a wall impact says instead.
+ *
+ * Two players who hit the cliff are the same distance from the centre and did
+ * not play the same shot, so "140.0 from center" next to two different scores
+ * would read as a bug. The height missed is the thing that separates them, and
+ * it is what the score is actually made of.
+ */
+export const cliffLine = (drop: number): string =>
+  `Into the wall, ${formatDx(drop)} below the top`;
 
 export const streakLine = (streak: number): string => `🔥 ${streak} DAY STREAK`;
 

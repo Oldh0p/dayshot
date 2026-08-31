@@ -104,6 +104,12 @@ export type GameState = {
    * just finished, forever.
    */
   readonly warmupDone: boolean;
+  /**
+   * No Reddit account. The visitor plays a fixed demo level rather than the
+   * day's, so a private window cannot scout today's conditions before the real
+   * attempt (GDD 5).
+   */
+  readonly loggedOut: boolean;
 };
 
 export const INITIAL_STATE: GameState = {
@@ -122,6 +128,7 @@ export const INITIAL_STATE: GameState = {
   practiceTries: 0,
   sharedUrl: null,
   warmupDone: false,
+  loggedOut: false,
 };
 
 export type Action =
@@ -160,7 +167,10 @@ export const openingPhase = (
   server: StateResponse,
   warmupDone = false
 ): Phase => {
-  if (!server.username) return 'logged_out';
+  // A visitor with no account still gets to shoot. Reddit's launch guidance is
+  // explicit that the core experience must not sit behind a login wall, and a
+  // demo shot is a far better argument for signing up than a locked screen.
+  if (!server.username) return 'warmup_aim';
   if (server.playedToday) return 'result';
   if (server.firstVisit && !warmupDone) return 'warmup_aim';
   return 'ready';
@@ -174,6 +184,7 @@ export const reduce = (state: GameState, action: Action): GameState => {
         server: action.server,
         clockOffset: action.clockOffset,
         phase: openingPhase(action.server, state.warmupDone),
+        loggedOut: !action.server.username,
         result: action.server.myResult,
         practiceBest: action.practiceBest,
         practiceTries: action.practiceTries,
@@ -224,9 +235,16 @@ export const reduce = (state: GameState, action: Action): GameState => {
     case 'confirmed':
       return {
         ...state,
-        phase: 'result',
+        // The server can answer while the ball is still in the air. Jumping to
+        // the result then would cut the flight short, so the confirmation is
+        // recorded and `impact` is left to advance the phase.
+        phase: isFlying(state.phase) ? state.phase : 'result',
         result: action.result,
-        submission: action.response,
+        // Never regress to null. The confirmation arrives once with a full
+        // response and may be re-dispatched at impact without one; letting the
+        // second overwrite the first cost a brand new player their streak,
+        // which fell back to the state loaded before they had shot.
+        submission: action.response ?? state.submission,
         ghost: state.shot,
         transient: null,
       };

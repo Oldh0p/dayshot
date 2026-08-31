@@ -15,7 +15,9 @@ import {
 } from '../shared/sim.ts';
 import {
   BULLSEYE_SCORE,
+  CLIFF_HEIGHT_PENALTY,
   GAUGE_PERIOD_MS,
+  H_MAX,
   GUST_SPAN_S,
   LAUNCH_DAY,
   MUZZLE_X,
@@ -238,7 +240,7 @@ describe('impact classification', () => {
     ...over,
   });
 
-  it('records a CLIFF on the face of the plateau, at dx = 140', () => {
+  it('grades a CLIFF by how far below the top it hit', () => {
     // A tall plateau close in: anything that clears the ground hits the wall.
     const wall = level({
       distance: 600,
@@ -252,12 +254,57 @@ describe('impact classification', () => {
       const shot = simulateWithPower(wall, power);
       if (shot.impact === 'CLIFF') cliffs.push(shot);
     }
-    assert.ok(cliffs.length > 0, 'expected some shots to hit the wall');
+    assert.ok(cliffs.length > 1, 'expected several shots to hit the wall');
     for (const shot of cliffs) {
       assert.equal(shot.impactX, wall.distance - PLATEAU_HALF_WIDTH);
+      // The horizontal miss is honest and identical for everyone: the wall is
+      // where it is. The result screen reports this number, so it stays real.
       assert.equal(shot.dx, PLATEAU_HALF_WIDTH);
       assert.ok(shot.impactY < wall.height);
-      assert.equal(shot.score, scoreForDx(PLATEAU_HALF_WIDTH, wall.targetR));
+      assert.equal(shot.cliffDrop, wall.height - shot.impactY);
+      // ...but the score is graded through the wall, or every wall impact in
+      // the game would be the same number.
+      assert.equal(
+        shot.score,
+        scoreForDx(
+          PLATEAU_HALF_WIDTH + CLIFF_HEIGHT_PENALTY * shot.cliffDrop,
+          wall.targetR
+        )
+      );
+    }
+
+    // Higher on the wall is a better shot, and scores like one.
+    const sorted = [...cliffs].sort((a, b) => a.cliffDrop - b.cliffDrop);
+    for (let i = 1; i < sorted.length; i++) {
+      assert.ok(
+        sorted[i - 1]!.score >= sorted[i]!.score,
+        'grazing the lip must not score below hitting the base'
+      );
+    }
+    assert.ok(
+      sorted[0]!.score > sorted[sorted.length - 1]!.score,
+      'the wall must actually be a gradient, not a constant'
+    );
+  });
+
+  it('never lets a wall impact fall to zero', () => {
+    // A cliff is a comic failure, not an erasure. The worst possible impact --
+    // the full height of the tallest plateau, on the smallest mat -- has to
+    // stay above OFF THE MAP.
+    const worst = scoreForDx(
+      PLATEAU_HALF_WIDTH + CLIFF_HEIGHT_PENALTY * H_MAX,
+      TARGET_R / 2
+    );
+    assert.ok(worst > 0, `worst cliff scores ${worst}`);
+
+    for (const day of SAMPLE_DAYS) {
+      const level = generateLevel(day);
+      for (let power = 0; power <= 1; power += 0.01) {
+        const shot = simulateWithPower(level, power);
+        if (shot.impact === 'CLIFF') {
+          assert.ok(shot.score > 0, `day ${day} cliff scored zero`);
+        }
+      }
     }
   });
 

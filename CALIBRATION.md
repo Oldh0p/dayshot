@@ -70,6 +70,30 @@ the document's absolute buckets, a shot 35 units out on a Tiny Target day drew
 at ring 2 as though it had landed on the mat, when the mat is only 30 across --
 the card would have been lying on precisely the day people most want to post.
 
+## The cliff, after grading it by height
+
+GDD 9.4 measures a CLIFF at the wall plane, which makes `dx` a constant 140 for
+every wall impact and gives all of them the same score. A playtest turned up two
+players with byte-identical results, 67.80 each, and had to stop to work out
+whether that was arithmetic or a leaked user id. It was arithmetic — but a shot
+that grazed the lip and one that hit the base are not the same shot, and the
+score should not claim they are.
+
+The score is now taken through the wall: `dx + 1.5 x (height missed)`. On a
+260-unit plateau that runs from 67.80 for a shot that just failed to clear, down
+to about 15 for one that hit the base. `dx` itself stays the honest horizontal
+distance, because the result screen reports it as one — a wall impact says
+"Into the wall, 180 below the top" instead of a distance from a centre it never
+approached.
+
+`CLIFF_HEIGHT_PENALTY = 1.5` is bounded by the far edge of zone 3: the worst
+possible impact must still score above zero, including on a Tiny Target day
+where zone 3 ends earlier. A test asserts that over 200 days.
+
+The mass distribution is unmoved — median 75.31 and 25.5% above 90 at
+sigma = 90, as before. Only the lower tail changed, which is the point: the p10
+of a Clear day fell from 34.6 to 32.8 as the flat 67.80 spread out into a range.
+
 ## What was not chased
 
 Two GDD 8 targets are unreachable under GDD 9.5's own player model, and no
@@ -133,32 +157,32 @@ sigma = 45 ms
    Crosswind    17160   75.77   92.90   99.70    60.0   16.68    5.431     0.1     0.1     1.3     48.4
     Tailwind    17160   69.38   89.13   99.39    47.7   12.45    4.161     2.9     2.9     3.6     67.3
        Gusty    17160   72.01   90.78   99.55    52.3   14.18    4.703     1.8     1.8     2.3     59.5
-        Moon    17160   67.80   85.72   99.19    41.7   11.03    3.596     3.8     3.8     6.5     79.3
+        Moon    17160   61.17   85.72   99.19    41.7   11.03    3.596     3.8     3.8     6.5     79.3
         Tiny    17160   66.57   81.03   98.66    28.6    8.83    4.650     1.6     1.6     2.6     58.8
         Long    17160   70.70   89.72   99.43    49.2   13.10    4.441     2.9     2.9     2.5     61.8
   ✗ median 88.99 too high; 47.4% above 90 is too generous; bullseyes 12.96% too common; perfects 4.5271% too common
 sigma = 60 ms
   population        n     p10  median     p90   >=90%   bull%    perf%   zero%    off%  cliff%  mean dx
 -------------------------------------------------------------------------------------------------------
-         ALL   120120   63.14   82.96   98.92    36.8    9.66    3.434     4.6     4.6     6.6     83.1
-       Clear    17160   67.80   85.24   99.10    40.8   10.61    3.438     3.9     3.9     6.4     81.9
+         ALL   120120   57.20   82.96   98.92    36.8    9.66    3.434     4.6     4.6     6.6     83.1
+       Clear    17160   61.02   85.24   99.10    40.8   10.61    3.438     3.9     3.9     6.4     81.9
    Crosswind    17160   69.89   89.51   99.38    48.6   12.57    4.225     0.4     0.4     3.3     63.2
-    Tailwind    17160   57.72   82.85   98.79    37.1    9.10    3.193     6.6     6.6     7.6     89.7
-       Gusty    17160   67.80   85.24   99.13    40.7   10.73    3.462     3.9     3.9     5.9     80.5
-        Moon    17160   46.19   79.38   98.37    31.3    7.86    2.791     7.2     7.2    10.5    104.6
-        Tiny    17160   62.62   77.15   97.45    21.3    6.50    3.467     3.6     3.6     6.2     80.5
-        Long    17160   65.48   83.56   99.03    38.0   10.25    3.462     7.0     7.0     6.3     81.2
+    Tailwind    17160   54.32   82.85   98.79    37.1    9.10    3.193     6.6     6.6     7.6     89.7
+       Gusty    17160   60.37   85.24   99.13    40.7   10.73    3.462     3.9     3.9     5.9     80.5
+        Moon    17160   43.19   79.38   98.37    31.3    7.86    2.791     7.2     7.2    10.5    104.6
+        Tiny    17160   55.27   77.15   97.45    21.3    6.50    3.467     3.6     3.6     6.2     80.5
+        Long    17160   56.57   83.56   99.03    38.0   10.25    3.462     7.0     7.0     6.3     81.2
   ✗ median 82.96 too high; 36.83% above 90 is too generous; bullseyes 9.66% too common; perfects 3.4341% too common
 sigma = 90 ms
   population        n     p10  median     p90   >=90%   bull%    perf%   zero%    off%  cliff%  mean dx
 -------------------------------------------------------------------------------------------------------
-         ALL   120120   31.19   75.31   97.76    25.5    6.58    2.304     9.4     9.4    11.9    116.0
-       Clear    17160   34.64   76.70   98.06    27.9    6.94    2.459     8.3     8.3    13.2    117.8
-   Crosswind    17160   62.04   81.44   98.84    35.0    9.35    2.949     0.7     0.7     7.0     89.0
+         ALL   120120   29.03   75.31   97.76    25.5    6.58    2.304     9.4     9.4    11.9    116.0
+       Clear    17160   32.77   76.70   98.06    27.9    6.94    2.459     8.3     8.3    13.2    117.8
+   Crosswind    17160   57.42   81.44   98.84    35.0    9.35    2.949     0.7     0.7     7.0     89.0
     Tailwind    17160    0.00   74.40   97.51    24.9    6.17    2.144    12.9    12.9    13.9    124.9
-       Gusty    17160   36.43   77.05   98.06    28.1    7.09    2.255     8.3     8.3    11.6    114.0
+       Gusty    17160   34.76   77.05   98.06    28.1    7.09    2.255     8.3     8.3    11.6    114.0
         Moon    17160    0.00   70.61   96.84    21.7    5.10    1.731    12.9    12.9    14.6    141.4
-        Tiny    17160   37.23   71.24   94.71    14.6    4.51    2.255     8.1     8.1    11.6    113.6
+        Tiny    17160   34.50   71.24   94.71    14.6    4.51    2.255     8.1     8.1    11.6    113.6
         Long    17160    0.00   75.45   98.01    26.2    6.88    2.337    14.9    14.9    11.5    110.9
   ✗ bullseyes 6.58% too common; perfects 2.3044% too common
 verdict
