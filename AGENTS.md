@@ -43,7 +43,15 @@ code (GDD 9.12).
    runner resolves modules without a bundler and will not guess extensions;
    `allowImportingTsExtensions` + `emitDeclarationOnly` in
    `tools/tsconfig.base.json` keep `tsc` happy with that.
-6. **Never mutate the PRNG draw order** in `generateLevel`. Every draw happens
+   For the same reason, anything reachable from a test must avoid TypeScript
+   syntax that erasure cannot handle: **no `enum`, no `namespace`, and no
+   constructor parameter properties** (`constructor(private x) {}`). Node's
+   strip-only mode rejects them outright.
+6. **Redis is reached through the `RedisLike` port** in
+   `src/server/core/redis-port.ts`, never imported directly outside the route
+   layer. That keeps the core testable against `src/tests/fake-redis.ts`, which
+   reproduces the real `SET NX` and ascending-`zRank` semantics.
+7. **Never mutate the PRNG draw order** in `generateLevel`. Every draw happens
    on every day, whatever the modifier — the order is frozen for life because
    changing it would rewrite the game's entire history (GDD 9.3).
 

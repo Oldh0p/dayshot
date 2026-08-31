@@ -76,3 +76,106 @@ export type ShotResult = {
   /** One sample per integration step, for rendering and the practice ghost. */
   readonly trajectory: readonly Point[];
 };
+
+// ---------------------------------------------------------------------------
+// Server API contracts (GDD 9.6)
+// ---------------------------------------------------------------------------
+
+/** Machine-readable failure codes. Errors are always `{ error: CODE }`. */
+export type ErrorCode =
+  /** No Reddit account in context. */
+  | 'LOGGED_OUT'
+  /** The UTC day turned over between load and submission. */
+  | 'DAY_ROLLED'
+  /** The daily lock was already held. The existing result comes back with it. */
+  | 'ALREADY_PLAYED'
+  /** Nothing to share or read yet. */
+  | 'NOT_PLAYED'
+  /** The share comment for today already exists. */
+  | 'ALREADY_SHARED'
+  /** The day has no post to comment under. */
+  | 'NO_POST'
+  | 'BAD_REQUEST'
+  | 'SERVER_ERROR';
+
+export type ErrorResponse = { readonly error: ErrorCode };
+
+/** Everything the result screen needs about one player's shot. */
+export type ResultSummary = {
+  readonly score: number;
+  readonly dx: number;
+  /** Signed miss: positive overshoots, negative undershoots. Drives Format B. */
+  readonly signedDx: number;
+  readonly impact: ImpactKind;
+  readonly holdMs: number;
+  readonly rank: number;
+  readonly total: number;
+  /** Share of players at or above this score, as a percentage. */
+  readonly percentile: number;
+  readonly isBullseye: boolean;
+  readonly isPerfect: boolean;
+};
+
+export type StreakState = {
+  readonly current: number;
+  readonly longest: number;
+  /** True when the previous streak lapsed and the reset copy is due. */
+  readonly justReset: boolean;
+};
+
+export type StateResponse = {
+  readonly dayNumber: number;
+  readonly displayDay: number;
+  readonly rerollK: number;
+  /** Server clock in epoch milliseconds; the client keeps an offset from it. */
+  readonly serverNow: number;
+  readonly modifier: ModifierId;
+  readonly playedToday: boolean;
+  readonly myResult: ResultSummary | null;
+  readonly streak: StreakState;
+  readonly firstVisit: boolean;
+  readonly shotsToday: number;
+  readonly topScore: number;
+  readonly perfectsToday: number;
+  readonly tomorrowModifier: ModifierId;
+  readonly sharedToday: boolean;
+  readonly username: string | null;
+};
+
+export type ShotRequest = {
+  readonly dayNumber: number;
+  readonly holdMs: number;
+  readonly clientScore: number;
+};
+
+export type ShotResponse = ResultSummary & {
+  readonly perfectCountToday: number;
+  readonly streak: StreakState;
+  /** The client's own simulation disagreed; the server score stands. */
+  readonly simMismatch: boolean;
+};
+
+export type LeaderboardEntry = {
+  readonly rank: number;
+  readonly username: string;
+  readonly score: number;
+  readonly isMe: boolean;
+};
+
+export type LeaderboardResponse = {
+  readonly top: readonly LeaderboardEntry[];
+  readonly around: readonly LeaderboardEntry[];
+  readonly total: number;
+};
+
+export type ShareResponse = {
+  readonly ok: true;
+  readonly commentUrl: string;
+  readonly card: string;
+};
+
+/** Analytics events the client is allowed to report (GDD 9.10). */
+export type AnalyticsEvent = {
+  readonly name: string;
+  readonly props?: Readonly<Record<string, string | number | boolean>>;
+};
