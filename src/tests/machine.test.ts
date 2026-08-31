@@ -70,6 +70,7 @@ const loaded = (over: Partial<StateResponse> = {}): GameState =>
   reduce(INITIAL_STATE, {
     type: 'loaded',
     server: serverState(over),
+    clockOffset: 0,
     practiceBest: 0,
     practiceTries: 0,
   });

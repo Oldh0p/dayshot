@@ -91,7 +91,12 @@ npm run lint
 npm run build        # vite build into dist/
 npm run tune         # Monte-Carlo calibration report (GDD 9.5)
 npm run dev          # devvit playtest
+npm run harness      # build + serve the client against a stubbed API on :5599
 ```
+
+`npm run harness` is a local-only rig for looking at the scene in a plain
+browser. It is not the real thing — `runAs`, `context` and the splash entrypoint
+only behave correctly under `devvit playtest`.
 
 ## Code style
 

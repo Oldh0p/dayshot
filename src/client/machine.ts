@@ -1,4 +1,5 @@
 import type {
+  LeaderboardResponse,
   ResultSummary,
   ShotResponse,
   ShotResult,
@@ -72,6 +73,13 @@ export type Transient =
 export type GameState = {
   readonly phase: Phase;
   readonly server: StateResponse | null;
+  /**
+   * Milliseconds to add to the device clock to reach the server's. Only the
+   * server decides what day it is, and this is how the countdown honours that
+   * without trusting the device (GDD 31).
+   */
+  readonly clockOffset: number;
+  readonly board: LeaderboardResponse | null;
   /** The shot being shown, official or otherwise. */
   readonly shot: ShotResult | null;
   /** The server's confirmed result for today's official shot. */
@@ -92,6 +100,8 @@ export type GameState = {
 export const INITIAL_STATE: GameState = {
   phase: 'boot',
   server: null,
+  clockOffset: 0,
+  board: null,
   shot: null,
   result: null,
   submission: null,
@@ -105,7 +115,14 @@ export const INITIAL_STATE: GameState = {
 };
 
 export type Action =
-  | { readonly type: 'loaded'; readonly server: StateResponse; readonly practiceBest: number; readonly practiceTries: number }
+  | {
+      readonly type: 'loaded';
+      readonly server: StateResponse;
+      readonly clockOffset: number;
+      readonly practiceBest: number;
+      readonly practiceTries: number;
+    }
+  | { readonly type: 'board'; readonly board: LeaderboardResponse }
   | { readonly type: 'logged_out' }
   | { readonly type: 'aim_start' }
   | { readonly type: 'misfire' }
@@ -142,12 +159,16 @@ export const reduce = (state: GameState, action: Action): GameState => {
       return {
         ...state,
         server: action.server,
+        clockOffset: action.clockOffset,
         phase: openingPhase(action.server),
         result: action.server.myResult,
         practiceBest: action.practiceBest,
         practiceTries: action.practiceTries,
         transient: null,
       };
+
+    case 'board':
+      return { ...state, board: action.board };
 
     case 'logged_out':
       return { ...state, phase: 'logged_out' };
