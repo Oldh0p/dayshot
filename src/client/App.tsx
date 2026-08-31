@@ -275,8 +275,12 @@ export const App = (): JSX.Element => {
   useEffect(() => {
     if (phase !== 'warmup_result') return;
     const timer = window.setTimeout(() => {
-      void completeWarmup();
-      dispatch({ type: 'warmup_done' });
+      void (async () => {
+        // Tell the server first, so the reload that follows sees the flag.
+        // `warmupDone` in the machine covers the case where this never lands.
+        await completeWarmup();
+        dispatch({ type: 'warmup_done' });
+      })();
     }, 2200);
     return () => window.clearTimeout(timer);
   }, [phase]);

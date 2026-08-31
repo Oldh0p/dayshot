@@ -95,6 +95,15 @@ export type GameState = {
   readonly practiceBest: number;
   readonly practiceTries: number;
   readonly sharedUrl: string | null;
+  /**
+   * Set the moment the warm-up is over, and never cleared.
+   *
+   * The server is told separately, but a reload happens 1.6 s later and that
+   * call may still be in flight or may have failed offline. Without this flag a
+   * stale `firstVisit: true` would send the player back into the warm-up they
+   * just finished, forever.
+   */
+  readonly warmupDone: boolean;
 };
 
 export const INITIAL_STATE: GameState = {
@@ -112,6 +121,7 @@ export const INITIAL_STATE: GameState = {
   practiceBest: 0,
   practiceTries: 0,
   sharedUrl: null,
+  warmupDone: false,
 };
 
 export type Action =
@@ -146,10 +156,13 @@ export type Action =
  * who has already fired today lands on their result, which doubles as the
  * "come back later" screen.
  */
-export const openingPhase = (server: StateResponse): Phase => {
+export const openingPhase = (
+  server: StateResponse,
+  warmupDone = false
+): Phase => {
   if (!server.username) return 'logged_out';
   if (server.playedToday) return 'result';
-  if (server.firstVisit) return 'warmup_aim';
+  if (server.firstVisit && !warmupDone) return 'warmup_aim';
   return 'ready';
 };
 
@@ -160,7 +173,7 @@ export const reduce = (state: GameState, action: Action): GameState => {
         ...state,
         server: action.server,
         clockOffset: action.clockOffset,
-        phase: openingPhase(action.server),
+        phase: openingPhase(action.server, state.warmupDone),
         result: action.server.myResult,
         practiceBest: action.practiceBest,
         practiceTries: action.practiceTries,
@@ -219,7 +232,7 @@ export const reduce = (state: GameState, action: Action): GameState => {
       };
 
     case 'warmup_done':
-      return { ...state, phase: 'interstitial' };
+      return { ...state, phase: 'interstitial', warmupDone: true, shot: null };
 
     case 'begin_practice':
       return { ...state, phase: 'practice_aim', shot: null };

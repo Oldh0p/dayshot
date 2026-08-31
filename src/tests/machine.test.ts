@@ -187,6 +187,26 @@ describe('the warm-up', () => {
     assert.equal(state.phase, 'interstitial');
   });
 
+  it('is never re-entered, even if the server has not caught up', () => {
+    // The reload that follows the interstitial can still see `firstVisit: true`
+    // if `/api/warmup-done` is slow or failed offline. Sending the player back
+    // into the warm-up they just finished would be an unbreakable loop.
+    const after = run(
+      loaded({ firstVisit: true }),
+      { type: 'fired', shot: shot() },
+      { type: 'impact' },
+      { type: 'warmup_done' },
+      {
+        type: 'loaded',
+        server: serverState({ firstVisit: true }),
+        clockOffset: 0,
+        practiceBest: 0,
+        practiceTries: 0,
+      }
+    );
+    assert.equal(after.phase, 'ready');
+  });
+
   it('does not record a result', () => {
     const state = run(
       loaded({ firstVisit: true }),
