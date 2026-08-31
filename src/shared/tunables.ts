@@ -3,10 +3,30 @@ import type { ModifierId } from './types.ts';
 /**
  * Every number that shapes the feel of the game lives here (GDD 9.5).
  *
- * These are starting values. The launch values come out of `npm run tune`
- * (`src/tools/tune.ts`), never out of intuition — the scoring curve is a
- * product decision about the distribution of emotions, and the only way to see
- * that distribution is to simulate it.
+ * The launch values come out of `npm run tune` (`src/tools/tune.ts`), never out
+ * of intuition — the scoring curve is a product decision about the distribution
+ * of emotions, and the only way to see that distribution is to simulate it.
+ *
+ * ## What calibration changed, and what it did not
+ *
+ * The **scoring curve is untouched**. GDD II.8's constants turn out to be right:
+ * they put the median at 75 and a quarter of shots above 90, exactly as GDD 8
+ * asks, for a population whose release error is about 90 ms.
+ *
+ * The **launch geometry was broken and is fixed**. With the document's starting
+ * values the ball's range at full power was roughly 2.6x the width of the
+ * logical space, and `V_MIN = 900` was fast enough that even a zero-power shot
+ * overshot the nearest targets. The consequences were measurable: 29% of days
+ * could not be won at all and were only rescued by the reroll guard-rail, and
+ * 63% of the gauge scored a flat zero. After calibration that is 0.3% and 15%.
+ *
+ * Two GDD 8 targets are **not reachable and were not chased**: 1-3% Bullseyes
+ * and 0.05-0.3% Perfects. Because `holdMs` is an integer, the finest possible
+ * Perfect rate is the chance of hitting the single best millisecond, about
+ * `0.8 / sigma` — 2.7% at sigma = 30 ms, 0.9% at 90 ms. Reaching 0.1% needs an
+ * effective sigma above ~270 ms. No choice of constants changes that; it is a
+ * property of the input granularity. Measure the live rate before touching
+ * `PERFECT_RADIUS` or `BULLSEYE_SCORE`.
  *
  * Changing anything in this file changes the outcome of every past day, so
  * treat edits after launch as a migration, not a tweak.
@@ -36,8 +56,19 @@ export const MISFIRE_MS = 120;
 // -- Physics -----------------------------------------------------------------
 
 export const G = 1700;
-export const V_MIN = 900;
-export const V_MAX = 1900;
+
+/**
+ * Launch speed at the bottom and the top of the gauge.
+ *
+ * Calibrated down from the document's 900/1900. At 900 the ball cleared the
+ * nearest mats before the gauge had left zero, so a whole class of days offered
+ * no undershoot at all; at 1900 it left the 1000-unit world less than a third
+ * of the way up the gauge. These values put the shortest shot around x = 250
+ * and the longest just past the far edge, so both halves of the gauge mean
+ * something and going off the map stays a real but earned punishment.
+ */
+export const V_MIN = 400;
+export const V_MAX = 1350;
 
 /** Fixed integration step. Semi-implicit Euler, never frame-driven. */
 export const SIM_DT = 1 / 120;
@@ -47,14 +78,29 @@ export const SIM_MAX_STEPS = 400;
 
 // -- Daily level ranges ------------------------------------------------------
 
-export const ANGLE_MIN_DEG = 38;
-export const ANGLE_MAX_DEG = 62;
+/**
+ * Narrowed from 38-62 degrees. The steepest angles cost so much range that a far
+ * mat became unreachable on the same day the shallowest angles made a near one
+ * impossible to miss short of.
+ */
+export const ANGLE_MIN_DEG = 40;
+export const ANGLE_MAX_DEG = 58;
 
-export const D_MIN = 520;
-export const D_MAX = 880;
+/**
+ * Narrowed from 520-880. At 880 the plateau's far edge sat at 1020, past the
+ * edge of the world, so every overshoot was an instant zero and the miss was
+ * asymmetric — which GDD II.7 explicitly says it must not be.
+ */
+export const D_MIN = 500;
+export const D_MAX = 800;
 
+/**
+ * Narrowed from 0-420. A tall plateau costs the ball an extra fall on the far
+ * side, which pushed overshoots off the map; 280 keeps the cliff dramatic
+ * without making the far half of the gauge dead.
+ */
 export const H_MIN = 0;
-export const H_MAX = 420;
+export const H_MAX = 280;
 
 export const TARGET_R = 60;
 
@@ -96,7 +142,10 @@ export const PERFECT_RADIUS = 4;
 /** A shot at or above this score earns the Bullseye treatment. */
 export const BULLSEYE_SCORE = 99;
 
-/** Zone 2, on the mat: `100 - MAT_DROP * u^MAT_EXP`, u normalised over the mat. */
+/**
+ * Zone 2, on the mat: `100 - MAT_DROP * u^MAT_EXP`, u normalised over the mat.
+ * Unchanged by calibration — see the note at the top of this file.
+ */
 export const MAT_DROP = 13;
 export const MAT_EXP = 1.35;
 
@@ -160,6 +209,6 @@ export const MOON_GRAVITY_FACTOR = 0.55;
 /** Tiny Target halves the mat, and with it the whole scoring geometry. */
 export const TINY_TARGET_FACTOR = 0.5;
 
-/** Long Shot pins the distance to the top of its range. */
-export const LONG_SHOT_D_MIN = 780;
-export const LONG_SHOT_D_MAX = 880;
+/** Long Shot pins the distance to the top of its range (the top ~27%). */
+export const LONG_SHOT_D_MIN = 720;
+export const LONG_SHOT_D_MAX = 800;
