@@ -12,6 +12,8 @@ export type UserState = {
   readonly perfects: number;
   readonly bullseyes: number;
   readonly daysPlayed: number;
+  /** Set once the player has agreed to have the app comment as them. */
+  readonly shareConsent: boolean;
 };
 
 export const EMPTY_USER: UserState = {
@@ -23,6 +25,7 @@ export const EMPTY_USER: UserState = {
   perfects: 0,
   bullseyes: 0,
   daysPlayed: 0,
+  shareConsent: false,
 };
 
 const num = (raw: string | undefined, fallback: number): number => {
@@ -49,6 +52,7 @@ export const readUser = async (
     perfects: num(hash['perfects'], 0),
     bullseyes: num(hash['bullseyes'], 0),
     daysPlayed: num(hash['daysPlayed'], 0),
+    shareConsent: hash['shareConsent'] === '1',
   };
 };
 

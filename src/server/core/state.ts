@@ -63,6 +63,7 @@ export const buildState = async (
       streak: { current: 0, longest: 0, justReset: false },
       firstVisit: false,
       sharedToday: false,
+      shareConsent: false,
       username: null,
     };
   }
@@ -70,7 +71,7 @@ export const buildState = async (
   const [user, stored, sharedRaw] = await Promise.all([
     readUser(redis, userId),
     readStoredShot(redis, userId, dayNumber),
-    redis.get(keys.userShared(userId, dayNumber)),
+    redis.hGet(keys.userShared(userId, dayNumber), 'url'),
   ]);
 
   if (stored) {
@@ -90,6 +91,7 @@ export const buildState = async (
     streak,
     firstVisit: !user.firstVisitDone,
     sharedToday: sharedRaw !== undefined,
+    shareConsent: user.shareConsent,
     username,
   };
 };

@@ -139,6 +139,12 @@ export type StateResponse = {
   readonly perfectsToday: number;
   readonly tomorrowModifier: ModifierId;
   readonly sharedToday: boolean;
+  /**
+   * Whether the player has already agreed to comment as themselves. Not in the
+   * GDD 9.6 field list, but IV.17 asks for consent once and then remembers it,
+   * and localStorage is wiped by every app update -- so it lives server-side.
+   */
+  readonly shareConsent: boolean;
   readonly username: string | null;
 };
 

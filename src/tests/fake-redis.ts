@@ -142,6 +142,14 @@ export class FakeRedis implements RedisLike {
     return 1;
   }
 
+  async hDel(key: string, fields: string[]): Promise<number> {
+    await this.tick(`hDel ${key}`);
+    const h = this.hash(key);
+    let removed = 0;
+    for (const field of fields) if (h.delete(field)) removed++;
+    return removed;
+  }
+
   async hIncrBy(key: string, field: string, value: number): Promise<number> {
     await this.tick(`hIncrBy ${key} ${field}`);
     const h = this.hash(key);

@@ -36,6 +36,7 @@ export type RedisLike = {
   hSet(key: string, fieldValues: { [field: string]: string }): Promise<number>;
   hSetNX(key: string, field: string, value: string): Promise<number>;
   hIncrBy(key: string, field: string, value: number): Promise<number>;
+  hDel(key: string, fields: string[]): Promise<number>;
 
   zAdd(key: string, ...members: ZEntry[]): Promise<number>;
   zCard(key: string): Promise<number>;

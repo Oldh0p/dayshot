@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
-import { context, redis } from '@devvit/web/server';
+import { context } from '@devvit/web/server';
 
 import type {
   AnalyticsEvent,
   ErrorResponse,
   LeaderboardResponse,
+  ShareResponse,
   ShotRequest,
   ShotResponse,
   StateResponse,
@@ -12,10 +13,11 @@ import type {
 import * as analytics from '../core/analytics.ts';
 import { dayNumberAt } from '../core/clock.ts';
 import { leaderboardFor } from '../core/ranking.ts';
-import type { RedisLike } from '../core/redis-port.ts';
+import { shareShot } from '../core/share.ts';
 import { submitShot } from '../core/shot.ts';
 import { buildState } from '../core/state.ts';
 import { markWarmupDone } from '../core/user.ts';
+import { nonce, now, redditApi, store } from '../platform.ts';
 
 /**
  * The public API (GDD 9.6).
@@ -25,20 +27,6 @@ import { markWarmupDone } from '../core/user.ts';
  */
 export const api = new Hono();
 
-/**
- * The one place the platform's Redis client is bound to the port the core is
- * written against. If Devvit's surface ever drifts, this line stops compiling
- * instead of something failing at midnight.
- */
-const store: RedisLike = redis;
-
-/** Unique per attempt, which is what makes the daily lock's read-back exact. */
-let nonceCounter = 0;
-const nonce = (): string =>
-  `${Date.now().toString(36)}-${(nonceCounter++).toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
-
 const fail = (code: ErrorResponse['error']): ErrorResponse => ({ error: code });
 
 api.get('/state', async (c) => {
@@ -46,7 +34,7 @@ api.get('/state', async (c) => {
     const state: StateResponse = await buildState(store, {
       userId: context.userId ?? null,
       username: context.username ?? null,
-      now: Date.now(),
+      now: now(),
     });
     return c.json<StateResponse>(state, 200);
   } catch (error) {
@@ -68,7 +56,7 @@ api.post('/shot', async (c) => {
 
   try {
     const outcome = await submitShot(
-      { redis: store, now: () => Date.now(), nonce },
+      { redis: store, now, nonce },
       {
         userId,
         username: context.username ?? 'anonymous',
@@ -113,7 +101,7 @@ api.post('/warmup-done', async (c) => {
 
   try {
     await markWarmupDone(store, userId);
-    await analytics.record(store, dayNumberAt(Date.now()), {
+    await analytics.record(store, dayNumberAt(now()), {
       name: 'warmup_complete',
     });
     return c.json({ ok: true }, 200);
@@ -125,7 +113,7 @@ api.post('/warmup-done', async (c) => {
 
 api.get('/leaderboard', async (c) => {
   try {
-    const dayNumber = dayNumberAt(Date.now());
+    const dayNumber = dayNumberAt(now());
     const board = await leaderboardFor(
       store,
       dayNumber,
@@ -141,10 +129,52 @@ api.get('/leaderboard', async (c) => {
 api.post('/analytics', async (c) => {
   try {
     const event = await c.req.json<AnalyticsEvent>();
-    await analytics.record(store, dayNumberAt(Date.now()), event);
+    await analytics.record(store, dayNumberAt(now()), event);
     return c.json({ ok: true }, 200);
   } catch {
     // Analytics must never be able to break a session.
     return c.json({ ok: false }, 200);
+  }
+});
+
+/**
+ * `POST MY SHOT` (GDD 9.6).
+ *
+ * The card is built from the server's record of the shot, never from anything
+ * the client sends. The comment is a claim about a score, so it has to be the
+ * server's claim.
+ */
+api.post('/share-comment', async (c) => {
+  const userId = context.userId;
+  if (!userId) return c.json<ErrorResponse>(fail('LOGGED_OUT'), 401);
+
+  try {
+    const outcome = await shareShot(
+      { redis: store, reddit: redditApi, now },
+      userId
+    );
+
+    switch (outcome.status) {
+      case 'posted':
+        await analytics.record(store, dayNumberAt(now()), {
+          name: 'share_comment',
+        });
+        return c.json<ShareResponse>(
+          { ok: true, commentUrl: outcome.commentUrl, card: outcome.card },
+          200
+        );
+      case 'already_shared':
+        return c.json(
+          { error: 'ALREADY_SHARED', commentUrl: outcome.commentUrl },
+          409
+        );
+      case 'not_played':
+        return c.json<ErrorResponse>(fail('NOT_PLAYED'), 409);
+      default:
+        return c.json<ErrorResponse>(fail('NO_POST'), 409);
+    }
+  } catch (error) {
+    console.error('[api] /share-comment failed', error);
+    return c.json<ErrorResponse>(fail('SERVER_ERROR'), 500);
   }
 });
