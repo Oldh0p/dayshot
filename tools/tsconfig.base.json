@@ -15,6 +15,10 @@
     "strict": true,
     "types": [],
     "isolatedModules": true,
+    // Relative imports carry explicit .ts/.tsx extensions so that the Node test
+    // runner (--experimental-strip-types) can resolve them without a bundler.
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",

@@ -1,15 +1,24 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "daily-one-shot",
+  "permissions": {
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "user",
+      "asUser": ["SUBMIT_COMMENT"]
+    }
+  },
   "post": {
     "dir": "dist/client",
     "entrypoints": {
       "default": {
-        "inline": true,
-        "entry": "splash.html"
+        "entry": "splash.html",
+        "height": "tall"
       },
       "game": {
-        "entry": "game.html"
+        "entry": "game.html",
+        "height": "tall"
       }
     }
   },
@@ -20,26 +29,24 @@
   "menu": {
     "items": [
       {
-        "label": "Create a new post",
-        "description": "daily-one-shot",
+        "label": "[DEV] Create today's post",
+        "description": "Run the daily handler now for the current UTC day",
         "location": "subreddit",
         "forUserType": "moderator",
-        "endpoint": "/internal/menu/post-create"
-      },
-      {
-        "label": "Example form",
-        "description": "Show a simple form",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/menu/example-form"
+        "endpoint": "/internal/menu/dev-create-today"
       }
     ]
   },
-  "forms": {
-    "exampleForm": "/internal/form/example-submit"
-  },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"
+  },
+  "scheduler": {
+    "tasks": {
+      "daily-post": {
+        "endpoint": "/internal/scheduler/daily",
+        "cron": "0 0 * * *"
+      }
+    }
   },
   "scripts": {
     "dev": "vite build --watch",

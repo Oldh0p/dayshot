@@ -4,7 +4,7 @@ import type {
   DecrementResponse,
   IncrementResponse,
   InitResponse,
-} from '../../shared/api';
+} from '../../shared/api.ts';
 
 type ErrorResponse = {
   status: 'error';

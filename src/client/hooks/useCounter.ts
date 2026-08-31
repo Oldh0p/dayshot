@@ -3,7 +3,7 @@ import type {
   InitResponse,
   IncrementResponse,
   DecrementResponse,
-} from '../../shared/api';
+} from '../../shared/api.ts';
 
 interface CounterState {
   count: number;
