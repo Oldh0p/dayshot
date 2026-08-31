@@ -5,8 +5,8 @@ import type { JSX } from 'react';
 import { createRoot } from 'react-dom/client';
 import { context, requestExpandedMode } from '@devvit/web/client';
 
-import { COPY, MODIFIER_EMOJI, MODIFIER_LABEL } from '../shared/copy.ts';
-import type { ModifierId } from '../shared/types.ts';
+import { COPY } from '../shared/copy.ts';
+import { parseSplashData } from './splash-data.ts';
 import { paletteFor } from './theme.ts';
 
 /**
@@ -22,52 +22,8 @@ import { paletteFor } from './theme.ts';
  * so the card costs no server call and renders instantly.
  */
 
-type SplashData = {
-  readonly displayDay: number;
-  readonly modifier: ModifierId;
-  readonly modifierLabel: string;
-  readonly modifierEmoji: string;
-  /**
-   * Set only by the `[DEV] Refresh splash data` action, to find out whether an
-   * updated `postData` reaches a card that is already in the feed (GDD 9.13.2).
-   * Absent in production, and nothing renders when it is absent — which is why
-   * the card carries no counter at creation, when the count would be zero.
-   */
-  readonly devProbe: string | null;
-};
-
-const MODIFIERS: readonly ModifierId[] = [
-  'CLEAR',
-  'CROSSWIND',
-  'TAILWIND',
-  'GUSTY',
-  'MOON',
-  'TINY',
-  'LONG',
-];
-
-const isModifier = (value: unknown): value is ModifierId =>
-  typeof value === 'string' && MODIFIERS.includes(value as ModifierId);
-
-/** Reads the card's data, falling back to something presentable if it is absent. */
-const readSplashData = (): SplashData => {
-  const data = context.postData ?? {};
-  const modifierRaw = (data as Record<string, unknown>)['modifier'];
-  const modifier = isModifier(modifierRaw) ? modifierRaw : 'CLEAR';
-  const dayRaw = (data as Record<string, unknown>)['displayDay'];
-  const probeRaw = (data as Record<string, unknown>)['devProbe'];
-
-  return {
-    displayDay: typeof dayRaw === 'number' ? dayRaw : 0,
-    modifier,
-    modifierLabel: MODIFIER_LABEL[modifier],
-    modifierEmoji: MODIFIER_EMOJI[modifier],
-    devProbe: typeof probeRaw === 'string' ? probeRaw : null,
-  };
-};
-
 export const Splash = (): JSX.Element => {
-  const data = readSplashData();
+  const data = parseSplashData(context.postData);
   const palette = paletteFor(data.modifier, 0);
 
   return (
@@ -81,7 +37,7 @@ export const Splash = (): JSX.Element => {
         {COPY.title}
       </div>
 
-      {data.displayDay > 0 && (
+      {data.displayDay !== null && (
         <div className="tabular text-[56px] font-extrabold leading-none">
           #{data.displayDay}
         </div>
