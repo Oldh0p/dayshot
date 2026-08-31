@@ -159,9 +159,12 @@ describe('ensureDailyPost', () => {
       }
     );
 
+    // Give yesterday a Perfect to talk about; without one the line is omitted.
+    await redis.hSet(keys.dayMeta(DAY - 1), { perfects: '3' });
+
     await ensureDailyPost(dailyDeps(redis, reddit));
     const seed = reddit.comments[0]?.text ?? '';
-    assert.match(seed, /Perfect/);
+    assert.match(seed, /3 Perfects yesterday\.$/);
   });
 
   it('says nothing about yesterday on the very first day', async () => {

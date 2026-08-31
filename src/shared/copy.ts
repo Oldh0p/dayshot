@@ -175,8 +175,7 @@ export const betterThanLine = (percent: number): string =>
 export const fromCenterLine = (dx: number): string =>
   `${formatDx(dx)} from center`;
 
-export const streakLine = (streak: number): string =>
-  `🔥 ${streak} DAY STREAK`;
+export const streakLine = (streak: number): string => `🔥 ${streak} DAY STREAK`;
 
 export const tomorrowLine = (modifier: ModifierId): string =>
   `Tomorrow: ${MODIFIER_LABEL[modifier].toUpperCase()} ${MODIFIER_EMOJI[modifier]}`;
@@ -236,15 +235,17 @@ export type YesterdayStats = {
   readonly shots: number;
 };
 
+/**
+ * Yesterday's headline, chosen by rule so nobody has to write one every day.
+ *
+ * Only ever mentions Perfects when there were some. "Nobody hit a Perfect
+ * yesterday" reads as a scoreboard of failure on a quiet day, and on day one
+ * there is no yesterday at all -- an empty line is better than a zero.
+ */
 const yesterdayHeadline = (stats: YesterdayStats): string => {
-  if (stats.shots === 0) return '';
-  if (stats.perfects === 0) {
-    return ` Nobody hit a Perfect yesterday — best was ${formatScore(stats.topScore)}.`;
-  }
-  if (stats.perfects === 1) {
-    return ' Only 1 Perfect yesterday.';
-  }
-  return ` ${formatCount(stats.perfects)} Perfects yesterday.`;
+  if (stats.shots === 0 || stats.perfects === 0) return '';
+  if (stats.perfects === 1) return 'Only 1 Perfect yesterday.';
+  return `${formatCount(stats.perfects)} Perfects yesterday.`;
 };
 
 /**
@@ -255,22 +256,32 @@ const yesterdayHeadline = (stats: YesterdayStats): string => {
  * reply to a single stickied comment. So the first line has to read as an
  * invitation and the second has to explain what lands underneath — a reader who
  * sees only the collapsed header should still understand what this is.
+ *
+ * It names the modifier and nothing else. The wind and the distance are not
+ * public information: reading them is the planning beat of the game (GDD 5),
+ * and a player who meets them in a comment has had that beat taken away. The
+ * function does not receive the wind at all, which is the only way to be sure.
  */
 export const seedComment = (
   displayDay: number,
   modifier: ModifierId,
-  windBase: number,
   yesterday: YesterdayStats | null
-): string =>
-  `🎯 **Drop your shot below**
+): string => {
+  const tail = yesterday ? yesterdayHeadline(yesterday) : '';
+  return (
+    `🎯 **Drop your shot below**
 
 ` +
-  `Day #${displayDay} — ${MODIFIER_LABEL[modifier]} ${formatWind(windBase)}. ` +
-  `Tap POST MY SHOT on your result and your card replies here. ` +
-  `One shot per player, per day — everyone resets at 00:00 UTC.` +
-  (yesterday ? `
+    `Day #${displayDay} — ${MODIFIER_LABEL[modifier]}. ` +
+    `Tap POST MY SHOT on your result and your card replies here. ` +
+    `One shot per player, per day — everyone resets at 00:00 UTC.` +
+    (tail
+      ? `
 
-${yesterdayHeadline(yesterday).trim()}` : '');
+${tail}`
+      : '')
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Share cards (GDD IV.17, exact formats)
@@ -381,8 +392,7 @@ export const markerCell = (
 };
 
 const ringGlyph = (row: number, col: number): string => {
-  const distance =
-    Math.abs(row - GRID_CENTER) + Math.abs(col - GRID_CENTER);
+  const distance = Math.abs(row - GRID_CENTER) + Math.abs(col - GRID_CENTER);
   if (distance === 0) return GLYPH_CENTER;
   if (distance === 1) return GLYPH_RING_1;
   if (distance === 2) return GLYPH_RING_2;

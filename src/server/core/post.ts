@@ -140,12 +140,7 @@ export const ensureDailyPost = async (
       const yesterday = await readYesterday(redis, dayNumber);
       const comment = await reddit.submitComment({
         id: parent,
-        text: seedComment(
-          displayDay,
-          level.modifier,
-          level.windBase,
-          yesterday
-        ),
+        text: seedComment(displayDay, level.modifier, yesterday),
         runAs: 'APP',
       });
       // Stickied on purpose: score cards are posted as replies to it, which

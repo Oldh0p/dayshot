@@ -16,6 +16,7 @@ import {
   ringForDx,
   seedComment,
   shareFormatA,
+  splashDescription,
   shareFormatB,
   shareGrid,
   streakLine,
@@ -27,7 +28,8 @@ import {
 } from '../shared/copy.ts';
 import type { ShareCardInput } from '../shared/copy.ts';
 import type { ModifierId } from '../shared/types.ts';
-import { PERFECT_RADIUS, TARGET_R } from '../shared/tunables.ts';
+import { LAUNCH_DAY, PERFECT_RADIUS, TARGET_R } from '../shared/tunables.ts';
+import { generateLevel } from '../shared/sim.ts';
 
 /** Spelled out so the escape survives every layer of tooling in between. */
 const NEWLINE = String.fromCharCode(10);
@@ -65,7 +67,10 @@ describe('copy — contractual wordings (GDD 9.9)', () => {
     assert.equal(fromCenterLine(6.4), '6.4 from center');
     assert.equal(streakLine(12), '🔥 12 DAY STREAK');
     assert.equal(tomorrowLine('MOON'), 'Tomorrow: MOON GRAVITY 🌙');
-    assert.equal(nextShotLine(8 * 3600000 + 42 * 60000 + 17000), 'Next shot in 08:42:17');
+    assert.equal(
+      nextShotLine(8 * 3600000 + 42 * 60000 + 17000),
+      'Next shot in 08:42:17'
+    );
     assert.equal(
       streakResetLine(17),
       'Streak reset. Longest: 17 🔥 — Day 1 starts now.'
@@ -78,8 +83,14 @@ describe('copy — contractual wordings (GDD 9.9)', () => {
 
   it('formats a score to two decimals and a percentile to one', () => {
     assert.equal(topPercentLine(100), 'TOP 100.0% TODAY');
-    assert.equal(shareFormatA({ ...REFERENCE_CARD, score: 100 }).includes('100.00'), true);
-    assert.equal(shareFormatA({ ...REFERENCE_CARD, score: 0 }).includes('0.00'), true);
+    assert.equal(
+      shareFormatA({ ...REFERENCE_CARD, score: 100 }).includes('100.00'),
+      true
+    );
+    assert.equal(
+      shareFormatA({ ...REFERENCE_CARD, score: 0 }).includes('0.00'),
+      true
+    );
   });
 
   it('covers every modifier with a label and a glyph', () => {
@@ -104,7 +115,10 @@ describe('countdown', () => {
     assert.equal(formatCountdown(0), '00:00:00');
     assert.equal(formatCountdown(1000), '00:00:01');
     assert.equal(formatCountdown(61000), '00:01:01');
-    assert.equal(formatCountdown(23 * 3600000 + 59 * 60000 + 59000), '23:59:59');
+    assert.equal(
+      formatCountdown(23 * 3600000 + 59 * 60000 + 59000),
+      '23:59:59'
+    );
   });
 
   it('never runs backwards past zero', () => {
@@ -189,6 +203,26 @@ describe('share Format B', () => {
     assert.ok(ringForDx(12, tiny) > ringForDx(12, TARGET_R));
   });
 
+  it('draws the same miss differently on a tiny mat', () => {
+    const tiny = TARGET_R / 2;
+
+    // 35 units out is still on a full-size mat: middle row, outer cell.
+    assert.deepEqual(shareGrid(35, TARGET_R), [
+      '\u{1F7E6}\u{1F7E6}\u{1F7E5}\u{1F7E6}\u{1F7E6}',
+      '\u{1F7E6}\u{1F7E5}\u{1F7E8}\u{1F7E5}\u{1F7E6}',
+      '\u{1F7E5}\u{1F7E8}\u{1F3AF}\u{1F7E8}\u26AB',
+      '\u{1F7E6}\u{1F7E5}\u{1F7E8}\u{1F7E5}\u{1F7E6}',
+      '\u{1F7E6}\u{1F7E6}\u{1F7E5}\u{1F7E6}\u{1F7E6}',
+    ]);
+
+    // The same 35 units is well off a 30-unit mat, and the card has to say so:
+    // the marker moves to the corner and the bullseye row is left untouched.
+    const small = shareGrid(35, tiny);
+    assert.equal(small[0], '\u{1F7E6}\u{1F7E6}\u{1F7E5}\u{1F7E6}\u26AB');
+    assert.equal(small[2], '\u{1F7E5}\u{1F7E8}\u{1F3AF}\u{1F7E8}\u{1F7E5}');
+    assert.notDeepEqual(small, shareGrid(35, TARGET_R));
+  });
+
   it('mirrors an undershoot to the left of the bullseye', () => {
     const over = shareGrid(6.4);
     const under = shareGrid(-6.4);
@@ -199,9 +233,7 @@ describe('share Format B', () => {
   });
 
   it('walks the marker outward as the miss grows', () => {
-    const cells = [0, 6, 20, 45, 200].map((dx) =>
-      markerCell(ringForDx(dx), 1)
-    );
+    const cells = [0, 6, 20, 45, 200].map((dx) => markerCell(ringForDx(dx), 1));
     assert.deepEqual(cells, [
       [2, 2],
       [2, 3],
@@ -262,31 +294,80 @@ describe('reddit-side copy', () => {
     // as the thread it is -- a reader who only sees the collapsed header should
     // still know what is underneath.
     assert.equal(
-      seedComment(1, 'CLEAR', 12, null),
+      seedComment(1, 'CLEAR', null),
       [
-        '🎯 **Drop your shot below**',
+        '\u{1F3AF} **Drop your shot below**',
         '',
-        'Day #1 — Clear Skies +12. Tap POST MY SHOT on your result and your ' +
-          'card replies here. One shot per player, per day — everyone resets ' +
-          'at 00:00 UTC.',
+        'Day #1 \u2014 Clear Skies. Tap POST MY SHOT on your result and your ' +
+          'card replies here. One shot per player, per day \u2014 everyone ' +
+          'resets at 00:00 UTC.',
       ].join(NEWLINE)
     );
   });
 
-  it('closes with a rule-built line about yesterday', () => {
+  it('mentions yesterday only when somebody hit a Perfect', () => {
+    const yesterday = (perfects: number) => ({
+      perfects,
+      topScore: 99.94,
+      shots: 42617,
+    });
+
+    // Day one has no yesterday at all.
+    assert.ok(seedComment(1, 'CLEAR', null).endsWith('00:00 UTC.'));
+
+    // A day where nobody managed one says nothing rather than saying zero:
+    // "Nobody hit a Perfect yesterday" reads as a scoreboard of failure.
+    const quiet = seedComment(2, 'CLEAR', yesterday(0));
+    assert.ok(quiet.endsWith('00:00 UTC.'));
+    assert.ok(!/Perfect/.test(quiet));
+
     assert.ok(
-      seedComment(247, 'CROSSWIND', -380, {
-        perfects: 1,
-        topScore: 99.94,
-        shots: 42617,
-      }).endsWith(`${NEWLINE}${NEWLINE}Only 1 Perfect yesterday.`)
+      seedComment(247, 'CROSSWIND', yesterday(1)).endsWith(
+        `${NEWLINE}${NEWLINE}Only 1 Perfect yesterday.`
+      )
     );
     assert.ok(
-      seedComment(247, 'CROSSWIND', -380, {
-        perfects: 0,
-        topScore: 99.94,
-        shots: 42617,
-      }).endsWith('Nobody hit a Perfect yesterday — best was 99.94.')
+      seedComment(247, 'CROSSWIND', yesterday(38)).endsWith(
+        `${NEWLINE}${NEWLINE}38 Perfects yesterday.`
+      )
     );
+  });
+
+  it("never leaks the day's conditions into the post or the thread", () => {
+    // Reading the wind and the distance is the planning beat of the game
+    // (GDD 5). A player who meets them in a comment has had that beat taken
+    // away, so neither the title nor the seed comment may carry a value.
+    //
+    // The check is on every number that appears: anything that is not the day
+    // number, the Perfect count, or part of "24 hours" / "00:00 UTC" is a leak.
+    for (let offset = 0; offset < 200; offset++) {
+      const day = LAUNCH_DAY + offset;
+      const level = generateLevel(day);
+      const displayDay = day - LAUNCH_DAY + 1;
+      const perfects = 7;
+      const allowed = new Set([displayDay, perfects, 24, 0]);
+
+      for (const text of [
+        dailyPostTitle(displayDay, level.modifier),
+        seedComment(displayDay, level.modifier, {
+          perfects,
+          topScore: 99.94,
+          shots: 1000,
+        }),
+        splashDescription(level.modifier),
+      ]) {
+        for (const match of text.matchAll(/\d+/g)) {
+          const value = Number(match[0]);
+          assert.ok(
+            allowed.has(value),
+            `leaked ${value} on day ${day}: ${text}`
+          );
+        }
+        assert.ok(
+          !text.includes(formatWind(level.windBase)),
+          `leaked the wind on day ${day}: ${text}`
+        );
+      }
+    }
   });
 });
