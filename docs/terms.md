@@ -58,5 +58,5 @@ play after a change means accepting it.
 
 ## Contact
 
-Reach the developer through Reddit modmail at the game's home community, or by
-opening an issue on the project repository.
+Message the moderators of [r/DayShot](https://www.reddit.com/r/DayShot/),
+the game's home community.

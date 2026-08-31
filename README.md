@@ -190,6 +190,11 @@ press the button that says so, after showing you the exact text it will publish.
 
 ---
 
+## Where it lives
+
+The game's home community is
+[r/DayShot](https://www.reddit.com/r/DayShot/).
+
 ## Credits
 
 Built on [Devvit](https://developers.reddit.com), Reddit's developer platform.

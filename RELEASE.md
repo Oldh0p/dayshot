@@ -28,8 +28,8 @@ gradient, the streak fix and the demo mode that the installed build predates.
 The [launch guide](https://developers.reddit.com/docs/guides/launch/launch-guide)
 lists, for games: "Has a dedicated, non-test subreddit (e.g. r/Pixelary)."
 
-The home subreddit exists. You have decided not to install there before
-approval. That is defensible — published apps are unlisted by default and are
+The home subreddit is **r/DayShot**. You have decided not to install there
+before approval. That is defensible — published apps are unlisted by default and are
 installed after approval — but note the reviewer will only see the app running
 on r/daily_one_shot_dev. If review comes back asking to see it on the home
 community, installing takes a minute and is not a code change.
