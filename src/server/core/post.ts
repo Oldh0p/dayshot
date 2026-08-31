@@ -25,7 +25,7 @@ import type { RedisLike } from './redis-port.ts';
  * The daily post (GDD 9.6).
  *
  * Runs from the `0 0 * * *` UTC cron, from the app-install trigger, and from
- * the `[DEV] Create today's post` moderator action. All three take exactly the
+ * the `Create today's post` moderator action. All three take exactly the
  * same path, which is the point: the thing a moderator triggers by hand during
  * a playtest is the thing that runs at midnight, not a parallel implementation
  * of it.

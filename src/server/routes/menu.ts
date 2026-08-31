@@ -8,10 +8,12 @@ import { currentSubreddit, nonce, now, redditApi, store } from '../platform.ts';
 export const menu = new Hono();
 
 /**
- * `[DEV] Create today's post`.
+ * `Create today's post`.
  *
- * Runs the daily handler on demand so a playtest does not have to wait for
- * midnight. Deliberately the *same* code path as the cron, including its
+ * Runs the daily handler on demand, so a missed cron is a one-click fix for a
+ * moderator and a playtest does not have to wait for midnight. It kept its
+ * `[DEV]` prefix until the review surface was trimmed; recreating a missing
+ * daily post is a real moderator tool, not a probe. Deliberately the *same* code path as the cron, including its
  * idempotency: if today's post already exists it navigates there and says so,
  * because that is what the scheduler would do too.
  */
