@@ -32,8 +32,9 @@ export const dayStats = (dayNumber: number): string =>
 export const user = (userId: string): string => `user:${userId}`;
 
 /**
- * The daily lock. Written once with `SET NX`; its value is the audit record of
- * the shot. Its existence *is* "this player has played today".
+ * The daily lock: a hash whose single `shot` field is claimed with `hSetNX` and
+ * holds the audit record. Its existence *is* "this player has played today".
+ * See `shot.ts` for why it is a hash and not the string GDD 9.7 describes.
  */
 export const userPlayed = (userId: string, dayNumber: number): string =>
   `user:${userId}:played:${dayNumber}`;

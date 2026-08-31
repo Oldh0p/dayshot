@@ -63,8 +63,10 @@ code (GDD 9.12).
   `rank = zCard - zRank(member)` is exact and earlier submissions win ties for
   free (GDD 8: ties broken by submission timestamp).
 - **`set(k, v, { nx: true })` has an undocumented return value.** The daily lock
-  writes a payload containing a unique nonce and reads it back to decide who
-  won. Correct regardless of what `set` returns.
+  is therefore a hash claimed with `hSetNX`, which returns 1 or 0, *and* the
+  written payload is read back and compared against a per-attempt nonce. Either
+  check alone would do; together they stay correct if one ever misbehaves. GDD
+  9.7 calls the key a string — only the Redis type differs.
 - **Comments on behalf of a user must reply to a single stickied comment.**
   That is a review requirement, not a preference. `POST MY SHOT` replies to the
   day's seed comment, whose id lives in `day:{n}:meta`.
