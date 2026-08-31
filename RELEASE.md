@@ -2,8 +2,29 @@
 
 Everything between the current state of the tree and `npx devvit publish`.
 
-Current state: **223 tests green**, Devvit **0.14.2**, app renamed to `dayshot-game`,
-`[DEV]` surface removed, Terms and Privacy written.
+Current state: **version 0.0.4 submitted for review**, awaiting Reddit's email.
+222 tests green, Devvit 0.14.2, app published as `dayshot-game` (`dayshot` was
+taken), `[DEV]` surface removed, Terms and Privacy live.
+
+| | |
+| --- | --- |
+| App | `dayshot-game` -- <https://developers.reddit.com/apps/dayshot-game> |
+| Version under review | **0.4** submitted, unlisted (no `--public`) |
+| Home subreddit | r/DayShot -- **nothing installed there until approval** |
+| Test subreddit | r/dayshot_game_dev (CLI auto-created it, set to Public by hand) |
+| Terms | <https://oldh0p.github.io/dayshot/terms> |
+| Privacy | <https://oldh0p.github.io/dayshot/privacy> |
+| Repository | <https://github.com/Oldh0p/dayshot> (public -- Pages needs it) |
+| Modmail to r/Devvit | sent, in parallel with submission |
+
+Review is required because the app *creates custom posts*, which is what the
+game is; it is not a flag against this app in particular.
+
+**On approval:** `npx devvit install DayShot`. The first post it creates reads
+`#1` on its own -- the anchor handles it, there is no date to set.
+
+The one known difference between the repo and version 0.4: the unused
+`public/snoo.png`, removed after submission. See section 6.
 
 ---
 
