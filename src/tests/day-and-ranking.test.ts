@@ -43,6 +43,25 @@ describe('clock', () => {
     assert.equal(displayDayFor(LAUNCH_DAY + 246), 247);
   });
 
+  it('numbers days before launch honestly rather than clamping them', () => {
+    // A clamp would be the tempting fix for a `#0` title, and it would make two
+    // different days both call themselves #1. The arithmetic stays exact; a
+    // non-positive number is the signal that LAUNCH_DAY has not been set yet,
+    // and `ensureDailyPost` says so in the log.
+    assert.equal(displayDayFor(LAUNCH_DAY - 1), 0);
+    assert.equal(displayDayFor(LAUNCH_DAY - 5), -4);
+  });
+
+  it('advances by exactly one a day, forever', () => {
+    for (let offset = 0; offset < 500; offset++) {
+      assert.equal(
+        displayDayFor(LAUNCH_DAY + offset + 1) -
+          displayDayFor(LAUNCH_DAY + offset),
+        1
+      );
+    }
+  });
+
   it('counts down to the next UTC midnight', () => {
     assert.equal(msUntilRollover(utc('2026-09-01T00:00:00Z')), MS_PER_DAY);
     assert.equal(msUntilRollover(utc('2026-09-01T23:59:59Z')), 1000);

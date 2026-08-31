@@ -160,3 +160,33 @@ dev.post('/verify-redis', async (c) => {
     await store.del(key);
   }
 });
+
+/**
+ * Forgets which post belongs to today, so `[DEV] Create today's post` will make
+ * a fresh one.
+ *
+ * `ensureDailyPost` is idempotent by design, which is right in production and
+ * painful during a playtest: iterating on the title or the seed comment
+ * otherwise means waiting for the next UTC day. It clears the binding only —
+ * scores, streaks and the day's seed are untouched, and the old post stays on
+ * Reddit for you to delete by hand.
+ */
+dev.post('/unbind-post', async (c) => {
+  const dayNumber = dayNumberAt(now());
+  const previous = await store.hGet(keys.dayMeta(dayNumber), 'postId');
+
+  await store.hDel(keys.dayMeta(dayNumber), [
+    'postId',
+    'seedCommentId',
+    'postClaim',
+  ]);
+
+  return c.json<UiResponse>(
+    toast(
+      previous
+        ? `Unbound ${previous}. Create today's post again for a fresh one.`
+        : 'Today had no post bound.'
+    ),
+    200
+  );
+});

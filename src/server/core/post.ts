@@ -113,6 +113,15 @@ export const ensureDailyPost = async (
     };
   }
 
+  if (displayDay < 1) {
+    // Correct arithmetic, wrong constant: LAUNCH_DAY is still in the future.
+    // Harmless on a playtest subreddit, unshippable in public.
+    console.warn(
+      `[daily] this post will be numbered #${displayDay}. LAUNCH_DAY is set ` +
+        `to a future date — run \`npm run launch-day\` before publishing.`
+    );
+  }
+
   const level = generateLevel(dayNumber, meta.rerollK);
 
   try {

@@ -164,7 +164,19 @@ export const PALETTE_VARIANTS = 4;
 
 // -- Calendar ----------------------------------------------------------------
 
-/** `dayNumber` of ONE SHOT #1 — 2026-09-01 UTC. Frozen for life. */
+/**
+ * `dayNumber` of ONE SHOT #1 — currently 2026-09-01 UTC.
+ *
+ * This decides one thing only: the number in the title. Levels come from
+ * `dayNumber`, which is absolute, so moving `LAUNCH_DAY` renumbers the display
+ * and changes no gameplay at all.
+ *
+ * **The rule at launch:** run `npm run launch-day <YYYY-MM-DD>` for the date of
+ * the first public post, paste the number here, and never touch it again.
+ * Before that date the arithmetic yields zero or a negative — which is correct,
+ * and is why `ensureDailyPost` warns loudly rather than quietly clamping: a
+ * clamp would make two different days both call themselves #1.
+ */
 export const LAUNCH_DAY = 20697;
 
 /**

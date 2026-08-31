@@ -17,7 +17,8 @@
     "test:unit": "node --experimental-strip-types --no-warnings=ExperimentalWarning --test \"src/tests/**/*.test.ts\"",
     "tune": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/tools/tune.ts",
     "type-check": "tsc --build",
-    "harness": "npm run build && node tools/devharness/server.mjs"
+    "harness": "npm run build && node tools/devharness/server.mjs",
+    "launch-day": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/tools/launch-day.ts"
   },
   "engines": {
     "node": ">=24.0.0"

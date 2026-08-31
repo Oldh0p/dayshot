@@ -13,26 +13,47 @@ npm install
 npm run login
 ```
 
-Pick the playtest subreddit. It must have **fewer than 200 subscribers** and you
-must be a moderator of it. Either create one, or let Devvit create one for you
-on first upload.
-
-Set it as the default so every command targets it, by adding this to
-`devvit.json` (the field is read by `devvit playtest`):
+The playtest subreddit is **r/daily_one_shot_dev**, already set in
+`devvit.json`:
 
 ```json
 {
-  "dev": { "subreddit": "YOUR_TEST_SUB" }
+  "dev": { "subreddit": "daily_one_shot_dev" }
 }
 ```
 
-Or export it per shell instead of editing the file:
+Override it for one shell without editing the file:
 
 ```bash
-export DEVVIT_SUBREDDIT=YOUR_TEST_SUB
+export DEVVIT_SUBREDDIT=some_other_sub
 ```
 
-## 2. First upload
+A playtest subreddit must have **fewer than 200 subscribers** and you must be a
+moderator of it.
+
+> **Make it public before testing the logged-out states.** Devvit creates
+> playtest subreddits as **private**, and a private sub shows a logged-out
+> visitor a permission wall rather than the game — which makes section D below
+> impossible to answer. Change it under *Mod Tools → Settings → Privacy*. The
+> display name is cosmetic; the identifier is what `devvit.json` needs.
+
+## 2. Check the day number
+
+```bash
+npm run launch-day
+```
+
+Before the launch date the arithmetic yields `#0` or a negative, and the post
+title says so. That is correct and deliberate — a clamp would make two different
+days both call themselves #1 — but it must not survive into public.
+
+`LAUNCH_DAY` decides *only* the number in the title. Levels come from
+`dayNumber`, which is absolute, so moving it renumbers the display and changes no
+gameplay at all. That is precisely why it has to be set once, before the first
+public post, and never again: changing it afterwards renumbers every day anyone
+has already played.
+
+## 3. First upload
 
 ```bash
 npm run test && npm run build && npx devvit upload
@@ -41,7 +62,12 @@ npm run test && npm run build && npx devvit upload
 `upload` runs the type check, the linter and the unit tests first, registers the
 app, and creates the playtest subreddit if you did not name one.
 
-## 3. Start the playtest
+Re-run it whenever you want the *published* version to catch up with your
+working tree. `devvit playtest` hot-reloads the server on save, but anything
+already posted to Reddit — a title, a stickied comment — was written by the
+version that was running at the time and is not rewritten.
+
+## 4. Start the playtest
 
 ```bash
 npm run dev
@@ -54,7 +80,7 @@ browser console into the terminal and live-reloads on save.
 Installing the app fires `onAppInstall`, which creates today's post immediately.
 You should not have to wait for midnight.
 
-## 4. The [DEV] menu
+## 5. The [DEV] menu
 
 Four moderator-only actions, all prefixed `[DEV]`. **They must be removed from
 `devvit.json` before publishing** — a shipped game has no business carrying
@@ -66,8 +92,9 @@ scheduler triggers and Redis self-checks in its moderation menu.
 | Schedule daily task in 2 min | subreddit | Does the scheduler pipeline work, without waiting for midnight? |
 | Refresh splash data | post | Does an updated `postData` reach a card already in the feed? (GDD 9.13.2) |
 | Verify redis ranking | subreddit | Is `zRank` really the ascending index, and does a reversed window slice as the leaderboard assumes? |
+| Unbind today's post | subreddit | Forgets which post is today's, so a fresh one can be created without waiting for the next UTC day. |
 
-## 5. Create a post on demand
+## 6. Create a post on demand
 
 The scheduler runs at `0 0 * * *` UTC. To test without waiting:
 
@@ -75,10 +102,14 @@ The scheduler runs at `0 0 * * *` UTC. To test without waiting:
 
 It runs the same handler as the cron, including its idempotency: if today's post
 already exists it navigates to it and says so, because that is exactly what the
-scheduler would do. To get a genuinely new post, wait for the next UTC day or
-run the action on a fresh install.
+scheduler would do.
 
-## 6. Walk the loop
+To iterate on the title or the stickied comment without waiting for tomorrow:
+run `[DEV] Unbind today's post`, delete the old post on Reddit by hand, then
+`[DEV] Create today's post` again. Unbinding clears the day's post binding only
+— scores, streaks and the day's seed are untouched.
+
+## 7. Walk the loop
 
 1. Find the post in the feed. The card shows `ONE SHOT`, the day number, the
    modifier and `TAP TO SHOOT`.
@@ -105,7 +136,7 @@ run the action on a fresh install.
 There is no reset endpoint by design — a way to clear the daily lock would be a
 way to shoot twice. Use a second Reddit account, or wait for the UTC rollover.
 
-## 7. Reading the logs
+## 8. Reading the logs
 
 `devvit playtest` streams server logs. Worth grepping for:
 
@@ -115,6 +146,8 @@ way to shoot twice. Use a second Reddit account, or wait for the UTC rollover.
   is a release blocker.
 - `[api] … failed` — any endpoint that threw.
 - `[daily] task="daily-post-once"` — the one-off scheduler probe fired.
+- `[daily] this post will be numbered #0` — `LAUNCH_DAY` is still in the future.
+  Expected before launch, unshippable after.
 
 ---
 
@@ -364,3 +397,28 @@ On a mid-range phone from around 2022, or Chrome DevTools with 4× CPU throttlin
       before the ask.
 - [ ] `Log in to take your shot` and a working login button.
 - [ ] Holding the screen does nothing.
+
+---
+
+# Before publishing
+
+`devvit playtest` and `devvit publish` are not the same audience. Work through
+this list before the app leaves the dev subreddit.
+
+- [ ] **Set `LAUNCH_DAY`.** Run `npm run launch-day <first public date>` and
+      paste the number into `src/shared/tunables.ts`. Confirm the next post
+      reads **ONE SHOT #1**. This is the one constant that cannot be corrected
+      later without renumbering days people have already played.
+- [ ] **Remove every `[DEV]` menu item from `devvit.json`**, and the
+      `daily-post-once` scheduler task with them. A shipped game has no business
+      carrying scheduler triggers, a `setPostData` probe and a Redis self-check
+      in its moderation menu. `src/server/routes/dev.ts` can stay in the tree;
+      it is unreachable once nothing routes to it.
+- [ ] **Drop the `devProbe` line from `splash.tsx`** once question C is
+      answered, whichever way it went.
+- [ ] Confirm `permissions.reddit` still declares `scope: "user"` *and*
+      `asUser: ["SUBMIT_COMMENT"]` — the JSON schema and the documentation
+      disagree about which field is operative, so both are declared.
+- [ ] Re-read the `[DEV]`-free `devvit.json` against
+      <https://developers.reddit.com/schema/config-file.v1.json>.
+- [ ] `npm run test` green, and `npm run tune` re-run if any tunable moved.

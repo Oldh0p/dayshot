@@ -6,7 +6,9 @@
     "reddit": {
       "enable": true,
       "scope": "user",
-      "asUser": ["SUBMIT_COMMENT"]
+      "asUser": [
+        "SUBMIT_COMMENT"
+      ]
     }
   },
   "post": {
@@ -55,6 +57,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/dev/verify-redis"
+      },
+      {
+        "label": "[DEV] Unbind today's post",
+        "description": "Forget the day's post so a fresh one can be created",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/dev/unbind-post"
       }
     ]
   },
