@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { ensureDayMeta } from '../server/core/day.ts';
 import * as keys from '../server/core/keys.ts';
 import { ensureDailyPost } from '../server/core/post.ts';
-import { shareShot } from '../server/core/share.ts';
+import { forgetSharedComment, shareShot } from '../server/core/share.ts';
 import { submitShot } from '../server/core/shot.ts';
 import { dailyPostTitle, shareFormatB } from '../shared/copy.ts';
 import { generateLevel } from '../shared/sim.ts';
@@ -308,5 +308,47 @@ describe('shareShot', () => {
       't2_alice'
     );
     assert.equal(retry.status, 'posted');
+  });
+});
+
+describe('a deleted score card', () => {
+  const setup = async () => {
+    const redis = new FakeRedis();
+    const reddit = new FakeReddit();
+    await ensureDailyPost(dailyDeps(redis, reddit));
+    await submitShot(
+      { redis, now: () => NOON, nonce },
+      {
+        userId: 't2_alice',
+        username: 'alice',
+        claimedDay: DAY,
+        holdMs: 640,
+        clientScore: 0,
+      }
+    );
+    await shareShot({ redis, reddit, now: () => NOON }, 't2_alice');
+    return { redis, reddit };
+  };
+
+  it('is forgotten by the app, and the player gets their share back', async () => {
+    const { redis, reddit } = await setup();
+    const card = reddit.comments[1];
+    assert.ok(card);
+
+    // Deleting on Reddit must delete here: the app holds a permalink to it.
+    assert.equal(await forgetSharedComment(redis, card.id), true);
+    assert.deepEqual(await redis.hGetAll(keys.userShared('t2_alice', DAY)), {});
+
+    // And the button works again, which is what deleting a card usually means.
+    const again = await shareShot(
+      { redis, reddit, now: () => NOON },
+      't2_alice'
+    );
+    assert.equal(again.status, 'posted');
+  });
+
+  it('ignores a comment it never published', async () => {
+    const { redis } = await setup();
+    assert.equal(await forgetSharedComment(redis, 't1_someone_else'), false);
   });
 });

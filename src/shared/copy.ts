@@ -1,4 +1,8 @@
-import { PERFECT_RADIUS, TARGET_R } from './tunables.ts';
+import {
+  PERCENTILE_MIN_PLAYERS,
+  PERFECT_RADIUS,
+  TARGET_R,
+} from './tunables.ts';
 import type { ImpactKind, ModifierId } from './types.ts';
 
 /**
@@ -153,8 +157,6 @@ export const COPY = {
 
   // -- Sharing --------------------------------------------------------------
   shareConsentTitle: 'Post as a comment?',
-  shareConsentBody:
-    'This posts your score card as a comment from your account, as a reply to the daily thread.',
   shareConsentConfirm: 'Post my shot',
   shareConsentCancel: 'Not now',
   shareCopied: 'Card copied',
@@ -168,6 +170,43 @@ export const COPY = {
 
 export const topPercentLine = (percent: number): string =>
   `TOP ${formatPercent(percent)}% TODAY`;
+
+export const rankTodayLine = (rank: number): string =>
+  `#${formatCount(rank)} TODAY`;
+
+/** GDD 9.9 */
+export const firstShotLine = (): string => 'FIRST SHOT TODAY';
+
+/**
+ * The headline of the result screen: the one line GDD 18 puts above everything
+ * else.
+ *
+ * Normally the percentile, because a mid-table player needs to hear "top 8.4%"
+ * rather than "#4,102". But a percentile of a tiny field is a rank wearing a
+ * disguise — and on the very first shot of a day it is worse than that, because
+ * "TOP 100.0% TODAY" reads as sarcasm. So:
+ *
+ *   - alone so far, the player is genuinely the first in the world today;
+ *   - in a small field, the rank is more accurate *and* more flattering;
+ *   - past `PERCENTILE_MIN_PLAYERS`, the percentile earns its place.
+ */
+export const standingHeadline = (rank: number, total: number): string => {
+  if (total <= 1) return firstShotLine();
+  if (total < PERCENTILE_MIN_PLAYERS) return rankTodayLine(rank);
+  return topPercentLine(percentFor(rank, total));
+};
+
+/** Share of the field at or above this rank, to one decimal. */
+export const percentFor = (rank: number, total: number): number =>
+  total <= 0 ? 100 : Math.round((rank / total) * 1000) / 10;
+
+/**
+ * Whether the separate "#184 Global" line is worth showing.
+ *
+ * When the headline is already a rank, repeating it underneath is noise.
+ */
+export const showsGlobalRank = (total: number): boolean =>
+  total >= PERCENTILE_MIN_PLAYERS;
 
 export const betterThanLine = (percent: number): string =>
   `Better than ${formatPercent(100 - percent)}% of players today`;
@@ -196,6 +235,19 @@ export const shotsSoFarLine = (shots: number): string =>
   `${formatCount(shots)} shots so far`;
 
 export const dayLabel = (displayDay: number): string => `Day #${displayDay}`;
+
+/**
+ * Names the account the comment will come from.
+ *
+ * Devvit's user-action rules require the player to know they are commenting as
+ * themselves, "including what will appear on Reddit and when their username is
+ * shown to others" — so the username is spelled out rather than implied by
+ * "your account".
+ */
+export const shareConsentBody = (username: string): string =>
+  `This publishes the card below as a comment from u/${username}, ` +
+  `as a reply to today's thread. Anyone can see it, and you can delete it ` +
+  `from Reddit at any time.`;
 
 export const practiceBestLine = (best: number, tries: number): string =>
   `Practice best today: ${formatScore(best)} (in ${formatCount(tries)} ${

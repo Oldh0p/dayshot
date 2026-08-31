@@ -12,8 +12,11 @@ import {
   MODIFIER_LABEL,
   nextShotLine,
   perfectRarityLine,
+  rankTodayLine,
   ringBoundaries,
   ringForDx,
+  showsGlobalRank,
+  standingHeadline,
   seedComment,
   shareFormatA,
   splashDescription,
@@ -28,7 +31,12 @@ import {
 } from '../shared/copy.ts';
 import type { ShareCardInput } from '../shared/copy.ts';
 import type { ModifierId } from '../shared/types.ts';
-import { LAUNCH_DAY, PERFECT_RADIUS, TARGET_R } from '../shared/tunables.ts';
+import {
+  LAUNCH_DAY,
+  PERCENTILE_MIN_PLAYERS,
+  PERFECT_RADIUS,
+  TARGET_R,
+} from '../shared/tunables.ts';
 import { generateLevel } from '../shared/sim.ts';
 
 /** Spelled out so the escape survives every layer of tooling in between. */
@@ -369,5 +377,69 @@ describe('reddit-side copy', () => {
         );
       }
     }
+  });
+});
+
+describe('the result headline', () => {
+  it('never tells the only player of the day they are in the top 100%', () => {
+    // True, and unreadable. The first shot of a day is worth naming for what it
+    // is rather than dressing as a percentile.
+    assert.equal(standingHeadline(1, 1), 'FIRST SHOT TODAY');
+    assert.ok(!standingHeadline(1, 1).includes('%'));
+  });
+
+  it('shows a rank while the field is small', () => {
+    // A percentile of two players is a rank wearing a disguise: "TOP 50.0%"
+    // says less than "#2 today" and sounds worse.
+    assert.equal(standingHeadline(1, 2), '#1 TODAY');
+    assert.equal(standingHeadline(2, 2), '#2 TODAY');
+    assert.equal(standingHeadline(3, 3), '#3 TODAY');
+    assert.equal(standingHeadline(7, 20), '#7 TODAY');
+
+    for (let total = 2; total < PERCENTILE_MIN_PLAYERS; total++) {
+      for (const rank of [1, Math.ceil(total / 2), total]) {
+        assert.ok(
+          !standingHeadline(rank, total).includes('%'),
+          `a percentile leaked at ${rank}/${total}`
+        );
+      }
+    }
+  });
+
+  it('switches to the percentile once the crowd can support one', () => {
+    assert.equal(
+      standingHeadline(1, PERCENTILE_MIN_PLAYERS),
+      `TOP ${(100 / PERCENTILE_MIN_PLAYERS).toFixed(1)}% TODAY`
+    );
+    assert.equal(standingHeadline(184, 4381), 'TOP 4.2% TODAY');
+    assert.equal(standingHeadline(4381, 4381), 'TOP 100.0% TODAY');
+  });
+
+  it('changes over exactly once, at the threshold', () => {
+    const isPercent = (total: number): boolean =>
+      standingHeadline(1, total).includes('%');
+    assert.equal(isPercent(PERCENTILE_MIN_PLAYERS - 1), false);
+    assert.equal(isPercent(PERCENTILE_MIN_PLAYERS), true);
+    // ...and stays a percentile from there on.
+    for (let total = PERCENTILE_MIN_PLAYERS; total < 400; total += 7) {
+      assert.ok(isPercent(total));
+    }
+  });
+
+  it('drops the separate rank line while the headline is already a rank', () => {
+    assert.equal(showsGlobalRank(1), false);
+    assert.equal(showsGlobalRank(2), false);
+    assert.equal(showsGlobalRank(PERCENTILE_MIN_PLAYERS - 1), false);
+    assert.equal(showsGlobalRank(PERCENTILE_MIN_PLAYERS), true);
+    assert.equal(showsGlobalRank(4381), true);
+  });
+
+  it('formats a large rank with thousands separators', () => {
+    assert.equal(rankTodayLine(4102), '#4,102 TODAY');
+  });
+
+  it('is safe on an empty or impossible board', () => {
+    assert.equal(standingHeadline(0, 0), 'FIRST SHOT TODAY');
+    assert.equal(standingHeadline(1, 0), 'FIRST SHOT TODAY');
   });
 });

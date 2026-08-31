@@ -9,10 +9,11 @@ import {
   impactBadge,
   nextShotLine,
   perfectRarityLine,
+  showsGlobalRank,
+  standingHeadline,
   streakLine,
   streakResetLine,
   tomorrowLine,
-  topPercentLine,
 } from '../../shared/copy.ts';
 import type {
   ModifierId,
@@ -162,15 +163,21 @@ export const Result = (props: {
         <>
           <Cascade step={0} revealed={revealed}>
             <div className="mt-3 inline-block rounded-[14px] bg-[color:var(--accent)] px-4 py-1.5 text-[20px] font-extrabold tracking-wide text-[#141A26] tabular">
-              {props.pending ? COPY.scoringPending : topPercentLine(props.result.percentile)}
+              {props.pending
+                ? COPY.scoringPending
+                : standingHeadline(props.result.rank, props.result.total)}
             </div>
           </Cascade>
 
-          <Cascade step={1} revealed={revealed}>
-            <div className="mt-2 text-[15px] text-[color:var(--color-mist)] tabular">
-              {props.pending ? '· · ·' : globalRankLine(props.result.rank)}
-            </div>
-          </Cascade>
+          {/* Only once the headline is a percentile; before that it would just
+              repeat the rank the pill already shows. */}
+          {(props.pending || showsGlobalRank(props.result.total)) && (
+            <Cascade step={1} revealed={revealed}>
+              <div className="mt-2 text-[15px] text-[color:var(--color-mist)] tabular">
+                {props.pending ? '· · ·' : globalRankLine(props.result.rank)}
+              </div>
+            </Cascade>
+          )}
 
           <Cascade step={2} revealed={revealed}>
             <div className="mt-1 text-[15px] font-semibold tabular">

@@ -42,3 +42,11 @@ export const userPlayed = (userId: string, dayNumber: number): string =>
 /** Marks that the player's score card has been posted for the day. */
 export const userShared = (userId: string, dayNumber: number): string =>
   `user:${userId}:shared:${dayNumber}`;
+
+/**
+ * commentId -> "userId|dayNumber" for every published score card.
+ *
+ * Exists so the comment-delete trigger can find what to forget: the event
+ * carries a comment id and nothing else useful.
+ */
+export const sharedIndex = (): string => 'shared:by-comment';

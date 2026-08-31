@@ -333,6 +333,21 @@ export const App = (): JSX.Element => {
   const streakCount = streakNow?.current ?? 0;
   const result = state.result;
 
+  /** The exact card that will be published, so consent can show it. */
+  const cardText = useMemo(() => {
+    if (!server || !result || !level) return '';
+    return shareFormatB({
+      displayDay: server.displayDay,
+      modifier: level.modifier,
+      windBase: level.windBase,
+      score: result.score,
+      percentile: result.percentile,
+      streak: streakCount,
+      signedDx: result.signedDx,
+      targetR: level.targetR,
+    });
+  }, [server, result, level, streakCount]);
+
   const onCopy = useCallback((): void => {
     if (!server || !result || !level) return;
     const card = {
@@ -541,6 +556,8 @@ export const App = (): JSX.Element => {
 
       {askConsent && (
         <ShareConsent
+          username={server.username ?? 'you'}
+          card={cardText}
           onConfirm={onConfirmConsent}
           onCancel={onCancelConsent}
         />

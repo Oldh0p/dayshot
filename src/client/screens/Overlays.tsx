@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from 'react';
 
-import { COPY } from '../../shared/copy.ts';
+import { COPY, shareConsentBody } from '../../shared/copy.ts';
 import { audio } from '../audio.ts';
 
 /**
@@ -63,14 +63,24 @@ export const HelpSheet = (props: {
  * surprising anyone.
  */
 export const ShareConsent = (props: {
+  readonly username: string;
+  readonly card: string;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }): JSX.Element => (
   <Sheet>
     <h2 className="text-[22px] font-extrabold">{COPY.shareConsentTitle}</h2>
     <p className="mt-2 text-[15px] leading-relaxed text-[color:var(--color-mist)]">
-      {COPY.shareConsentBody}
+      {shareConsentBody(props.username)}
     </p>
+    {/*
+      The exact text that will be published, shown before it is. Devvit's rules
+      require the player to understand "what will appear on Reddit" before they
+      confirm, and a description of a card is not the card.
+    */}
+    <pre className="mt-3 max-h-40 overflow-y-auto rounded-[14px] bg-black/30 p-3 text-center text-[13px] leading-snug whitespace-pre-wrap">
+      {props.card}
+    </pre>
     <div className="mt-4 flex flex-col gap-2">
       <button
         type="button"

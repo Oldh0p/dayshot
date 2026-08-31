@@ -90,6 +90,11 @@ export const shareShot = async (
       [SHARE_URL]: comment.permalink,
     });
     await redis.expire(shareKey, DAY_TTL_S);
+    // Reverse index, so a comment-delete event can find what to forget without
+    // a user id -- the trigger does not reliably carry one.
+    await redis.hSet(keys.sharedIndex(), {
+      [comment.id]: `${userId}|${dayNumber}`,
+    });
     // Consent is remembered so the dialog is asked once, not every day.
     await redis.hSet(keys.user(userId), { shareConsent: '1' });
 
@@ -98,4 +103,31 @@ export const shareShot = async (
     await redis.hDel(shareKey, [SHARE_STATE]);
     throw error;
   }
+};
+
+/**
+ * Drops the record of a published score card.
+ *
+ * Called from the comment-delete trigger. The app never stores a comment's
+ * text, only the permalink it produced, so forgetting that permalink is the
+ * whole of what Devvit's deletion rule asks for here — and it lets the player
+ * post a fresh card, which is what deleting one usually means they wanted.
+ *
+ * The index is keyed by comment id so the lookup does not need a user id, which
+ * the trigger does not reliably carry.
+ */
+export const forgetSharedComment = async (
+  redis: RedisLike,
+  commentId: string
+): Promise<boolean> => {
+  const owner = await redis.hGet(keys.sharedIndex(), commentId);
+  if (!owner) return false;
+
+  const [userId, dayRaw] = owner.split('|');
+  const dayNumber = Number(dayRaw);
+  if (userId && Number.isFinite(dayNumber)) {
+    await redis.del(keys.userShared(userId, dayNumber));
+  }
+  await redis.hDel(keys.sharedIndex(), [commentId]);
+  return true;
 };

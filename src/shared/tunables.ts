@@ -143,6 +143,22 @@ export const PERFECT_RADIUS = 4;
 export const BULLSEYE_SCORE = 99;
 
 /**
+ * Below this many players, the result screen shows a rank instead of a
+ * percentile.
+ *
+ * "TOP 100.0% TODAY" for the only player of the day is true and absurd, and so
+ * is "TOP 33.3%" out of three. A percentage only says something a rank does not
+ * once the field is big enough that the rank has stopped being a name and
+ * started being an address: 50 gives the figure 2% of granularity, which is the
+ * point where one decimal stops implying a precision the crowd cannot support.
+ *
+ * Below it a rank is both more accurate and more flattering — "#7 today" beats
+ * "TOP 14%" — and GDD 13's whole argument for the percentile is that it makes an
+ * average player *feel placed*. With eleven players it does the opposite.
+ */
+export const PERCENTILE_MIN_PLAYERS = 50;
+
+/**
  * Zone 2, on the mat: `100 - MAT_DROP * u^MAT_EXP`, u normalised over the mat.
  * Unchanged by calibration — see the note at the top of this file.
  */
