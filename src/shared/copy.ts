@@ -117,6 +117,19 @@ export const COPY = {
   windLabel: 'WIND',
   distanceLabel: 'DIST',
 
+  // -- Feed card (redesign spec §4) -----------------------------------------
+  /**
+   * §10.1 weighed five CTAs and kept this one. `TAP TO SHOOT` was a lie: the
+   * tap opens the app, it does not throw. The wording has to carry possession
+   * and scarcity without promising a shot that is not about to happen.
+   */
+  feedCta: 'TAKE YOUR ONE SHOT',
+  feedMicro: 'One try. No retries.',
+  feedFirstEver: "Today's the first shot ever. Take yours.",
+  feedWaiting: 'Your shot is waiting',
+  feedTodayOpened: 'today just opened',
+  feedStreakSuffix: 'DAY STREAK',
+
   // -- Result ---------------------------------------------------------------
   /** GDD 9.9 */
   offTheMap: 'OFF THE MAP',
@@ -532,3 +545,95 @@ export const shareFormatB = (card: ShareCardInput): string => {
 
   return [header, ...shareGrid(card.signedDx), footer].join('\n');
 };
+
+// ---------------------------------------------------------------------------
+// The feed card (redesign spec §4.3, §4.4, §10.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * What the day's numbers travel as. Named rather than positional because four
+ * numbers in a row is how the wrong one ends up in the wrong slot.
+ */
+export type FeedFacts = {
+  readonly shotsToday: number;
+  readonly yesterdayShots: number;
+  readonly topScore: number;
+  readonly perfectsToday: number;
+  readonly displayDay: number;
+};
+
+/** Below this, today's own count is not yet worth quoting (§4.3). */
+const FEED_TODAY_MIN = 100;
+
+/** Perfects replace the day's best only once the field is large (§4.3). */
+const FEED_PERFECT_MIN_SHOTS = 1000;
+
+/**
+ * The one line of social proof under the scene.
+ *
+ * **Every number here is real.** §4.3 allows two figures and no more, and the
+ * game has no licence to invent either: a fabricated counter on a feed card is
+ * the kind of thing app review rejects, and rightly. When there is nothing true
+ * to say, the line says the true small thing instead.
+ */
+export const socialProofLine = (facts: FeedFacts): string => {
+  const { shotsToday, yesterdayShots, topScore, perfectsToday, displayDay } =
+    facts;
+
+  if (shotsToday >= FEED_TODAY_MIN) {
+    const shots = `${formatCount(shotsToday)} shots today`;
+    if (shotsToday >= FEED_PERFECT_MIN_SHOTS && perfectsToday >= 1) {
+      return `${shots} · ${formatCount(perfectsToday)} ${
+        perfectsToday === 1 ? 'Perfect' : 'Perfects'
+      } today`;
+    }
+    return topScore > 0 ? `${shots} · best ${formatScore(topScore)}` : shots;
+  }
+
+  if (yesterdayShots > 0) {
+    return `${formatCount(yesterdayShots)} shots yesterday · ${COPY.feedTodayOpened}`;
+  }
+
+  // No yesterday and barely a today. On day one that is literally true; later
+  // it means a quiet community, and quoting three shots is still honest.
+  if (displayDay <= 1) return COPY.feedFirstEver;
+  return shotsToday === 1
+    ? '1 shot today'
+    : `${formatCount(shotsToday)} shots today`;
+};
+
+/**
+ * The streak chip, or nothing.
+ *
+ * A streak of one is not a streak -- it says "you played today", which the
+ * screen already says. §4.4 starts it at two.
+ */
+export const feedStreakChip = (streak: number): string | null =>
+  streak >= 2 ? `${formatCount(streak)} ${COPY.feedStreakSuffix}` : null;
+
+/**
+ * State B's line: the day is waiting, and it is not empty (§4.4).
+ *
+ * Deliberately one figure, not the full proof line. "Your shot is waiting" is
+ * already half the sentence, and appending a two-figure proof gave three
+ * segments that truncate at 360px — §4.3's two-figure ceiling counts the whole
+ * line, not the proof alone.
+ */
+export const feedWaitingLine = (facts: FeedFacts): string => {
+  const shots =
+    facts.shotsToday >= FEED_TODAY_MIN
+      ? `${formatCount(facts.shotsToday)} shots today`
+      : facts.yesterdayShots > 0
+        ? `${formatCount(facts.yesterdayShots)} shots yesterday`
+        : null;
+  return shots ? `${COPY.feedWaiting} · ${shots}` : COPY.feedWaiting;
+};
+
+/**
+ * State C: what you already did today, in one line (§4.4).
+ *
+ * The standing is whatever the result screen would say, so a player never sees
+ * two different phrasings of the same rank.
+ */
+export const feedPlayedLine = (score: number, standing: string): string =>
+  `TODAY ${formatScore(score)} · ${standing}`;

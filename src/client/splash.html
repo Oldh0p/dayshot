@@ -1,15 +1,21 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>devvit</title>
+    <title>DAYSHOT</title>
   </head>
-  <body class="h-full">
-    <div id="root" class="h-full"></div>
-    <script type="module" src="splash.tsx"></script>
+  <body>
+    <div id="root"></div>
+    <!--
+      The feed card. Deliberately not `splash.tsx`: that entry rendered through
+      React, which costs 65 KB gzip against a 60 KB budget for everything the
+      feed loads. `splash.tsx` stays in the tree as the UI_V2 fallback until
+      phase 10 — swapping this one line restores it.
+    -->
+    <script type="module" src="inline/main.ts"></script>
   </body>
 </html>

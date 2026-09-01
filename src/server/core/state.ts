@@ -34,10 +34,15 @@ export const buildState = async (
   const level = generateLevel(dayNumber, meta.rerollK);
 
   const scoresKey = keys.dayScores(dayNumber);
-  const [shotsToday, topRows] = await Promise.all([
+  const [shotsToday, topRows, yesterdayRaw] = await Promise.all([
     redis.zCard(scoresKey),
     redis.zRange(scoresKey, 0, 0, { by: 'rank', reverse: true }),
+    // Read raw, never `ensureDayMeta`: that function *creates* a day, and
+    // yesterday is over. A missing hash simply means no yesterday.
+    redis.hGet(keys.dayMeta(dayNumber - 1), 'shots'),
   ]);
+
+  const yesterdayShots = Number(yesterdayRaw ?? 0);
 
   // Derived from the sorted set rather than the counter: it is exact, and it
   // cannot drift if a write is ever lost.
@@ -51,6 +56,7 @@ export const buildState = async (
     serverNow: now,
     modifier: level.modifier,
     shotsToday,
+    yesterdayShots: Number.isFinite(yesterdayShots) ? yesterdayShots : 0,
     topScore,
     perfectsToday: meta.perfects,
     tomorrowModifier: meta.tomorrowModifier,

@@ -27,6 +27,7 @@ const serverState = (over: Partial<StateResponse> = {}): StateResponse => ({
   streak: { current: 0, longest: 0, justReset: false },
   warmupPending: false,
   shotsToday: 0,
+  yesterdayShots: 0,
   topScore: 0,
   perfectsToday: 0,
   tomorrowModifier: 'MOON',

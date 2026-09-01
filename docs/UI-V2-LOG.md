@@ -54,3 +54,41 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   entirely in phase 4; until then the row is `nowrap` with a tighter gap, which
   fits at 360px. **Left:** the contrast audit table (phase 9) can now be
   generated from `tokens.test.ts` rather than written by hand.
+
+---
+
+## Phase 2 — The in-line feed view
+
+- **Done.** `src/client/inline/` replaces the empty gradient with the game's own
+  scene: theme sky, drifting particles (capped at 24), two ground bands, the
+  launcher, the plateau, the mat with its halo, a decorative dotted arc, and the
+  game's real `drawPip` — so the card and the game are the same picture. States
+  A/B/C from §4.4 come from one `/api/state` call, the social proof follows
+  §4.3, the CTA is `TAKE YOUR ONE SHOT`, and the 6-second ambient loop runs at
+  30fps and stops on `IntersectionObserver` **and** `visibilitychange`.
+- **Verified.** 266 tests. **Feed payload 35 284 bytes against a 61 440 budget**
+  — down from ~70 500 — with four tests reading the built file rather than the
+  source: no `sim.ts`, no state machine, no audio, no hold handler, no React,
+  and a whitelist so a new dependency cannot arrive unnoticed. 20 captures, zero
+  scroll, verified at 360×350, 360×512, 700×512 and 390×720.
+- **The spec's route parameter is not buildable, and that is measured.** The
+  schema allows a query string in an entrypoint's `entry`, so
+  `game.html?screen=board` looked documented. The Devvit vite plugin feeds every
+  `entry` to rolldown as an input path verbatim, and the build fails looking for
+  a file of that name. State C's buttons open `game` — a player there has
+  already shot, so it opens on their result, one tap from both screens. Routing
+  moves to phase 5, which touches screens anyway.
+- **Two platform answers from the installed schema, not the guide.**
+  `inline: true` is deprecated and has no effect ("inline is always implied"),
+  so §18's instruction is obsolete; and **no static splash fallback exists** —
+  there is no `splash`, `preview`, `fallback` or `thumbnail` field anywhere in
+  the config schema, so that Phase 2 task is answered in the negative.
+- **Three bugs found by looking rather than by reasoning**, all invisible in
+  source: `#root` had no height (the card collapsed to 115px, because
+  `splash.html` carried Tailwind classes into a bundle that does not load
+  Tailwind); `context.postId` threw outside Devvit and killed the state fetch
+  before it started, exactly as `context.postData` did in phase 0; and a stale
+  harness process kept port 5599, so captures were taken against code from
+  before the flag they were testing. The capture rig now refuses to run against
+  a server it did not start. **Left:** the plateau still reads as a dark block
+  and Pip's face is the game's old rig — phases 6 and 7.

@@ -148,6 +148,14 @@ export type StateResponse = {
    */
   readonly warmupPending: boolean;
   readonly shotsToday: number;
+  /**
+   * How many shots yesterday drew. The feed card needs it: before a day has
+   * enough players of its own, "31,842 shots yesterday" is the honest way to
+   * say the game is alive, and inventing a number is not an option (§4.3).
+   *
+   * Zero on the first day the installation ever runs, which the copy handles.
+   */
+  readonly yesterdayShots: number;
   readonly topScore: number;
   readonly perfectsToday: number;
   readonly tomorrowModifier: ModifierId;

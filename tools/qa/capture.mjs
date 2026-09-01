@@ -54,9 +54,16 @@ const DESKTOP = { w: 900, h: 760 };
  * label, for the screens that live behind a button.
  */
 export const SHOTS = [
-  { name: 'feed-mobile', url: '/splash.html', prep: 'played=0', ...MOBILE },
-  { name: 'feed-mobile-350', url: '/splash.html', prep: 'played=0', ...TINY },
-  { name: 'feed-desktop', url: '/splash.html', prep: 'played=0', ...FEED_DESKTOP },
+  // §4.4's three cards, at the three sizes §12 designs for.
+  { name: 'feed-A-350', url: '/splash.html', prep: 'played=0&anon=1', ...TINY },
+  { name: 'feed-A-512', url: '/splash.html', prep: 'played=0&anon=1', w: 360, h: 512 },
+  { name: 'feed-A-desktop', url: '/splash.html', prep: 'played=0&anon=1', ...FEED_DESKTOP },
+  { name: 'feed-B-350', url: '/splash.html', prep: 'played=0&streak=7', ...TINY },
+  { name: 'feed-B-512', url: '/splash.html', prep: 'played=0&streak=7', w: 360, h: 512 },
+  { name: 'feed-C-350', url: '/splash.html', prep: 'played=1&streak=7', ...TINY },
+  { name: 'feed-C-512', url: '/splash.html', prep: 'played=1&streak=7', w: 360, h: 512 },
+  { name: 'feed-C-desktop', url: '/splash.html', prep: 'played=1&streak=7', ...FEED_DESKTOP },
+  { name: 'feed-mobile', url: '/splash.html', prep: 'played=0&streak=7', ...MOBILE },
   { name: 'ready-mobile', url: '/', prep: 'played=0', ...MOBILE },
   { name: 'ready-warmup', url: '/', prep: 'played=0&warmup=1', ...MOBILE },
   { name: 'ready-desktop', url: '/', prep: 'played=0', ...DESKTOP },
@@ -161,6 +168,30 @@ const only = onlyArg ? onlyArg.slice('--only='.length).split(',') : null;
 
 const outDir = join(ROOT, 'docs', 'qa', set);
 mkdirSync(outDir, { recursive: true });
+
+/*
+ * Refuse to run against a harness this script did not start.
+ *
+ * A stale server left over from an earlier run keeps the port, the new one
+ * fails to bind silently (stdio is ignored), and every capture is taken against
+ * whatever code that old process was built from. It cost an afternoon once: the
+ * feed's anonymous state kept rendering as a returning player because a harness
+ * from before the flag existed was still answering.
+ */
+try {
+  const stale = await fetch(`${BASE}/api/state`, { signal: AbortSignal.timeout(800) });
+  if (stale.ok) {
+    console.error(
+      `
+A server is already listening on ${HARNESS_PORT}. Captures would be ` +
+        `taken against it, not against this build.
+Stop it first, then re-run.`
+    );
+    process.exit(1);
+  }
+} catch {
+  // Nothing there: good.
+}
 
 const harness = spawn(process.execPath, [join(ROOT, 'tools/devharness/server.mjs')], {
   cwd: ROOT,

@@ -13,6 +13,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
 let played = false;
 let warmupPending = process.env.WARMUP_PENDING === '1';
+let anon = false;
+let streak = 3;
 
 // The result a played-today session restores into. Having it here means the
 // result screen can be loaded directly -- which is how its layout gets checked
@@ -25,9 +27,9 @@ const MY_RESULT = {
 const state = () => ({
   dayNumber: DAY, displayDay: DAY - 20697 + 1, rerollK: 0, serverNow: Date.now(),
   modifier: 'CROSSWIND', playedToday: played, myResult: played ? MY_RESULT : null,
-  streak: { current: 3, longest: 12, justReset: false },
-  warmupPending, shotsToday: 41203, topScore: 99.94, perfectsToday: 38,
-  tomorrowModifier: 'MOON', sharedToday: false, shareConsent: false, username: 'tester',
+  streak: { current: streak, longest: 12, justReset: false },
+  warmupPending, shotsToday: 41203, yesterdayShots: 38217, topScore: 99.94, perfectsToday: 38,
+  tomorrowModifier: 'MOON', sharedToday: false, shareConsent: false, username: anon ? null : 'tester',
 });
 
 createServer(async (req, res) => {
@@ -39,6 +41,9 @@ createServer(async (req, res) => {
   if (url.pathname === '/api/reset') {
     played = url.searchParams.get('played') === '1';
     warmupPending = url.searchParams.get('warmup') === '1';
+    // Feed state A needs a viewer with no account; B needs a streak worth showing.
+    anon = url.searchParams.get('anon') === '1';
+    streak = Number(url.searchParams.get('streak') ?? 3);
     return send(200, '{"ok":true}');
   }
   if (url.pathname === '/api/state') return send(200, JSON.stringify(state()));

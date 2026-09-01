@@ -24,6 +24,16 @@ export const ALLOWED_EVENTS: readonly string[] = [
   'share_comment',
   'share_copy',
   'practice_shot',
+  /*
+   * The feed card's three (§17). `inline_view` is throttled to once per session
+   * per post by the client, because a feed impression fires as the card scrolls
+   * past and an unthrottled counter would measure scrolling rather than
+   * reading. `expand_click` over `inline_view` is the launch rate the whole
+   * redesign is a bet on.
+   */
+  'inline_view',
+  'expand_click',
+  'leaderboard_open',
   'subscribe_prompt_shown',
   'subscribe_prompt_accepted',
   'error_network',
