@@ -4,7 +4,7 @@ import { showLoginPrompt, showToast } from '@devvit/web/client';
 
 import { COPY, shareFormatA, shareFormatB } from '../shared/copy.ts';
 import { generateLevel } from '../shared/sim.ts';
-import { DEMO_DAY } from '../shared/tunables.ts';
+import { DEMO_DAY, TARGET_R } from '../shared/tunables.ts';
 import type {
   ResultSummary,
   ShotResponse,
@@ -27,6 +27,7 @@ import {
 } from './machine.ts';
 import type { QueueOutcome } from './queue.ts';
 import { resultOnScreen } from './result-view.ts';
+import { UI_V2 } from './ui/flags.ts';
 import { Glyph } from './ui/Glyph.tsx';
 import { TARGET_GLYPH } from './ui/glyphs.ts';
 import { ShotQueue } from './queue.ts';
@@ -42,6 +43,7 @@ import {
   StatusBanner,
 } from './screens/Overlays.tsx';
 import { Result } from './screens/Result.tsx';
+import { ResultV2 } from './screens/ResultV2.tsx';
 import {
   markHelpSeen,
   readPractice,
@@ -66,6 +68,17 @@ export const App = (): JSX.Element => {
      a section because the two together do not fit a short post, and a web view
      that scrolls is a review failure, not a layout preference. */
   const [boardOpen, setBoardOpen] = useState(false);
+  /*
+   * §6: the cascade is a reveal, and a reveal happens once.
+   *
+   * Derived rather than tracked. Setting a flag when the result appears means
+   * either reading a ref during render or calling setState inside an effect,
+   * and the compiler rules forbid both — for good reasons, since this decides
+   * what renders. The two ways to reach the result screen without it being a
+   * reveal are already knowable: the player had already shot when the app
+   * loaded, or they have just come back from practice.
+   */
+  const [returnedFromPractice, setReturnedFromPractice] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [soundOn, setSoundOn] = useState(soundEnabled);
   /**
@@ -405,6 +418,7 @@ export const App = (): JSX.Element => {
   }, []);
 
   const onLeavePractice = useCallback((): void => {
+    setReturnedFromPractice(true);
     dispatch({ type: 'leave_practice' });
   }, []);
 
@@ -588,7 +602,31 @@ export const App = (): JSX.Element => {
               onBack={onCloseBoard}
             />
           ) : (
-            (result ?? state.shot) && (
+            (result ?? state.shot) &&
+            (UI_V2 ? (
+              <ResultV2
+                result={resultOnScreen(phase, result, state.shot)}
+                targetR={level?.targetR ?? TARGET_R}
+                streak={streakNow}
+                tomorrow={server.tomorrowModifier}
+                msToRollover={msToRollover}
+                perfectsToday={
+                  state.submission?.perfectCountToday ?? server.perfectsToday
+                }
+                pending={phase === 'scoring_pending'}
+                practice={phase === 'practice_result'}
+                practiceBest={state.practiceBest}
+                practiceTries={state.practiceTries}
+                sharedUrl={state.sharedUrl}
+                sharing={sharing}
+                firstReveal={!server.playedToday && !returnedFromPractice}
+                onShare={onShare}
+                onCopy={onCopy}
+                onPractice={onPractice}
+                onBoard={board ? onOpenBoard : null}
+                onLeavePractice={onLeavePractice}
+              />
+            ) : (
               <Result
                 result={resultOnScreen(phase, result, state.shot)}
                 streak={streakNow}
@@ -610,7 +648,7 @@ export const App = (): JSX.Element => {
                 onLeaveboard={onLeavePractice}
                 onBoard={board ? onOpenBoard : null}
               />
-            )
+            ))
           ))}
         </section>
       </div>

@@ -279,6 +279,21 @@ export const cliffLine = (drop: number): string =>
 
 export const streakLine = (streak: number): string => `🔥 ${streak} DAY STREAK`;
 
+/*
+ * The same two lines without their emoji, for the UI.
+ *
+ * `streakLine` and `tomorrowLine` are contractual GDD 9.9 wordings and go into
+ * Reddit comments, where an emoji is exactly right. §3 refuses them *in the
+ * app*, where they render differently on every OS and fight a nine-colour
+ * palette — and the app draws its own flame and modifier glyphs beside these
+ * strings, so leaving the emoji in produced two flames side by side.
+ */
+export const streakTextLine = (streak: number): string =>
+  `${formatCount(streak)} DAY STREAK`;
+
+export const tomorrowTextLine = (modifier: ModifierId): string =>
+  `Tomorrow: ${MODIFIER_LABEL[modifier].toUpperCase()}`;
+
 export const tomorrowLine = (modifier: ModifierId): string =>
   `Tomorrow: ${MODIFIER_LABEL[modifier].toUpperCase()} ${MODIFIER_EMOJI[modifier]}`;
 
@@ -790,6 +805,10 @@ export type Standing = {
   /** `#1,204 / 8,421`, or null while the field is too small to mean anything. */
   readonly rankLine: string | null;
 };
+
+/** §6: the Perfect line on the result panel, when there is one to report. */
+export const perfectsTodayLine = (perfects: number): string =>
+  `Only ${formatCount(perfects)} ${perfects === 1 ? 'Perfect' : 'Perfects'} today.`;
 
 export const standingFor = (rank: number, total: number): Standing => {
   if (total <= 1) {

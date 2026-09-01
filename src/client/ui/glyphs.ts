@@ -51,6 +51,16 @@ export const TARGET_GLYPH: readonly string[] = [
 ];
 
 /**
+ * Copy. Replaces the words "Copy card" (§6): copying is a secondary gesture,
+ * and the three text links it sat in wrapped at 390px once the real font
+ * arrived.
+ */
+export const COPY_GLYPH: readonly string[] = [
+  'M5.5 5.5V3.2A1.2 1.2 0 0 1 6.7 2h6.1A1.2 1.2 0 0 1 14 3.2v6.1a1.2 1.2 0 0 1-1.2 1.2h-2.3',
+  'M9.3 5.5H3.2A1.2 1.2 0 0 0 2 6.7v6.1A1.2 1.2 0 0 0 3.2 14h6.1a1.2 1.2 0 0 0 1.2-1.2V6.7a1.2 1.2 0 0 0-1.2-1.2z',
+];
+
+/**
  * An `<svg>` string, for the feed bundle. React callers use `<Glyph>` instead,
  * which reads the same paths.
  */
