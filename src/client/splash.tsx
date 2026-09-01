@@ -23,7 +23,16 @@ import { paletteFor } from './theme.ts';
  */
 
 export const Splash = (): JSX.Element => {
-  const data = parseSplashData(context.postData);
+  /*
+   * Optional on purpose. `context` is always injected inside Devvit, but if it
+   * ever is not, `context.postData` throws during render and the feed card is a
+   * blank rectangle -- the worst possible failure for the one surface whose job
+   * is to be recognised at a glance. `parseSplashData` already answers for
+   * missing data with a card that simply has no number, so the degraded card
+   * costs one question mark. It also lets the local harness render the splash,
+   * which is how its layout gets checked at post size.
+   */
+  const data = parseSplashData(context?.postData);
   const palette = paletteFor(data.modifier, 0);
 
   return (

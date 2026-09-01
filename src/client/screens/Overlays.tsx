@@ -77,8 +77,14 @@ export const ShareConsent = (props: {
       The exact text that will be published, shown before it is. Devvit's rules
       require the player to understand "what will appear on Reddit" before they
       confirm, and a description of a card is not the card.
+
+      Uncapped on purpose. It used to be `max-h-40 overflow-y-auto`, which
+      measured 149px against a 160px cap -- eleven pixels from turning the one
+      dialog the player must actually read into a scrolling box, which the
+      review rules forbid. The card is a fixed seven-line format; it does not
+      need a cap, and a cap it can cross is worse than none.
     */}
-    <pre className="mt-3 max-h-40 overflow-y-auto rounded-[14px] bg-black/30 p-3 text-center text-[13px] leading-snug whitespace-pre-wrap">
+    <pre className="mt-3 rounded-[14px] bg-black/30 p-3 text-center text-[13px] leading-snug whitespace-pre-wrap">
       {props.card}
     </pre>
     <div className="mt-4 flex flex-col gap-2">

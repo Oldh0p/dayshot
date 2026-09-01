@@ -14,9 +14,17 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 let played = false;
 let firstVisit = process.env.FIRST_VISIT === '1';
 
+// The result a played-today session restores into. Having it here means the
+// result screen can be loaded directly -- which is how its layout gets checked
+// against a post-sized viewport without playing a shot first.
+const MY_RESULT = {
+  score: 98.73, dx: 6.4, signedDx: 6.4, impact: 'MAT', holdMs: 640,
+  rank: 184, total: 41203, percentile: 4.2, isBullseye: false, isPerfect: false,
+};
+
 const state = () => ({
   dayNumber: DAY, displayDay: DAY - 20697 + 1, rerollK: 0, serverNow: Date.now(),
-  modifier: 'CROSSWIND', playedToday: played, myResult: null,
+  modifier: 'CROSSWIND', playedToday: played, myResult: played ? MY_RESULT : null,
   streak: { current: 3, longest: 12, justReset: false },
   firstVisit, shotsToday: 41203, topScore: 99.94, perfectsToday: 38,
   tomorrowModifier: 'MOON', sharedToday: false, shareConsent: false, username: 'tester',
@@ -28,7 +36,11 @@ createServer(async (req, res) => {
     res.writeHead(code, { 'content-type': type }); res.end(body);
   };
 
-  if (url.pathname === '/api/reset') { played = false; firstVisit = url.searchParams.get('warmup') === '1'; return send(200, '{"ok":true}'); }
+  if (url.pathname === '/api/reset') {
+    played = url.searchParams.get('played') === '1';
+    firstVisit = url.searchParams.get('warmup') === '1';
+    return send(200, '{"ok":true}');
+  }
   if (url.pathname === '/api/state') return send(200, JSON.stringify(state()));
   if (url.pathname === '/api/leaderboard') {
     return send(200, JSON.stringify({
@@ -37,10 +49,16 @@ createServer(async (req, res) => {
         { rank: 2, username: 'bo', score: 99.71, isMe: false },
         { rank: 3, username: 'cy', score: 99.4, isMe: false },
       ],
+      // The real window is radius 3 around the player (ranking.ts), so ten rows
+      // is the worst case the layout has to survive without scrolling.
       around: [
-        { rank: 183, username: 'dee', score: 98.8, isMe: false },
+        { rank: 181, username: 'longest_name_here', score: 98.91, isMe: false },
+        { rank: 182, username: 'dee', score: 98.86, isMe: false },
+        { rank: 183, username: 'flo', score: 98.8, isMe: false },
         { rank: 184, username: 'tester', score: 98.73, isMe: true },
         { rank: 185, username: 'eve', score: 98.7, isMe: false },
+        { rank: 186, username: 'gus', score: 98.62, isMe: false },
+        { rank: 187, username: 'hal', score: 98.55, isMe: false },
       ],
       total: 41203,
     }));

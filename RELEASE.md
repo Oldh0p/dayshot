@@ -2,14 +2,14 @@
 
 Everything between the current state of the tree and `npx devvit publish`.
 
-Current state: **version 0.0.4 submitted for review**, awaiting Reddit's email.
+Current state: **0.4 was rejected for an in-line scroll trap; fixed, awaiting re-upload.**
 222 tests green, Devvit 0.14.2, app published as `dayshot-game` (`dayshot` was
 taken), `[DEV]` surface removed, Terms and Privacy live.
 
 | | |
 | --- | --- |
 | App | `dayshot-game` -- <https://developers.reddit.com/apps/dayshot-game> |
-| Version under review | **0.4** submitted, unlisted (no `--public`) |
+| Last submitted | 0.4 -- **rejected**, one issue, fixed here (section 7) |
 | Home subreddit | r/DayShot -- **nothing installed there until approval** |
 | Test subreddit | r/dayshot_game_dev (CLI auto-created it, set to Public by hand) |
 | Terms | <https://oldh0p.github.io/dayshot/terms> |
@@ -192,3 +192,66 @@ asks for, or the first update after approval.
 The general lesson, which is why this is written down: `public/` is copied
 wholesale into the bundle. Anything dropped there ships, whether or not the code
 imports it.
+
+---
+
+## 7. Review response: the in-line scroll trap (0.4 rejected)
+
+Reddit's reply, in full:
+
+> **In-line Scroll Trap:** Scrolling within in-line web views is not allowed.
+> This can interfere with Reddit-native interactions and gestures. Consider
+> using buttons to navigate or taking the user to Expanded Mode.
+
+One issue, and a fair one. Section 1's table claimed "No inline scrolling --
+the splash does not scroll; the scrolling panel is expanded-only". The first
+half was true. The second half was reasoning about which entrypoint the panel
+belonged to instead of measuring it, and the rule is about the web view, not
+about which entrypoint opened it.
+
+**What actually scrolled.** The result screen stacked the verdict and the
+leaderboard in one `overflow-y-auto` panel. Measured at a post-sized viewport,
+the verdict alone is about 400 px and the board's worst case is ten rows -- top
+three plus a radius-3 window -- for roughly 260 px more. Against 512 px, the
+panel had to scroll. It was not an edge case; it was every ranked shot.
+
+**The fix, which is the one Reddit suggested.** The board is now a page of its
+own, reached with a `Leaderboard` button and leaving by `Back to my shot`.
+Nothing scrolls, nothing is clipped, and no content was dropped.
+
+Three further changes close the rule rather than this one instance:
+
+- `index.css` locks `html, body, #root` with `overflow: hidden`, so no
+  entrypoint can scroll whatever a future screen does.
+- The consent sheet's card was capped at `max-h-40` with `overflow-y-auto` and
+  measured **149 px against that 160 px cap** -- eleven pixels from turning the
+  one dialog the player must read into a scrolling box. The cap is gone.
+- `src/tests/no-inline-scroll.test.ts` fails on any scrollable container
+  reintroduced anywhere in the client, and on `index.css` losing the lock. It
+  was confirmed to fail when a scroller is put back.
+
+**Verified by measurement, not by reading.** Every screen was driven in a real
+browser at 400x512 and 320x400, checking `scrollHeight - clientHeight`, any
+element with a scrolling overflow, and any element crossing the viewport edge:
+
+| Screen | Scrolls by | Scrollable elements | Outside viewport |
+| --- | --- | --- | --- |
+| Splash (the in-line card) | 0 | none | none |
+| Aiming | 0 | none | none |
+| Result | 0 | none | none |
+| Leaderboard, worst case 10 rows | 0 | none | none |
+| Share consent | 0 | none | none |
+| Help sheet | 0 | none | none |
+
+Two things made that measurement possible and are worth keeping. The harness
+served a three-row board, which would have passed while the real ten-row one
+failed; it now serves the worst case, and can restore a played result directly
+so the result screen is reachable without playing a shot. And the splash threw
+on `context.postData` outside Devvit, so the in-line card -- the exact surface
+under review -- could not be rendered locally at all. It now reads `context?.`
+and degrades to a card without a day number, which is also the better
+production failure: a blank feed card is the worst outcome for the one surface
+whose job is to be recognised at a glance.
+
+**Not fixed here, deliberately:** `public/snoo.png` (section 6) goes out in this
+same version, since a re-upload is happening anyway.

@@ -59,6 +59,10 @@ export const App = (): JSX.Element => {
   const [state, dispatch] = useReducer(reduce, INITIAL_STATE);
   const [showHelp, setShowHelp] = useState(false);
   const [askConsent, setAskConsent] = useState(false);
+  /* Which page of the result the player is on. The board is a page rather than
+     a section because the two together do not fit a short post, and a web view
+     that scrolls is a review failure, not a layout preference. */
+  const [boardOpen, setBoardOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [soundOn, setSoundOn] = useState(soundEnabled);
   /**
@@ -389,7 +393,11 @@ export const App = (): JSX.Element => {
     setShowHelp(true);
   }, []);
 
+  const onOpenBoard = useCallback((): void => setBoardOpen(true), []);
+  const onCloseBoard = useCallback((): void => setBoardOpen(false), []);
+
   const onPractice = useCallback((): void => {
+    setBoardOpen(false);
     dispatch({ type: 'begin_practice' });
   }, []);
 
@@ -439,6 +447,10 @@ export const App = (): JSX.Element => {
 
   const charging = phase === 'aiming' || phase === 'practice_aim';
 
+  /* Narrowed once, so the board page and the button that opens it agree on
+     whether there is a board at all. */
+  const board = phase === 'result' ? state.board : null;
+
   const showResult =
     phase === 'result' ||
     phase === 'scoring_pending' ||
@@ -485,10 +497,12 @@ export const App = (): JSX.Element => {
         />
 
         {/*
-          Bottom-anchored, and scrollable only when it has to be. The scene
-          keeps whatever height the panel does not need.
+          Bottom-anchored, and never scrollable: Reddit forbids a scrolling web
+          view inside a post, because the scroll steals the swipe the feed was
+          waiting for. Anything that does not fit is reached with a button
+          instead -- which is why the leaderboard is a page and not a section.
         */}
-        <section className="mt-auto max-h-[88%] w-full overflow-y-auto pb-2">
+        <section className="mt-auto w-full overflow-hidden pb-2">
         {isWarmup(phase) && phase !== 'warmup_result' && (
           <div className="pb-3 text-center text-[15px] font-bold tracking-wide text-[color:var(--color-gold)]">
             {loggedOut ? COPY.demoBanner : COPY.warmupBanner}
@@ -551,9 +565,15 @@ export const App = (): JSX.Element => {
           </div>
         )}
 
-        {showResult && (
-          <>
-            {(result ?? state.shot) && (
+        {showResult &&
+          (boardOpen && board ? (
+            <Leaderboard
+              top={board.top}
+              around={board.around}
+              onBack={onCloseBoard}
+            />
+          ) : (
+            (result ?? state.shot) && (
               <Result
                 result={result ?? optimisticResult(state.shot)}
                 streak={streakNow}
@@ -573,13 +593,10 @@ export const App = (): JSX.Element => {
                 onCopy={onCopy}
                 onPractice={onPractice}
                 onLeaveboard={onLeavePractice}
+                onBoard={board ? onOpenBoard : null}
               />
-            )}
-            {phase === 'result' && state.board && (
-              <Leaderboard top={state.board.top} around={state.board.around} />
-            )}
-          </>
-        )}
+            )
+          ))}
         </section>
       </div>
 

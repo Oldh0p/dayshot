@@ -117,6 +117,8 @@ export const Result = (props: {
   readonly onCopy: () => void;
   readonly onPractice: () => void;
   readonly onLeaveboard: () => void;
+  /** Absent until the day has a board to show. */
+  readonly onBoard: (() => void) | null;
 }): JSX.Element => {
   const score = useCountUp(props.result.score, !props.practice);
   const revealed = useCascade(!props.practice);
@@ -226,6 +228,18 @@ export const Result = (props: {
                 >
                   {COPY.copyCard}
                 </button>
+                {props.onBoard && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      onClick={props.onBoard}
+                      className="min-h-12 px-2 underline-offset-4 hover:underline"
+                    >
+                      {COPY.viewBoard}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </Cascade>
@@ -266,14 +280,14 @@ const PracticePanel = (props: {
         onClick={props.onAgain}
         className="min-h-12 rounded-[14px] border border-white/25 px-5 text-[15px] font-semibold"
       >
-        Again
+        {COPY.practiceAgain}
       </button>
       <button
         type="button"
         onClick={props.onLeave}
         className="min-h-12 px-3 text-[15px] text-[color:var(--color-mist)] underline-offset-4 hover:underline"
       >
-        Back to my shot
+        {COPY.practiceLeave}
       </button>
     </div>
   </div>

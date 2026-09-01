@@ -42,6 +42,14 @@ body,
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  /*
+   * Reddit's review rules forbid a scrollable in-line web view outright: a
+   * scroll inside the post competes with the feed's own gestures, so a swipe
+   * meant for Reddit gets eaten by the game. Nothing here may scroll -- not
+   * the splash, not the game, not a sheet. Every screen is laid out to fit,
+   * and anything that will not fit is reached with a button instead.
+   */
+  overflow: hidden;
 }
 
 /* Scores, countdowns and ranks must not jitter as their digits change. */
