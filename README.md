@@ -3,7 +3,8 @@
 **One shot. Every day. No second chances.**
 
 A daily skill game for Reddit. Every UTC day the whole planet gets the same
-challenge, and every player gets exactly one attempt at it.
+challenge. Everyone throws a warm-up first, on the day's real conditions,
+and then gets exactly one attempt that counts.
 
 ---
 
@@ -20,10 +21,14 @@ measured from the centre of the target. Then you find out how that compares:
 your rank for the day, how many players you beat, and your streak of consecutive
 days played.
 
-**You only get one attempt.** There is no retry, no second chance, and nothing
-in the game can be bought. That single attempt is the whole idea: it is what
-makes a 98.73 worth talking about, and what makes everyone's result comparable,
-because everyone played the same shot under the same conditions.
+**Only one attempt counts.** Every day opens with a warm-up throw, clearly
+marked, on the same wind and distance as the real thing -- and then the ranked
+shot, once, with no retry and no second chance. Nothing in the game can be
+bought.
+
+The warm-up is the same for everybody, which is what keeps results comparable:
+one throw to find the day, one throw that goes on the board. That is what makes
+a 98.73 worth talking about.
 
 Afterwards you can practise the day's conditions as much as you like — clearly
 marked, never ranked — and post your score card as a comment so the thread
@@ -82,8 +87,9 @@ the post normally creates itself.
   mistap cannot spend your day.
 - Holding as long as you like costs nothing. The gauge repeats, and waiting for
   the right moment is part of the game.
-- **First time only:** a warm-up shot, clearly marked as not counting, so your
-  first ranked score is a decision rather than an accident.
+- **Every day:** a warm-up shot, clearly marked as not counting, on the day's
+  real conditions. It costs nothing and everyone gets one, so the ranked score
+  is a decision rather than an accident.
 - **Not signed in?** You still get to shoot. That shot is a fixed demo level,
   not the day's, so it does not give away today's conditions.
 

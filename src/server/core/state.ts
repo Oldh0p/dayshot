@@ -6,7 +6,7 @@ import * as keys from './keys.ts';
 import { decodeScore } from './ranking.ts';
 import type { RedisLike } from './redis-port.ts';
 import { readStoredShot, reconcileMissingScore, summarise } from './shot.ts';
-import { readUser, streakForDisplay } from './user.ts';
+import { readUser, readWarmupDone, streakForDisplay } from './user.ts';
 
 /**
  * Everything a client needs to open the game (GDD 9.6).
@@ -62,17 +62,18 @@ export const buildState = async (
       playedToday: false,
       myResult: null,
       streak: { current: 0, longest: 0, justReset: false },
-      firstVisit: false,
+      warmupPending: true,
       sharedToday: false,
       shareConsent: false,
       username: null,
     };
   }
 
-  const [user, stored, sharedRaw] = await Promise.all([
+  const [user, stored, sharedRaw, warmedUp] = await Promise.all([
     readUser(redis, userId),
     readStoredShot(redis, userId, dayNumber),
     redis.hGet(keys.userShared(userId, dayNumber), 'url'),
+    readWarmupDone(redis, userId, dayNumber),
   ]);
 
   if (stored) {
@@ -90,7 +91,7 @@ export const buildState = async (
       ? await summarise(redis, dayNumber, userId, stored)
       : null,
     streak,
-    firstVisit: !user.firstVisitDone,
+    warmupPending: !warmedUp,
     sharedToday: sharedRaw !== undefined,
     shareConsent: user.shareConsent,
     username,

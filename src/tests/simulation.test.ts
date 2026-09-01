@@ -22,6 +22,7 @@ import {
   LAUNCH_DAY,
   MUZZLE_X,
   MUZZLE_Y,
+  MAT_DROP,
   OUT_MAX,
   OUT_SPAN,
   PERFECT_RADIUS,
@@ -80,8 +81,15 @@ describe('scoreForDx — the specified boundaries', () => {
     assert.ok(scoreForDx(PERFECT_RADIUS + 0.001, TARGET_R) < 100);
   });
 
-  it('scores 87.00 exactly at the rim of the mat (dx = 60)', () => {
-    assert.equal(scoreForDx(60, TARGET_R), 87);
+  it('scores 100 - MAT_DROP exactly at the rim of the mat (dx = 60)', () => {
+    // Asserted as the relationship rather than the number: the rim is where the
+    // two zones meet, so `100 - MAT_DROP` and `OUT_MAX` have to be the same
+    // value or the curve steps. Calibrating the daily warm-up moved both from
+    // 87 to 76 together, and a test naming only the number would have passed
+    // for one of them moving alone.
+    assert.equal(scoreForDx(60, TARGET_R), 100 - MAT_DROP);
+    assert.equal(scoreForDx(60, TARGET_R), OUT_MAX);
+    assert.equal(scoreForDx(60, TARGET_R), 76);
   });
 
   it('scores 0 exactly at the outer edge (dx = 660)', () => {
@@ -94,12 +102,34 @@ describe('scoreForDx — the specified boundaries', () => {
     assert.equal(scoreForDx(5000, TARGET_R), 0);
   });
 
-  it('matches the reference points quoted in the design document', () => {
-    // "~99.1 a dx = 12 (seuil Bullseye), ~95.4 a dx = 30, 87.0 au bord".
-    assert.ok(Math.abs(scoreForDx(12, TARGET_R) - 99.1) < 0.1);
-    assert.ok(Math.abs(scoreForDx(30, TARGET_R) - 95.4) < 0.1);
-    // "Un tir rate a 300 u donne encore ~44".
-    assert.ok(Math.abs(scoreForDx(300, TARGET_R) - 44) < 1);
+  /**
+   * **A deliberate deviation from the GDD's worked numbers.**
+   *
+   * The document quotes ~99.1 at dx = 12, ~95.4 at dx = 30, 87.0 at the rim and
+   * ~44 at 300 units. Those describe a mat compressed into thirteen points,
+   * which was right while the ranked shot was thrown blind: almost nobody
+   * landed on the mat, so its width barely mattered.
+   *
+   * The daily warm-up changed the population, not the formula. Players now
+   * arrive at the ranked shot having already thrown these exact conditions
+   * once, so the mat is where the whole field lands -- and thirteen points
+   * could not tell them apart, which put half of everyone above 90 and the
+   * leaderboard in a heap between 98 and 99. `npm run tune` put the median back
+   * inside GDD 8's own 72-80 band by widening the mat to twenty-four points.
+   *
+   * The shape of the curve is untouched. Only its vertical scale moved.
+   */
+  it('reads off the recalibrated curve, not the GDD worked numbers', () => {
+    assert.ok(Math.abs(scoreForDx(12, TARGET_R) - 98.26) < 0.01);
+    assert.ok(Math.abs(scoreForDx(30, TARGET_R) - 91.48) < 0.01);
+    assert.ok(Math.abs(scoreForDx(300, TARGET_R) - 37.77) < 0.01);
+
+    // A Bullseye is a tighter shot than it was: the widened mat means 99 is
+    // reached inside about 9 units rather than 12. That is the point -- it is
+    // why the simulated Bullseye rate fell from 13% to 10% for a warmed-up
+    // population -- so it is asserted rather than left to be noticed later.
+    assert.ok(scoreForDx(9, TARGET_R) >= BULLSEYE_SCORE);
+    assert.ok(scoreForDx(12, TARGET_R) < BULLSEYE_SCORE);
   });
 
   it('decreases monotonically with distance', () => {

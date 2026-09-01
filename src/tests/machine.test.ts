@@ -25,7 +25,7 @@ const serverState = (over: Partial<StateResponse> = {}): StateResponse => ({
   playedToday: false,
   myResult: null,
   streak: { current: 0, longest: 0, justReset: false },
-  firstVisit: false,
+  warmupPending: false,
   shotsToday: 0,
   topScore: 0,
   perfectsToday: 0,
@@ -96,23 +96,23 @@ const loaded = (over: Partial<StateResponse> = {}): GameState =>
 
 describe('opening phase', () => {
   it('gives a brand new player the warm-up', () => {
-    assert.equal(openingPhase(serverState({ firstVisit: true })), 'warmup_aim');
+    assert.equal(openingPhase(serverState({ warmupPending: true })), 'warmup_aim');
   });
 
   it('never shows the warm-up twice', () => {
-    assert.equal(openingPhase(serverState({ firstVisit: false })), 'ready');
+    assert.equal(openingPhase(serverState({ warmupPending: false })), 'ready');
   });
 
   it('lands a returning player straight on their result', () => {
     assert.equal(
-      openingPhase(serverState({ playedToday: true, firstVisit: false })),
+      openingPhase(serverState({ playedToday: true, warmupPending: false })),
       'result'
     );
   });
 
   it('prefers the result over the warm-up if somehow both apply', () => {
     assert.equal(
-      openingPhase(serverState({ playedToday: true, firstVisit: true })),
+      openingPhase(serverState({ playedToday: true, warmupPending: true })),
       'result'
     );
   });
@@ -207,7 +207,7 @@ describe('the misfire guard', () => {
 
 describe('the warm-up', () => {
   it('runs its own flight and result before the real thing', () => {
-    let state = loaded({ firstVisit: true });
+    let state = loaded({ warmupPending: true });
     assert.equal(state.phase, 'warmup_aim');
     assert.ok(isWarmup(state.phase));
 
@@ -222,17 +222,17 @@ describe('the warm-up', () => {
   });
 
   it('is never re-entered, even if the server has not caught up', () => {
-    // The reload that follows the interstitial can still see `firstVisit: true`
+    // The reload that follows the interstitial can still see `warmupPending: true`
     // if `/api/warmup-done` is slow or failed offline. Sending the player back
     // into the warm-up they just finished would be an unbreakable loop.
     const after = run(
-      loaded({ firstVisit: true }),
+      loaded({ warmupPending: true }),
       { type: 'fired', shot: shot() },
       { type: 'impact' },
       { type: 'warmup_done' },
       {
         type: 'loaded',
-        server: serverState({ firstVisit: true }),
+        server: serverState({ warmupPending: true }),
         clockOffset: 0,
         practiceBest: 0,
         practiceTries: 0,
@@ -243,7 +243,7 @@ describe('the warm-up', () => {
 
   it('does not record a result', () => {
     const state = run(
-      loaded({ firstVisit: true }),
+      loaded({ warmupPending: true }),
       { type: 'fired', shot: shot({ score: 99.4 }) },
       { type: 'impact' }
     );

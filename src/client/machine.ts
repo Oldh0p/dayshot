@@ -10,7 +10,7 @@ import type {
  * The day's state machine (GDD 9.8).
  *
  *   boot
- *     -> (firstVisit ? warmup_aim -> warmup_result -> interstitial)
+ *     -> (warmupPending ? warmup_aim -> warmup_result -> interstitial)
  *     -> ready -> aiming -> in_flight -> impact -> scoring_pending -> result
  *     -> result <-> practice
  *
@@ -100,7 +100,7 @@ export type GameState = {
    *
    * The server is told separately, but a reload happens 1.6 s later and that
    * call may still be in flight or may have failed offline. Without this flag a
-   * stale `firstVisit: true` would send the player back into the warm-up they
+   * stale `warmupPending: true` would send the player back into the warm-up they
    * just finished, forever.
    */
   readonly warmupDone: boolean;
@@ -172,7 +172,7 @@ export const openingPhase = (
   // demo shot is a far better argument for signing up than a locked screen.
   if (!server.username) return 'warmup_aim';
   if (server.playedToday) return 'result';
-  if (server.firstVisit && !warmupDone) return 'warmup_aim';
+  if (server.warmupPending && !warmupDone) return 'warmup_aim';
   return 'ready';
 };
 

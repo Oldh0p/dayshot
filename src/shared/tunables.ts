@@ -9,9 +9,23 @@ import type { ModifierId } from './types.ts';
  *
  * ## What calibration changed, and what it did not
  *
- * The **scoring curve is untouched**. GDD II.8's constants turn out to be right:
- * they put the median at 75 and a quarter of shots above 90, exactly as GDD 8
- * asks, for a population whose release error is about 90 ms.
+ * The **scoring curve was widened when the warm-up became daily.** GDD II.8's
+ * constants were right for the game the document describes, where the ranked
+ * shot is thrown cold: they put the median at 75 with a quarter above 90 for a
+ * population whose release error is about 90 ms, which is motor jitter plus the
+ * cost of judging conditions never seen.
+ *
+ * Every day now opens with a warm-up on the day's real wind and distance, so
+ * nobody arrives at the ranked shot blind and the population moved to roughly
+ * 45-60 ms. Under the old curve that put the median at 89 and *half* of
+ * everyone above 90, because the whole mat was compressed into thirteen points
+ * and the mat is where a warmed-up field lands -- the leaderboard became a heap
+ * between 98 and 99. Widening the mat to twenty-four points puts the median at
+ * 72.5 with 25.1% above 90 at sigma 60, and 79.6 at sigma 45: inside GDD 8's
+ * own band at both ends of the plausible range.
+ *
+ * The *shape* of the curve is untouched. Only its vertical scale moved, and
+ * `OUT_MAX` moves with `MAT_DROP` so the two zones still meet.
  *
  * The **launch geometry was broken and is fixed**. With the document's starting
  * values the ball's range at full power was roughly 2.6x the width of the
@@ -176,13 +190,22 @@ export const PERCENTILE_MIN_PLAYERS = 50;
 
 /**
  * Zone 2, on the mat: `100 - MAT_DROP * u^MAT_EXP`, u normalised over the mat.
- * Unchanged by calibration — see the note at the top of this file.
+ *
+ * `MAT_DROP` is how many points the mat is worth, and it is the one constant
+ * the daily warm-up forced to move: 13 -> 24. See the note at the top of this
+ * file. `MAT_EXP` is the shape and did not need to change.
  */
-export const MAT_DROP = 13;
+export const MAT_DROP = 24;
 export const MAT_EXP = 1.35;
 
-/** Zone 3, off the mat: `OUT_MAX * (1 - u^OUT_EXP)` over `OUT_SPAN` units. */
-export const OUT_MAX = 87;
+/**
+ * Zone 3, off the mat: `OUT_MAX * (1 - u^OUT_EXP)` over `OUT_SPAN` units.
+ *
+ * **`OUT_MAX` must always equal `100 - MAT_DROP`.** It is the score at the rim,
+ * where the two zones meet; any other value puts a cliff in the middle of the
+ * curve. A test asserts the two agree.
+ */
+export const OUT_MAX = 76;
 export const OUT_EXP = 0.75;
 export const OUT_SPAN = 600;
 

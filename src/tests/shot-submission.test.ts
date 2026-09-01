@@ -380,7 +380,6 @@ describe('streak', () => {
     const after = await readUser(redis, 't2_alice');
     assert.equal(after.streak, 2);
     assert.equal(after.daysPlayed, 2);
-    assert.equal(after.firstVisitDone, true);
   });
 });
 

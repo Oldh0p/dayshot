@@ -38,11 +38,11 @@ const play = (redis: FakeRedis, userId: string, holdMs: number) =>
     clientScore: 0,
   });
 
-const stateOf = (redis: FakeRedis, userId: string) =>
+const stateOf = (redis: FakeRedis, userId: string, at = NOON) =>
   buildState(redis, {
     userId,
     username: userId.replace('t2_', ''),
-    now: NOON,
+    now: at,
   });
 
 describe('two accounts on the same day', () => {
@@ -109,24 +109,32 @@ describe('two accounts on the same day', () => {
 
   it('scopes the warm-up flag to one account', async () => {
     const redis = new FakeRedis();
-    assert.equal((await stateOf(redis, 't2_alice')).firstVisit, true);
-    assert.equal((await stateOf(redis, 't2_bob')).firstVisit, true);
+    assert.equal((await stateOf(redis, 't2_alice')).warmupPending, true);
+    assert.equal((await stateOf(redis, 't2_bob')).warmupPending, true);
 
-    await markWarmupDone(redis, 't2_alice');
+    await markWarmupDone(redis, 't2_alice', DAY);
 
-    assert.equal((await stateOf(redis, 't2_alice')).firstVisit, false);
+    assert.equal((await stateOf(redis, 't2_alice')).warmupPending, false);
     assert.equal(
-      (await stateOf(redis, 't2_bob')).firstVisit,
+      (await stateOf(redis, 't2_bob')).warmupPending,
       true,
       "Alice finishing her warm-up must not take Bob's"
     );
   });
 
-  it('marks the warm-up done by playing, per account', async () => {
+  it('scopes the warm-up flag to one day as well as one account', async () => {
     const redis = new FakeRedis();
-    await play(redis, 't2_alice', 421);
-    assert.equal((await stateOf(redis, 't2_alice')).firstVisit, false);
-    assert.equal((await stateOf(redis, 't2_bob')).firstVisit, true);
+    await markWarmupDone(redis, 't2_alice', DAY);
+
+    assert.equal(
+      (await stateOf(redis, 't2_alice', NOON + 86400000)).warmupPending,
+      true,
+      "Alice's warm-up yesterday must not spend her warm-up today"
+    );
+    assert.equal(
+      (await stateOf(redis, 't2_bob', NOON + 86400000)).warmupPending,
+      true
+    );
   });
 
   it('scopes the share record', async () => {

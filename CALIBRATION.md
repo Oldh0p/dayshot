@@ -3,6 +3,11 @@
 Produced by `npm run tune` (GDD 9.5). Re-run it after any change to
 `src/shared/tunables.ts`; `src/tests/distribution.test.ts` guards the outcome.
 
+> **Superseded in part.** The scoring curve *was* untouched by the first
+> calibration, and stopped being so when the warm-up became daily. See
+> [The daily warm-up, and why the mat had to widen](#the-daily-warm-up-and-why-the-mat-had-to-widen)
+> at the end of this file. Everything else below still stands.
+
 ## What changed
 
 The **scoring curve is untouched**. GDD II.8's constants are right: they put the
@@ -192,3 +197,65 @@ verdict
   model at any sigma below ~270 ms: see the note at the top of this file.
   Measure the live rates before touching PERFECT_RADIUS or BULLSEYE_SCORE.
 ```
+
+---
+
+## The daily warm-up, and why the mat had to widen
+
+The game changed shape: every day now opens with a warm-up throw on the day's
+**real** conditions, and only then does the ranked shot unlock. That is a change
+to the population, not to the physics, and it invalidated the one thing the
+first calibration had been able to leave alone.
+
+**The old model.** `tune.ts` sweeps a Gaussian release error. Its own header
+says what the values mean: 30-60 ms is motor jitter for a player who already
+knows the answer, and the ranked shot needed more than that because it also had
+to *judge* conditions never seen. Ninety milliseconds is where the mass targets
+landed, and the curve was calibrated there.
+
+**Nobody throws blind any more.** One warm-up on the exact wind and distance is
+most of what 90 ms was paying for, so the field moved to roughly 45-60 ms.
+Measured against the old curve:
+
+| sigma | median | >= 90 | bullseye | verdict |
+| --- | --- | --- | --- | --- |
+| 45 ms | 89.04 | 47.5% | 13.0% | far outside GDD 8 |
+| 60 ms | 82.98 | 36.8% | 9.6% | outside GDD 8 |
+| 90 ms | 75.39 | 25.6% | 6.6% | the population that no longer exists |
+
+Half the field above 90 is not a scoring problem, it is a *resolution* problem.
+The whole mat was worth thirteen points (100 down to 87 at the rim), which was
+ample while almost nobody landed on it. A warmed-up field lands on it every
+time, and thirteen points cannot separate the people standing on it: the
+leaderboard becomes a heap between 98 and 99, and "TOP 4.2%" stops meaning
+anything.
+
+**The fix is one constant.** `MAT_DROP` 13 -> 24, with `OUT_MAX` following it
+from 87 to 76 because the two zones have to meet at the rim. `MAT_EXP` is
+untouched -- the shape was never the problem, only the vertical scale.
+
+| sigma | median | >= 90 | bullseye |
+| --- | --- | --- | --- |
+| 45 ms | **79.60** | 33.0% | 10.0% |
+| **60 ms** | **72.51** | **25.1%** | 7.3% |
+
+GDD 8 asks for a median of 72-80 and about a quarter above 90. Both ends of the
+plausible range now sit inside the median band, and sigma 60 hits both targets
+exactly. Erring generous at the tight end is deliberate: a curve that turns out
+too harsh is worse than one that turns out too kind.
+
+### Consequences worth knowing
+
+- **Every score in the game moved.** A shot that scored 87.0 at the rim now
+  scores 76.0; the GDD's worked reference points (99.1 at dx 12, 95.4 at dx 30,
+  ~44 at 300) are superseded by 98.26, 91.48 and 37.77.
+- **A Bullseye is a tighter shot**: 99 is now reached inside about 9 units
+  rather than 12. That is the intent, and it is why the simulated Bullseye rate
+  falls from 13% to 10% for a warmed-up field.
+- **Perfect is unchanged and still unreachable at target.** `PERFECT_RADIUS` was
+  not touched; the rate is bounded by `holdMs` being an integer, not by the
+  curve, exactly as before.
+- **Sigma 45-60 is an estimate, not a measurement.** One warm-up throw is one
+  sample, not perfect knowledge. The honest version of this table needs live
+  play. `npm run tune -- --sigmas <observed>` re-runs it in seconds once the
+  real spread is known.

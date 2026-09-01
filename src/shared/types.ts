@@ -141,7 +141,12 @@ export type StateResponse = {
   readonly playedToday: boolean;
   readonly myResult: ResultSummary | null;
   readonly streak: StreakState;
-  readonly firstVisit: boolean;
+  /**
+   * The day's warm-up shot has not been taken yet. Every day opens with one
+   * throw that does not count, on the day's real conditions, before the ranked
+   * shot unlocks -- so this is a fact about the day, not about the account.
+   */
+  readonly warmupPending: boolean;
   readonly shotsToday: number;
   readonly topScore: number;
   readonly perfectsToday: number;

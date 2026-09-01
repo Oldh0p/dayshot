@@ -92,7 +92,7 @@ export const COPY = {
   // -- Identity -------------------------------------------------------------
   title: 'DAYSHOT',
   /** GDD 9.9 */
-  tagline: 'One attempt. Every day.',
+  tagline: 'One shot that counts. Every day.',
 
   // -- Splash / feed card ---------------------------------------------------
   /** GDD 9.9 */
@@ -144,7 +144,7 @@ export const COPY = {
   helpTitle: 'How it works',
   /** GDD 19 */
   helpBody:
-    'Hold to charge, release to shoot. Closest to center wins. One official shot per day.',
+    'Hold to charge, release to shoot. Closest to center wins. Every day starts with a warm-up that does not count, then one official shot.',
   soundToggle: 'Sound',
 
   // -- Logged out -----------------------------------------------------------
@@ -155,7 +155,7 @@ export const COPY = {
   /** Offered after the demo shot lands, where the rank would have been. */
   loggedOut: "Log in to take today's real shot",
   loggedOutCta: 'Log in',
-  loggedOutSub: 'One attempt, every day, ranked against everyone.',
+  loggedOutSub: 'One ranked shot, every day, against everyone.',
   offline: 'You are offline. Your shot is safe.',
   retry: 'Retry',
   submitQueued: 'Saving your shot…',
@@ -302,10 +302,10 @@ export const dailyPostTitle = (
   displayDay: number,
   modifier: ModifierId
 ): string =>
-  `🎯 DAYSHOT #${displayDay} — ${MODIFIER_LABEL[modifier]}. One try. 24 hours.`;
+  `🎯 DAYSHOT #${displayDay} — ${MODIFIER_LABEL[modifier]}. One shot that counts. 24 hours.`;
 
 export const splashDescription = (modifier: ModifierId): string =>
-  `${MODIFIER_EMOJI[modifier]} ${MODIFIER_LABEL[modifier]} — one try, 24 hours.`;
+  `${MODIFIER_EMOJI[modifier]} ${MODIFIER_LABEL[modifier]} — one shot that counts, 24 hours.`;
 
 /** Yesterday's headline, chosen by rule so nobody has to write one every day. */
 export type YesterdayStats = {

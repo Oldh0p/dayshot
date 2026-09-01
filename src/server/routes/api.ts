@@ -100,10 +100,9 @@ api.post('/warmup-done', async (c) => {
   if (!userId) return c.json<ErrorResponse>(fail('LOGGED_OUT'), 401);
 
   try {
-    await markWarmupDone(store, userId);
-    await analytics.record(store, dayNumberAt(now()), {
-      name: 'warmup_complete',
-    });
+    const dayNumber = dayNumberAt(now());
+    await markWarmupDone(store, userId, dayNumber);
+    await analytics.record(store, dayNumber, { name: 'warmup_complete' });
     return c.json({ ok: true }, 200);
   } catch (error) {
     console.error('[api] /warmup-done failed', error);

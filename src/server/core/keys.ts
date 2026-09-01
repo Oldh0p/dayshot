@@ -39,6 +39,17 @@ export const user = (userId: string): string => `user:${userId}`;
 export const userPlayed = (userId: string, dayNumber: number): string =>
   `user:${userId}:played:${dayNumber}`;
 
+/**
+ * Marks that the player has taken the day's warm-up shot.
+ *
+ * Per day, not per account: the warm-up recurs every day, so the flag has to
+ * expire with the day like `played` and `shared` do. It was a single
+ * `firstVisitDone` field on the long-lived user hash while the warm-up happened
+ * once in a lifetime.
+ */
+export const userWarmup = (userId: string, dayNumber: number): string =>
+  `user:${userId}:warmup:${dayNumber}`;
+
 /** Marks that the player's score card has been posted for the day. */
 export const userShared = (userId: string, dayNumber: number): string =>
   `user:${userId}:shared:${dayNumber}`;

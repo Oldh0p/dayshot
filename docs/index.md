@@ -8,7 +8,8 @@ title: DAYSHOT
 
 A daily skill game for Reddit, built on
 [Devvit](https://developers.reddit.com). Every UTC day the whole planet gets the
-same challenge, and every player gets exactly one attempt at it.
+same challenge: a warm-up throw that does not count, then exactly one attempt
+that does.
 
 - [Terms of Service](terms.md)
 - [Privacy Policy](privacy.md)

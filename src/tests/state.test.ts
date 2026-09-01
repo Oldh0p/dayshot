@@ -63,15 +63,44 @@ describe('buildState', () => {
       username: 'new',
       now: NOON,
     });
-    assert.equal(before.firstVisit, true);
+    assert.equal(before.warmupPending, true);
 
-    await markWarmupDone(redis, 't2_new');
+    await markWarmupDone(redis, 't2_new', DAY);
     const after = await buildState(redis, {
       userId: 't2_new',
       username: 'new',
       now: NOON,
     });
-    assert.equal(after.firstVisit, false);
+    assert.equal(after.warmupPending, false);
+  });
+
+  it('asks for a warm-up again tomorrow, and every day after', async () => {
+    // The point of the daily warm-up: yesterday's does not spend today's. This
+    // is the whole behaviour, so it is asserted across three consecutive days
+    // rather than two -- an off-by-one that only came back on alternate days
+    // would pass a two-day test.
+    const redis = new FakeRedis();
+    for (let offset = 0; offset < 3; offset++) {
+      const at = NOON + offset * 86400000;
+      const opening = await buildState(redis, {
+        userId: 't2_regular',
+        username: 'regular',
+        now: at,
+      });
+      assert.equal(
+        opening.warmupPending,
+        true,
+        `day +${offset} must open with a warm-up of its own`
+      );
+
+      await markWarmupDone(redis, 't2_regular', DAY + offset);
+      const after = await buildState(redis, {
+        userId: 't2_regular',
+        username: 'regular',
+        now: at,
+      });
+      assert.equal(after.warmupPending, false, `day +${offset} warm-up spent`);
+    }
   });
 
   it('reports the shot once it has been taken', async () => {
@@ -129,7 +158,9 @@ describe('buildState', () => {
     assert.equal(state.username, null);
     assert.equal(state.playedToday, false);
     assert.equal(state.myResult, null);
-    assert.equal(state.firstVisit, false);
+    // A visitor with no account has warmed up nothing; the client sends them
+    // to a demo shot on `username === null` before this is ever consulted.
+    assert.equal(state.warmupPending, true);
     assert.equal(state.shotsToday, 1);
   });
 

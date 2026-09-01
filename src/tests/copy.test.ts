@@ -56,7 +56,6 @@ const REFERENCE_CARD: ShareCardInput = {
 
 describe('copy — contractual wordings (GDD 9.9)', () => {
   it('matches the document character for character', () => {
-    assert.equal(COPY.tagline, 'One attempt. Every day.');
     assert.equal(COPY.warmupBanner, "WARM-UP — this one doesn't count");
     assert.equal(COPY.warmupOver, 'That was practice. Now for real.');
     assert.equal(COPY.holdToAim, 'HOLD TO AIM');
@@ -64,10 +63,34 @@ describe('copy — contractual wordings (GDD 9.9)', () => {
     assert.equal(COPY.postMyShot, 'POST MY SHOT');
     assert.equal(COPY.practice, 'Practice');
     assert.equal(COPY.offTheMap, 'OFF THE MAP');
+  });
+
+  /**
+   * **A deliberate deviation from GDD 9.9, decided by the owner.**
+   *
+   * The GDD gives every player one attempt at the day, full stop, and its
+   * wordings say so: "One attempt. Every day.", "One official shot per day.",
+   * "One try. 24 hours." The warm-up was a one-off tutorial for a brand new
+   * account, so those lines were exactly true.
+   *
+   * The warm-up is now daily, on the day's real conditions, which means nobody
+   * throws blind at a ranked shot any more. The old lines would have been a
+   * promise the game no longer keeps -- and the post title is the first thing a
+   * new player reads. They are separated here rather than edited in place so
+   * that the GDD-exact wordings above stay visibly GDD-exact, and so that a
+   * future reader can tell a decision from a drift.
+   */
+  it('promises one shot that counts, not one shot', () => {
+    assert.equal(COPY.tagline, 'One shot that counts. Every day.');
     assert.equal(
       COPY.helpBody,
-      'Hold to charge, release to shoot. Closest to center wins. One official shot per day.'
+      'Hold to charge, release to shoot. Closest to center wins. Every day ' +
+        'starts with a warm-up that does not count, then one official shot.'
     );
+    // Whatever the wording, it may never claim a single attempt outright.
+    for (const line of [COPY.tagline, COPY.helpBody, COPY.loggedOutSub]) {
+      assert.doesNotMatch(line, /one attempt|one try/i, line);
+    }
   });
 
   it('renders the templated lines as specified', () => {
@@ -293,7 +316,7 @@ describe('reddit-side copy', () => {
   it('builds the daily post title in the contractual shape', () => {
     assert.equal(
       dailyPostTitle(247, 'CROSSWIND'),
-      '🎯 DAYSHOT #247 — Crosswind. One try. 24 hours.'
+      '🎯 DAYSHOT #247 — Crosswind. One shot that counts. 24 hours.'
     );
   });
 

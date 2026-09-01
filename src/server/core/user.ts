@@ -1,10 +1,10 @@
+import { DAY_TTL_S } from '../../shared/tunables.ts';
 import type { StreakState } from '../../shared/types.ts';
 import * as keys from './keys.ts';
 import type { RedisLike } from './redis-port.ts';
 
 /** The long-lived per-player record (GDD 9.7). */
 export type UserState = {
-  readonly firstVisitDone: boolean;
   readonly streak: number;
   readonly longest: number;
   readonly lastPlayedDay: number | null;
@@ -17,7 +17,6 @@ export type UserState = {
 };
 
 export const EMPTY_USER: UserState = {
-  firstVisitDone: false,
   streak: 0,
   longest: 0,
   lastPlayedDay: null,
@@ -43,7 +42,6 @@ export const readUser = async (
 
   const lastPlayedRaw = hash['lastPlayedDay'];
   return {
-    firstVisitDone: hash['firstVisitDone'] === '1',
     streak: num(hash['streak'], 0),
     longest: num(hash['longest'], 0),
     lastPlayedDay:
@@ -56,11 +54,29 @@ export const readUser = async (
   };
 };
 
+/**
+ * Has this player already warmed up today?
+ *
+ * The warm-up is a daily ritual rather than a one-off tutorial: every day
+ * starts with a shot that does not count, on the day's real conditions, and
+ * only then does the ranked shot open. So the answer is per day and expires
+ * with it, and a player who warmed up yesterday warms up again today.
+ */
+export const readWarmupDone = async (
+  redis: RedisLike,
+  userId: string,
+  dayNumber: number
+): Promise<boolean> =>
+  (await redis.get(keys.userWarmup(userId, dayNumber))) !== undefined;
+
 export const markWarmupDone = async (
   redis: RedisLike,
-  userId: string
+  userId: string,
+  dayNumber: number
 ): Promise<void> => {
-  await redis.hSet(keys.user(userId), { firstVisitDone: '1' });
+  const key = keys.userWarmup(userId, dayNumber);
+  await redis.set(key, '1');
+  await redis.expire(key, DAY_TTL_S);
 };
 
 /**
@@ -134,7 +150,6 @@ export const applyShotToUser = async (
     perfects: String(user.perfects + (isPerfect ? 1 : 0)),
     bullseyes: String(user.bullseyes + (isBullseye ? 1 : 0)),
     daysPlayed: String(user.daysPlayed + 1),
-    firstVisitDone: '1',
   });
 
   return streak;

@@ -15,7 +15,8 @@ which apply to everything you do on Reddit including here.
 
 ## The game
 
-One attempt per Reddit account per UTC day. That is the whole idea, and it is
+One warm-up and one attempt that counts, per Reddit account per UTC day. That
+is the whole idea, and it is
 enforced by the game: there is no retry, no second chance, and nothing that can
 be bought. Scores are computed on the server from how long you held the button;
 the score your browser shows you is a preview, and the server's answer is the
@@ -28,7 +29,7 @@ another player's input, or tampering with what the game sends. Accounts that
 appear to be doing so may be excluded from the leaderboards, silently and at our
 discretion, and the game's operator may ask Reddit to act under Reddit's own
 rules. Using multiple accounts to take multiple shots at the same day is
-likewise not in the spirit of a game whose entire premise is one attempt.
+likewise not in the spirit of a game whose entire premise is one ranked shot.
 
 ## Your content
 

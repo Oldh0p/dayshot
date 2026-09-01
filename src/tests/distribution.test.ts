@@ -135,9 +135,13 @@ describe('the score distribution', () => {
   };
 
   it('puts the median and the top quarter where GDD 8 wants them', () => {
-    // sigma = 90 ms is where `npm run tune` finds the mass targets satisfied:
-    // motor jitter plus the error of judging an unseen optimum.
-    const scores = simulatePopulation(90, 120);
+    // sigma = 60 ms, not 90. Ninety described a player judging an optimum they
+    // had never seen -- motor jitter plus the cost of reading the day cold.
+    // Every day now opens with a warm-up on the day's real conditions, so
+    // nobody arrives at the ranked shot blind, and the population sits between
+    // the 45 ms of a player who knows the answer and the 90 ms of one who does
+    // not. `npm run tune` puts both mass targets inside GDD 8 at this value.
+    const scores = simulatePopulation(60, 120);
     const median = scores[Math.floor(scores.length / 2)] ?? 0;
     const above90 =
       scores.filter((s) => s >= 90).length / scores.length;

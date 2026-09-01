@@ -12,7 +12,7 @@ const DAY = Math.floor(Date.now() / 86400000);
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 
 let played = false;
-let firstVisit = process.env.FIRST_VISIT === '1';
+let warmupPending = process.env.WARMUP_PENDING === '1';
 
 // The result a played-today session restores into. Having it here means the
 // result screen can be loaded directly -- which is how its layout gets checked
@@ -26,7 +26,7 @@ const state = () => ({
   dayNumber: DAY, displayDay: DAY - 20697 + 1, rerollK: 0, serverNow: Date.now(),
   modifier: 'CROSSWIND', playedToday: played, myResult: played ? MY_RESULT : null,
   streak: { current: 3, longest: 12, justReset: false },
-  firstVisit, shotsToday: 41203, topScore: 99.94, perfectsToday: 38,
+  warmupPending, shotsToday: 41203, topScore: 99.94, perfectsToday: 38,
   tomorrowModifier: 'MOON', sharedToday: false, shareConsent: false, username: 'tester',
 });
 
@@ -38,7 +38,7 @@ createServer(async (req, res) => {
 
   if (url.pathname === '/api/reset') {
     played = url.searchParams.get('played') === '1';
-    firstVisit = url.searchParams.get('warmup') === '1';
+    warmupPending = url.searchParams.get('warmup') === '1';
     return send(200, '{"ok":true}');
   }
   if (url.pathname === '/api/state') return send(200, JSON.stringify(state()));
@@ -74,7 +74,7 @@ createServer(async (req, res) => {
       simMismatch: false,
     }));
   }
-  if (url.pathname === '/api/warmup-done') { firstVisit = false; return send(200, '{"ok":true}'); }
+  if (url.pathname === '/api/warmup-done') { warmupPending = false; return send(200, '{"ok":true}'); }
   if (url.pathname.startsWith('/api/')) return send(200, '{"ok":true}');
 
   const file = url.pathname === '/' ? '/game.html' : url.pathname;
