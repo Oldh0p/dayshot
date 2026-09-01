@@ -271,6 +271,11 @@ export const shareConsentBody = (username: string): string =>
   `as a reply to today's thread. Anyone can see it, and you can delete it ` +
   `from Reddit at any time.`;
 
+/**
+ * The running tally under a practice attempt. The attempt's own score is the
+ * big number above it; this is the context, not the headline. It existed here
+ * unused while `Result.tsx` inlined its own copy of the same sentence.
+ */
 export const practiceBestLine = (best: number, tries: number): string =>
   `Practice best today: ${formatScore(best)} (in ${formatCount(tries)} ${
     tries === 1 ? 'try' : 'tries'

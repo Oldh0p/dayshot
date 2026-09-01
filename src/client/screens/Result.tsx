@@ -10,6 +10,7 @@ import {
   impactBadge,
   nextShotLine,
   perfectRarityLine,
+  practiceBestLine,
   showsGlobalRank,
   standingHeadline,
   streakLine,
@@ -268,11 +269,7 @@ const PracticePanel = (props: {
 }): JSX.Element => (
   <div className="mt-4 flex w-full flex-col items-center gap-3">
     <div className="text-[13px] italic text-[color:var(--color-mist)] tabular">
-      {props.tries > 0
-        ? `Practice best today: ${formatScore(props.best)} (in ${props.tries} ${
-            props.tries === 1 ? 'try' : 'tries'
-          })`
-        : ''}
+      {props.tries > 0 ? practiceBestLine(props.best, props.tries) : ''}
     </div>
     <div className="flex items-center gap-4">
       <button

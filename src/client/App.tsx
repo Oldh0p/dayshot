@@ -26,6 +26,7 @@ import {
   reduce,
 } from './machine.ts';
 import type { QueueOutcome } from './queue.ts';
+import { resultOnScreen } from './result-view.ts';
 import { ShotQueue } from './queue.ts';
 import { useScene } from './scene/useScene.ts';
 import { Conditions } from './screens/Conditions.tsx';
@@ -575,7 +576,7 @@ export const App = (): JSX.Element => {
           ) : (
             (result ?? state.shot) && (
               <Result
-                result={result ?? optimisticResult(state.shot)}
+                result={resultOnScreen(phase, result, state.shot)}
                 streak={streakNow}
                 tomorrow={server.tomorrowModifier}
                 msToRollover={msToRollover}
@@ -642,16 +643,3 @@ const copyToClipboard = async (text: string): Promise<void> => {
  * the rank waits. If the server ever disagrees, its number replaces this one
  * (GDD 31).
  */
-const optimisticResult = (shot: ShotResult | null): ResultSummary => ({
-  score: shot?.score ?? 0,
-  dx: shot?.dx ?? 0,
-  signedDx: 0,
-  impact: shot?.impact ?? 'GROUND',
-  cliffDrop: shot?.cliffDrop ?? 0,
-  holdMs: 0,
-  rank: 0,
-  total: 0,
-  percentile: 100,
-  isBullseye: shot?.isBullseye ?? false,
-  isPerfect: shot?.isPerfect ?? false,
-});
