@@ -388,3 +388,88 @@ describe('a server answer that arrives mid-flight', () => {
     assert.deepEqual(serverFirst.result, impactFirst.result);
   });
 });
+
+/**
+ * The gauge prompt reads `charging`, and `charging` is not the phase.
+ *
+ * It used to be `phase === 'aiming' || phase === 'practice_aim'`, which was two
+ * mirrored lies. The official shot owns a phase for each state -- `ready` then
+ * `aiming` -- so it read correctly. The warm-up and practice each have a single
+ * phase covering both states, so the warm-up said HOLD TO AIM while the player
+ * was already holding, and practice said RELEASE TO SHOOT before they had
+ * touched the screen. The warm-up one now happens to every player every day.
+ */
+describe('holding the gauge', () => {
+  const press = (state: GameState): GameState =>
+    reduce(state, { type: 'aim_start' });
+
+  it('is not charging before the screen is touched, in any mode', () => {
+    const official = loaded();
+    assert.equal(official.charging, false);
+
+    const warmup = loaded({ warmupPending: true });
+    assert.equal(warmup.phase, 'warmup_aim');
+    assert.equal(warmup.charging, false, 'the warm-up must ask for a hold');
+
+    const practice = reduce(
+      { ...loaded(), phase: 'result' },
+      { type: 'begin_practice' }
+    );
+    assert.equal(practice.phase, 'practice_aim');
+    assert.equal(
+      practice.charging,
+      false,
+      'practice must not ask for a release before the press'
+    );
+  });
+
+  it('is charging once the screen is held, in any mode', () => {
+    for (const [label, state] of [
+      ['official', loaded()],
+      ['warm-up', loaded({ warmupPending: true })],
+      [
+        'practice',
+        reduce({ ...loaded(), phase: 'result' }, { type: 'begin_practice' }),
+      ],
+    ] as const) {
+      assert.equal(press(state).charging, true, `${label} must charge`);
+    }
+  });
+
+  it('still moves the official shot from ready to aiming', () => {
+    // Other code reads those phases; only the prompt moved off them.
+    assert.equal(press(loaded()).phase, 'aiming');
+  });
+
+  it('leaves the warm-up and practice phases alone while charging', () => {
+    assert.equal(press(loaded({ warmupPending: true })).phase, 'warmup_aim');
+    const practice = reduce(
+      { ...loaded(), phase: 'result' },
+      { type: 'begin_practice' }
+    );
+    assert.equal(press(practice).phase, 'practice_aim');
+  });
+
+  it('stops charging when the shot leaves the hand', () => {
+    const fired = reduce(press(loaded()), { type: 'fired', shot: shot() });
+    assert.equal(fired.charging, false);
+  });
+
+  it('stops charging when a misfire is caught', () => {
+    // A flick in a pocket returns to `ready`, and the prompt has to go back to
+    // asking for a hold rather than stranding a "release" on screen.
+    const misfired = reduce(press(loaded()), { type: 'misfire' });
+    assert.equal(misfired.charging, false);
+    assert.equal(misfired.phase, 'ready');
+  });
+
+  it('stops charging on every exit from an aiming phase', () => {
+    const held = press(loaded({ warmupPending: true }));
+    assert.equal(reduce(held, { type: 'warmup_done' }).charging, false);
+
+    const practising = press(
+      reduce({ ...loaded(), phase: 'result' }, { type: 'begin_practice' })
+    );
+    assert.equal(reduce(practising, { type: 'leave_practice' }).charging, false);
+  });
+});

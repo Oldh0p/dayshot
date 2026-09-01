@@ -105,6 +105,20 @@ export type GameState = {
    */
   readonly warmupDone: boolean;
   /**
+   * The finger is down and the gauge is running.
+   *
+   * Deliberately *not* derived from the phase. The phase says which kind of
+   * shot this is; whether the button is held is a different axis entirely, and
+   * conflating them produced two mirrored lies. The official shot got away with
+   * it because it owns a phase for each state -- `ready` then `aiming` -- but
+   * the warm-up and practice each have one phase for both, so the warm-up said
+   * "HOLD TO AIM" while the player was already holding, and practice said
+   * "RELEASE TO SHOOT" before they had touched anything.
+   *
+   * One flag, set on aim-start and cleared on release, is true for all three.
+   */
+  readonly charging: boolean;
+  /**
    * No Reddit account. The visitor plays a fixed demo level rather than the
    * day's, so a private window cannot scout today's conditions before the real
    * attempt (GDD 5).
@@ -128,6 +142,7 @@ export const INITIAL_STATE: GameState = {
   practiceTries: 0,
   sharedUrl: null,
   warmupDone: false,
+  charging: false,
   loggedOut: false,
 };
 
@@ -189,6 +204,7 @@ export const reduce = (state: GameState, action: Action): GameState => {
         practiceBest: action.practiceBest,
         practiceTries: action.practiceTries,
         transient: null,
+        charging: false,
       };
 
     case 'board':
@@ -198,13 +214,25 @@ export const reduce = (state: GameState, action: Action): GameState => {
       return { ...state, phase: 'logged_out' };
 
     case 'aim_start':
-      if (state.phase === 'ready') return { ...state, phase: 'aiming' };
-      return state;
+      // `ready -> aiming` still happens for the official shot, because other
+      // things read those phases; `charging` is what the prompt now reads, and
+      // it is true for the warm-up and practice as well.
+      return {
+        ...state,
+        charging: true,
+        phase: state.phase === 'ready' ? 'aiming' : state.phase,
+      };
 
     case 'misfire':
       // Only the very first press of the official shot is protected. Repeating
       // it would turn the safety net into a way to scan the gauge for free.
-      return { ...state, misfireUsed: true, showMisfireHint: true, phase: 'ready' };
+      return {
+        ...state,
+        misfireUsed: true,
+        showMisfireHint: true,
+        charging: false,
+        phase: 'ready',
+      };
 
     case 'dismiss_misfire':
       return { ...state, showMisfireHint: false };
@@ -216,7 +244,13 @@ export const reduce = (state: GameState, action: Action): GameState => {
           : state.phase === 'practice_aim'
             ? 'practice_flight'
             : 'in_flight';
-      return { ...state, phase: next, shot: action.shot, showMisfireHint: false };
+      return {
+        ...state,
+        phase: next,
+        shot: action.shot,
+        showMisfireHint: false,
+        charging: false,
+      };
     }
 
     case 'impact': {
@@ -250,10 +284,16 @@ export const reduce = (state: GameState, action: Action): GameState => {
       };
 
     case 'warmup_done':
-      return { ...state, phase: 'interstitial', warmupDone: true, shot: null };
+      return {
+        ...state,
+        phase: 'interstitial',
+        warmupDone: true,
+        shot: null,
+        charging: false,
+      };
 
     case 'begin_practice':
-      return { ...state, phase: 'practice_aim', shot: null };
+      return { ...state, phase: 'practice_aim', shot: null, charging: false };
 
     case 'practice_scored':
       return {
@@ -263,7 +303,7 @@ export const reduce = (state: GameState, action: Action): GameState => {
       };
 
     case 'leave_practice':
-      return { ...state, phase: 'result', shot: state.ghost };
+      return { ...state, phase: 'result', shot: state.ghost, charging: false };
 
     case 'transient':
       return { ...state, transient: action.value };

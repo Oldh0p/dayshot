@@ -446,7 +446,7 @@ export const App = (): JSX.Element => {
     phase === 'warmup_aim' ||
     phase === 'practice_aim';
 
-  const charging = phase === 'aiming' || phase === 'practice_aim';
+  const charging = state.charging;
 
   /* Narrowed once, so the board page and the button that opens it agree on
      whether there is a board at all. */
