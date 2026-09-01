@@ -72,7 +72,9 @@ export const drawScene = (
       1,
       Math.floor(view.shot.trajectory.length * clamp01(view.flightProgress))
     );
-    drawTrail(ctx, view, view.shot.trajectory.slice(0, upTo));
+    // No `slice`: this ran every frame of every flight and allocated up to 122
+    // points each time, for a function that only reads the last 40.
+    drawTrail(ctx, view, view.shot.trajectory, upTo);
   }
 
   drawBall(ctx, view);
@@ -99,13 +101,74 @@ export const drawScene = (
 
 // -- Background --------------------------------------------------------------
 
+/**
+ * The sky, rasterised once per palette and blitted after that.
+ *
+ * A full-viewport gradient is the single most expensive thing the frame draws,
+ * and it was being re-rasterised sixty times a second for an image that only
+ * changes when the day's palette does. A CPU profile of a throttled flight put
+ * **88% of the time in `(program)`** -- the compositor, not JavaScript, whose
+ * whole share was about 8%. That is what says the cost is pixels rather than
+ * code, and why batching the trail's stroke calls beforehand bought only three
+ * frames.
+ *
+ * Safe to cache despite the moving camera, because this one is screen space:
+ * `drawSky` never reads the camera's position, only its size.
+ */
+let skyCache: {
+  canvas: HTMLCanvasElement;
+  key: string;
+} | null = null;
+
+const skyBitmap = (
+  width: number,
+  height: number,
+  dpr: number,
+  skyHigh: string,
+  skyLow: string
+): HTMLCanvasElement | null => {
+  const key = `${width}x${height}@${dpr}:${skyHigh}:${skyLow}`;
+  if (skyCache?.key === key) return skyCache.canvas;
+
+  const canvas = skyCache?.canvas ?? document.createElement('canvas');
+  // At device resolution, not CSS resolution. The first version of this cache
+  // stored CSS pixels and let the context's DPR transform scale it up on every
+  // blit; resampling a 470x800 bitmap each frame cost *more* than the gradient
+  // it replaced -- 53 dropped frames against 1. Measured both ways.
+  canvas.width = Math.max(1, Math.ceil(width * dpr));
+  canvas.height = Math.max(1, Math.ceil(height * dpr));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, skyHigh);
+  gradient.addColorStop(1, skyLow);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  skyCache = { canvas, key };
+  return canvas;
+};
+
 const drawSky = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   const { camera, palette } = view;
-  const gradient = ctx.createLinearGradient(0, 0, 0, camera.height);
-  gradient.addColorStop(0, palette.skyHigh);
-  gradient.addColorStop(1, palette.skyLow);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(-40, -40, camera.width + 80, camera.height + 80);
+  const w = camera.width + 80;
+  const h = camera.height + 80;
+  // The context carries the DPR in its transform; `translate` does not touch it.
+  const dpr = ctx.getTransform().a || 1;
+  const bitmap = skyBitmap(w, h, dpr, palette.skyHigh, palette.skyLow);
+
+  if (!bitmap) {
+    // No offscreen context: draw it the slow way rather than draw nothing.
+    const gradient = ctx.createLinearGradient(0, 0, 0, camera.height);
+    gradient.addColorStop(0, palette.skyHigh);
+    gradient.addColorStop(1, palette.skyLow);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-40, -40, w, h);
+    return;
+  }
+  // Explicit destination size: source is device pixels, destination is CSS.
+  ctx.drawImage(bitmap, -40, -40, w, h);
 };
 
 /** Moon Gravity gets a moon. The prettiest day should look like one. */
@@ -339,30 +402,58 @@ const drawBall = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   });
 };
 
+/** How much of the arc keeps its trail behind the ball. */
+const TRAIL_SAMPLES = 40;
+
+/**
+ * The fade is drawn in this many bands, not per segment.
+ *
+ * It used to be one `beginPath`/`stroke` per sample — forty canvas state
+ * changes and forty rasterisations every frame, because alpha and width change
+ * along the tail. Measured on a 4x-throttled CPU that was seventeen dropped
+ * frames per flight while aiming dropped one. Five bands is the same gradient
+ * to the eye at a fifth of the calls: the tail is ~40 samples long and the
+ * alpha step between bands is under a tenth.
+ */
+const TRAIL_BANDS = 5;
+
 const drawTrail = (
   ctx: CanvasRenderingContext2D,
   view: SceneView,
-  points: readonly Point[]
+  points: readonly Point[],
+  upTo: number
 ): void => {
-  if (points.length < 2) return;
+  const end = Math.min(upTo, points.length);
+  if (end < 2) return;
   const { camera, palette } = view;
 
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  ctx.strokeStyle = palette.accent;
 
-  // Fade the tail so the eye follows the head of the arc.
-  const tail = Math.max(0, points.length - 40);
-  for (let i = Math.max(1, tail); i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    if (!a || !b) continue;
-    const strength = (i - tail) / Math.max(1, points.length - tail);
-    ctx.strokeStyle = palette.accent;
+  const tail = Math.max(0, end - TRAIL_SAMPLES);
+  const span = Math.max(1, end - tail);
+
+  for (let band = 0; band < TRAIL_BANDS; band++) {
+    const from = tail + Math.floor((span * band) / TRAIL_BANDS);
+    const to = tail + Math.floor((span * (band + 1)) / TRAIL_BANDS);
+    if (to - from < 1) continue;
+
+    const strength = (band + 0.5) / TRAIL_BANDS;
     ctx.globalAlpha = 0.08 + strength * 0.5;
     ctx.lineWidth = Math.max(1, camera.scale * (2 + strength * 6));
+
     ctx.beginPath();
-    ctx.moveTo(toScreenX(camera, a.x), toScreenY(camera, a.y));
-    ctx.lineTo(toScreenX(camera, b.x), toScreenY(camera, b.y));
+    // Start one sample early so consecutive bands meet instead of leaving a gap.
+    for (let i = Math.max(1, from); i <= to && i < end; i++) {
+      const a = points[i - 1];
+      const b = points[i];
+      if (!a || !b) continue;
+      if (i === Math.max(1, from)) {
+        ctx.moveTo(toScreenX(camera, a.x), toScreenY(camera, a.y));
+      }
+      ctx.lineTo(toScreenX(camera, b.x), toScreenY(camera, b.y));
+    }
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
