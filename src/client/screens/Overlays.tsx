@@ -91,7 +91,7 @@ export const ShareConsent = (props: {
       <button
         type="button"
         onClick={props.onConfirm}
-        className="min-h-12 w-full rounded-[14px] bg-[color:var(--accent)] text-[17px] font-extrabold text-[#141A26]"
+        className="min-h-12 w-full rounded-[14px] bg-[color:var(--accent)] text-[17px] font-extrabold text-bg"
       >
         {COPY.shareConsentConfirm}
       </button>
@@ -118,7 +118,7 @@ export const DayRolled = (props: {
     <button
       type="button"
       onClick={props.onReload}
-      className="mt-4 min-h-12 w-full rounded-[14px] bg-[color:var(--accent)] text-[17px] font-extrabold text-[#141A26]"
+      className="mt-4 min-h-12 w-full rounded-[14px] bg-[color:var(--accent)] text-[17px] font-extrabold text-bg"
     >
       {COPY.retry}
     </button>
@@ -137,7 +137,7 @@ export const LoggedOut = (props: {
     <button
       type="button"
       onClick={props.onLogin}
-      className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-8 text-[17px] font-extrabold text-[#141A26]"
+      className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-8 text-[17px] font-extrabold text-bg"
     >
       {COPY.loggedOutCta}
     </button>
@@ -148,7 +148,7 @@ export const LoggedOut = (props: {
 export const StatusBanner = (props: {
   readonly text: string;
 }): JSX.Element => (
-  <div className="absolute inset-x-0 top-0 z-10 bg-[color:var(--accent)] px-4 py-1.5 text-center text-[13px] font-semibold text-[#141A26]">
+  <div className="absolute inset-x-0 top-0 z-10 bg-[color:var(--accent)] px-4 py-1.5 text-center text-[13px] font-semibold text-bg">
     {props.text}
   </div>
 );

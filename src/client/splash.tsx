@@ -60,7 +60,7 @@ export const Splash = (): JSX.Element => {
       <button
         type="button"
         onClick={(event) => requestExpandedMode(event.nativeEvent, 'game')}
-        className="mt-4 min-h-12 rounded-[14px] px-7 text-[17px] font-extrabold tracking-[0.12em] text-[#141A26]"
+        className="mt-4 min-h-12 rounded-[14px] px-7 text-[17px] font-extrabold tracking-[0.12em] text-bg"
         style={{ backgroundColor: palette.accent }}
       >
         {COPY.splashCta}

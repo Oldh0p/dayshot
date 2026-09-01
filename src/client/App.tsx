@@ -554,7 +554,7 @@ export const App = (): JSX.Element => {
                 <button
                   type="button"
                   onClick={showLoginPrompt}
-                  className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-7 text-[17px] font-extrabold text-[#141A26]"
+                  className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-7 text-[17px] font-extrabold text-bg"
                 >
                   {COPY.loggedOut}
                 </button>

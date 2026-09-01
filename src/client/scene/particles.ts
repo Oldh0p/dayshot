@@ -1,4 +1,5 @@
 import { allowParticles } from '../motion.ts';
+import { COLOR } from '../ui/tokens.ts';
 
 /**
  * Particles, kept to a budget a five-year-old phone can hold at 60 fps.
@@ -67,7 +68,14 @@ export class ParticleField {
    */
   confetti(x: number, y: number): void {
     if (!allowParticles()) return;
-    const colors = ['#FFC53D', '#FF6B4A', '#F2F6FC', '#5FC9E8'];
+    /*
+     * §9 makes the Perfect celebration gold particles and a shockwave; phase 7
+     * rewrites it. Tokenised here rather than restyled, so this phase changes
+     * no pixels: the fourth colour is Crosswind's accent, which is a theme
+     * value and has no token by design (§13 stops at nine colours).
+     */
+    const CROSSWIND_ACCENT = '#5FC9E8';
+    const colors = [COLOR.gold, COLOR.coral, COLOR.ink, CROSSWIND_ACCENT];
     for (let i = 0; i < 60; i++) {
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
       const force = 180 + Math.random() * 260;
@@ -79,7 +87,7 @@ export class ParticleField {
         life: 0,
         maxLife: 1.1 + Math.random() * 0.8,
         size: 3 + Math.random() * 4,
-        color: colors[i % colors.length] ?? '#FFC53D',
+        color: colors[i % colors.length] ?? COLOR.gold,
         gravity: 380,
       });
     }

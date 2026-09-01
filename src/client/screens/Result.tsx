@@ -129,7 +129,7 @@ export const Result = (props: {
     <div className="flex w-full flex-col items-center gap-1 px-6 pb-5 text-center">
       {/* A Bullseye or a Perfect announces itself before the number does. */}
       {props.result.isPerfect && (
-        <div className="pop mb-1 rounded-[14px] bg-[color:var(--color-gold)] px-4 py-1.5 text-[15px] font-extrabold tracking-wide text-[#141A26]">
+        <div className="pop mb-1 rounded-[14px] bg-[color:var(--color-gold)] px-4 py-1.5 text-[15px] font-extrabold tracking-wide text-bg">
           {COPY.perfectStamp}
         </div>
       )}
@@ -168,7 +168,7 @@ export const Result = (props: {
       ) : (
         <>
           <Cascade step={0} revealed={revealed}>
-            <div className="mt-3 inline-block rounded-[14px] bg-[color:var(--accent)] px-4 py-1.5 text-[20px] font-extrabold tracking-wide text-[#141A26] tabular">
+            <div className="mt-3 inline-block rounded-[14px] bg-[color:var(--accent)] px-4 py-1.5 text-[20px] font-extrabold tracking-wide text-bg tabular">
               {props.pending
                 ? COPY.scoringPending
                 : standingHeadline(props.result.rank, props.result.total)}
@@ -207,13 +207,23 @@ export const Result = (props: {
                 type="button"
                 onClick={props.onShare}
                 disabled={props.sharing || props.sharedUrl !== null}
-                className="min-h-12 w-full rounded-[14px] bg-[color:var(--accent)] px-5 text-[17px] font-extrabold tracking-wide text-[#141A26] transition-opacity disabled:opacity-55"
+                className="min-h-12 w-full rounded-[14px] bg-[color:var(--accent)] px-5 text-[17px] font-extrabold tracking-wide text-bg transition-opacity disabled:opacity-55"
               >
                 {props.sharedUrl ? COPY.sharePosted : COPY.postMyShot}
               </button>
 
-              {/* Separate actions, never merged: a Reddit review requirement. */}
-              <div className="flex items-center justify-center gap-5 text-[15px] text-[color:var(--color-mist)]">
+              {/*
+                Separate actions, never merged: a Reddit review requirement.
+
+                `nowrap` and a tight gap because Space Grotesk is wider than the
+                system fallback this shipped with, and three labels plus two
+                separators wrap at 390px without it -- the layout bug §1.2 of the
+                redesign spec records. The real fix is §6's two equal ghost
+                buttons and a copy icon, which drops the words "Copy card"
+                entirely; that is phase 4's panel. This keeps the row on one
+                line until then rather than leaving it broken for three phases.
+              */}
+              <div className="flex flex-nowrap items-center justify-center gap-2 text-[15px] whitespace-nowrap text-[color:var(--color-mist)]">
                 <button
                   type="button"
                   onClick={props.onPractice}

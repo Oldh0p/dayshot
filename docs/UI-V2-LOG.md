@@ -27,3 +27,30 @@ Five lines per phase: done, verified, left. Newest at the bottom.
 - **Left.** Two states cannot be captured yet: `hold` and `flight` need a
   running `requestAnimationFrame`, which is paused whenever the preview pane is
   hidden. Phase 3 should add a deterministic replay hook rather than fight it.
+
+---
+
+## Phase 1 — Foundations
+
+- **Done.** `src/client/ui/tokens.ts` holds §13 exactly — nine colours, six type
+  roles, spacing, radii, control heights, strokes, durations, easings, particle
+  budgets, breakpoints — mirrored into `index.css` for Tailwind and the canvas.
+  Space Grotesk ships from `public/fonts/` (22.3 KB, OFL, licence included).
+  `theme.ts`, `pip.ts` and `particles.ts` now read colours from tokens; no hex
+  literal survives outside `tokens.ts` and the per-modifier palette table.
+- **Verified.** 247 tests (240 + 7 new), build and lint clean, and all 14 QA
+  captures re-taken with zero `SCROLLS-X` / `SCROLLS-Y`. `tokens.test.ts`
+  asserts the CSS mirror against the TypeScript source so the two cannot drift.
+- **Measured rather than assumed.** `node tools/qa/font-check.mjs` loads the
+  real bundle: the face applies, `tabular-nums` collapses the digit spread from
+  19.61px to **0px per 100px em**, and a digit advances **0.62em** — the exact
+  figure §13 guessed for its fallback. **No fixed-box fallback is needed.**
+- **Two deliberate pixel changes**, both spec-mandated and both sub-perceptual:
+  text on coral moved from `#141A26` to the `bg` token per §13, and Pip's pupils
+  moved to `ground` for the same reason. One fewer almost-black in the palette.
+- **One regression found and contained.** Space Grotesk is wider than the system
+  font this shipped with, so `Practice · Copy card · Leaderboard` wrapped at
+  390px — the §1.2 layout bug, surfaced by the font. §6 removes those words
+  entirely in phase 4; until then the row is `nowrap` with a tighter gap, which
+  fits at 360px. **Left:** the contrast audit table (phase 9) can now be
+  generated from `tokens.test.ts` rather than written by hand.

@@ -1,4 +1,5 @@
 import { PIP_BODY } from '../theme.ts';
+import { COLOR } from '../ui/tokens.ts';
 import { clamp01 } from '../motion.ts';
 
 /**
@@ -31,8 +32,10 @@ export type PipRender = {
   readonly time: number;
 };
 
-const EYE_WHITE = '#F2F6FC';
-const EYE_PUPIL = '#141A26';
+const EYE_WHITE = COLOR.ink;
+/* §13 puts pupils on `ground`. They were #141A26, a near-identical dark that
+   existed only here -- one fewer almost-black in the palette. */
+const EYE_PUPIL = COLOR.ground;
 
 export const drawPip = (
   ctx: CanvasRenderingContext2D,
@@ -100,9 +103,9 @@ const drawFace = (
 
   if (mood === 'perfect') {
     // Sunglasses. Earned exactly once in a very long while.
-    ctx.fillStyle = '#141A26';
+    ctx.fillStyle = EYE_PUPIL;
     ctx.fillRect(-radius * 0.78, eyeOffsetY - eyeR * 0.9, radius * 1.56, eyeR * 1.7);
-    ctx.strokeStyle = '#141A26';
+    ctx.strokeStyle = EYE_PUPIL;
     ctx.lineWidth = radius * 0.1;
     ctx.beginPath();
     ctx.moveTo(-radius * 0.95, eyeOffsetY);
@@ -214,7 +217,7 @@ const drawStar = (
   cy: number,
   size: number
 ): void => {
-  ctx.fillStyle = '#FFC53D';
+  ctx.fillStyle = COLOR.gold;
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
     const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;

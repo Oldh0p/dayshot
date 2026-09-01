@@ -1,4 +1,5 @@
 import type { ModifierId } from '../shared/types.ts';
+import { COLOR } from './ui/tokens.ts';
 
 /**
  * The day's palette (GDD 24, 49).
@@ -23,11 +24,11 @@ export type Palette = {
 };
 
 const BASE: Palette = {
-  skyLow: '#0D1626',
+  skyLow: COLOR.bg,
   skyHigh: '#1E3A5C',
-  ground: '#0A0F1A',
-  accent: '#FF6B4A',
-  air: '#8DA3BF',
+  ground: COLOR.ground,
+  accent: COLOR.coral,
+  air: COLOR.mist,
   targetGlow: 0.6,
 };
 
@@ -157,7 +158,12 @@ export const applyPalette = (palette: Palette): void => {
   root.setProperty('--accent', palette.accent);
 };
 
-export const GOLD = '#FFC53D';
-export const INK = '#F2F6FC';
-export const MIST = '#8DA3BF';
-export const PIP_BODY = '#2A3242';
+/*
+ * Re-exported rather than redeclared. These four were literals here and in
+ * `tokens.ts`, which is one palette in two files: the kind of duplication that
+ * stays correct right up until somebody changes one of them.
+ */
+export const GOLD = COLOR.gold;
+export const INK = COLOR.ink;
+export const MIST = COLOR.mist;
+export const PIP_BODY = COLOR.pip;

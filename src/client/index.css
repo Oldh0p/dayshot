@@ -1,5 +1,30 @@
 @import 'tailwindcss';
 
+/*
+ * Space Grotesk, latin subset, served from our own origin.
+ *
+ * A Devvit web view may not fetch anything off Reddit, so the file ships in
+ * `public/fonts/` and Vite copies it into the bundle. One file covers both
+ * weights: Google serves Space Grotesk as a variable font, and the latin subset
+ * URL is byte-identical for 500 and 700 -- hence the `font-weight: 500 700`
+ * range rather than two @font-face blocks and two downloads.
+ *
+ * `swap` rather than `block`: the fallback stack is a close geometric sans, and
+ * a brief substitution reads better than invisible text on a game's first
+ * frame. Licence: OFL 1.1, `public/fonts/OFL.txt`.
+ */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /**
  * Kinetic Minimal (GDD 24, 49).
  *
@@ -7,17 +32,56 @@
  * shapes, one type family, no soft drop shadows. Depth comes from colour.
  * The three sky tokens are overridden per modifier at runtime.
  */
+/*
+ * The CSS mirror of `src/client/ui/tokens.ts`.
+ *
+ * That file is the source; this block exists because Tailwind and the canvas
+ * want the same values in two forms. `src/tests/tokens.test.ts` asserts the two
+ * agree, so a value edited on one side and not the other fails the build rather
+ * than shipping a two-tone screen.
+ */
 @theme {
-  --color-night-900: #0d1626;
-  --color-night-700: #1e3a5c;
+  /* -- Colour (§13) ------------------------------------------------------- */
+  --color-bg: #0d1626;
+  --color-bg-elevated: #16233a;
   --color-ground: #0a0f1a;
   --color-ink: #f2f6fc;
-  --color-ember: #ff6b4a;
-  --color-gold: #ffc53d;
   --color-mist: #8da3bf;
+  --color-coral: #ff6b4a;
+  --color-coral-pressed: #e6553a;
+  --color-gold: #ffc53d;
+  --color-pip: #2a3242;
+
+  /* -- Radius (§13) ------------------------------------------------------- */
+  --radius-chip: 999px;
+  --radius-button: 14px;
+  --radius-panel: 24px;
+  --radius-card: 12px;
+
+  /* -- Easing (§9, §13) --------------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --font-display:
     'Space Grotesk', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root {
+  /* -- Durations (§13). Not a Tailwind namespace, so plain properties. ----- */
+  --duration-micro: 120ms;
+  --duration-short: 200ms;
+  --duration-medium: 320ms;
+  --duration-long: 600ms;
+
+  /* -- Control heights (§13) ---------------------------------------------- */
+  --size-cta: 56px;
+  --size-secondary: 44px;
+  --size-chip: 28px;
+  --size-icon: 44px;
+  --size-touch-target: 48px;
 }
 
 :root {
