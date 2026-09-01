@@ -22,7 +22,7 @@ import {
   slowMotionScale,
 } from '../motion.ts';
 import type { Palette } from '../theme.ts';
-import { apexOf, buildCamera, flightZoom } from './camera.ts';
+import { apexOf, buildCamera, flightZoom, PANEL_SHARE } from './camera.ts';
 import {
   ParticleField,
   makeWindStreaks,
@@ -230,7 +230,10 @@ export const useScene = (options: SceneOptions): {
       // -- Camera ---------------------------------------------------------
       const apex = playing ? apexOf(playing.trajectory) : 700;
       const zoom = playing ? flightZoom(flightProgress) : 1;
-      const camera = buildCamera(width, height, apex, zoom);
+      // The panel only owns the bottom of the frame while the player is
+      // aiming; once the ball is away it is the scene's again.
+      const inset = opts.canAim ? height * PANEL_SHARE : 0;
+      const camera = buildCamera(width, height, apex, zoom, inset);
 
       const shakeMagnitude =
         state.shakeLeft > 0

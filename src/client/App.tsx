@@ -532,6 +532,17 @@ export const App = (): JSX.Element => {
             >
               {charging ? COPY.releaseToShoot : COPY.holdToAim}
             </div>
+            {/*
+              Said once, and only for the shot it is true of. Not during the
+              warm-up, which does not count, and not in practice, which is
+              unlimited — claiming "no retries" there would be a lie the player
+              can immediately disprove.
+            */}
+            {phase === 'ready' && (
+              <div className="pt-1 pb-1 text-center text-[13px] text-[color:var(--color-mist)]">
+                {COPY.stakes}
+              </div>
+            )}
           </>
         )}
 

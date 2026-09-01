@@ -259,15 +259,34 @@ try {
     const file = join(outDir, `${shot.name}.png`);
     writeFileSync(file, Buffer.from(data, 'base64'));
 
+    /*
+     * Scroll *and* clipping. A screen laid out with `overflow: hidden` cannot
+     * scroll — which is the rule — so the way it fails instead is by cutting
+     * content off at an edge, silently. `HOLD TO AIM` sitting half outside the
+     * frame looks like a rendering artefact in a screenshot and is a layout
+     * bug; only measuring tells them apart.
+     */
     const { result: measured } = await cdp.send('Runtime.evaluate', {
       expression: `(() => {
         const d = document.documentElement;
-        return d.clientWidth + 'x' + d.clientHeight +
-          (d.scrollWidth > d.clientWidth ? ' SCROLLS-X' : '') +
-          (d.scrollHeight > d.clientHeight ? ' SCROLLS-Y' : '');
+        const w = d.clientWidth, h = d.clientHeight;
+        const clipped = [...document.querySelectorAll('#root *')]
+          .filter((el) => {
+            if (!el.textContent?.trim() && el.tagName !== 'CANVAS') return false;
+            const r = el.getBoundingClientRect();
+            if (r.width < 1 || r.height < 1) return false;
+            if (getComputedStyle(el).visibility === 'hidden') return false;
+            return r.bottom > h + 0.5 || r.top < -0.5 || r.right > w + 0.5 || r.left < -0.5;
+          })
+          .map((el) => (el.textContent || el.tagName).trim().slice(0, 22));
+        return w + 'x' + h +
+          (d.scrollWidth > w ? ' SCROLLS-X' : '') +
+          (d.scrollHeight > h ? ' SCROLLS-Y' : '') +
+          (clipped.length ? '  CLIPPED: ' + [...new Set(clipped)].slice(0, 3).join(' | ') : '');
       })()`,
       returnByValue: true,
     });
+    if (measured.value.includes('CLIPPED') || measured.value.includes('SCROLLS')) failures++;
     console.log(`  ${String(shot.w + 'x' + shot.h).padEnd(9)} ${shot.name.padEnd(20)} viewport ${measured.value}`);
   }
   cdp.close();

@@ -130,6 +130,15 @@ export const COPY = {
   feedTodayOpened: 'today just opened',
   feedStreakSuffix: 'DAY STREAK',
 
+  /**
+   * Under the aim pill, once, before the first hold (§5, §10.5).
+   *
+   * The rule the whole game rests on, stated calmly and exactly once. §2 is
+   * explicit that the tension is shown rather than shouted: no red, no
+   * countdown, no repetition.
+   */
+  stakes: 'One official shot. No retries.',
+
   // -- Result ---------------------------------------------------------------
   /** GDD 9.9 */
   offTheMap: 'OFF THE MAP',

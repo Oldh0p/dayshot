@@ -92,3 +92,34 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   before the flag they were testing. The capture rig now refuses to run against
   a server it did not start. **Left:** the plateau still reads as a dark block
   and Pip's face is the game's old rig — phases 6 and 7.
+
+---
+
+## Phase 3 — Game scene (part 1 of 2: performance and framing)
+
+- **Done.** Sky bitmap cached at device resolution; the trail batched from forty
+  stroke calls into five bands and its per-frame `slice()` removed; the camera
+  now reserves §5's bottom band so the conditions and the aim pill stop being
+  drawn over the mat; `One official shot. No retries.` added under the pill,
+  shown once and only for the shot it is true of. The harness derives the day's
+  modifier from the seed instead of hardcoding one.
+- **Verified by measurement, and the measurement led.** `tools/qa/perf.mjs` and
+  `tools/qa/profile.mjs` were built before any refactor, because the gate is a
+  frame-time number. **4x CPU: aiming 1 → 0 dropped frames, flight 17 → 2. 6x
+  CPU: aiming 88 → 3, flight 78 → 13, and the game moves from 30fps to a held
+  60.** Idle time in a throttled flight frame went from 0.4% to 37.6%.
+- **The profile overruled the plan twice.** The trail *looked* like the cost and
+  batching it bought three frames of seventeen; the profile then showed **88% of
+  the frame in `(program)`** — the compositor — against ~8% for all JavaScript,
+  which is what pointed at the sky. And the first cache made things *worse*
+  (53 dropped frames against 1) by storing CSS pixels that the DPR transform
+  resampled on every blit.
+- **Two answers already in the tree.** DPR is already clamped to 2 in
+  `useScene`, so that Phase 3 item was done before it was asked for; and the
+  capture rig gained clipping detection, which immediately corrected a visual
+  read of mine — `HOLD TO AIM` looked cut off in a screenshot and measures as
+  fully inside the frame. Twenty captures, zero scroll, zero clipping.
+- **Left, and it is the other half of phase 3:** `themes.ts` with §11's seven
+  atmospheres and the vector modifier glyphs that replace the emoji still in the
+  day bar and the pill; the 1.2s opening sequence; and the hold/release feel
+  (squash, vignette, particles at 0.6x, shrinking pupils, freeze-and-stretch).

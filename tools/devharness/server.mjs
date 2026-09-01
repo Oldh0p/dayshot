@@ -5,9 +5,20 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
+/*
+ * The real modifier for the day, not a hardcoded one.
+ *
+ * The stub used to claim CROSSWIND while the client regenerated the day's level
+ * from the seed and drew CLEAR SKIES -- the day bar and the conditions pill
+ * disagreed in every screenshot. In production they cannot: both sides derive
+ * the modifier from the same day number. The harness now does too.
+ */
+const { generateLevel } = await import('../../src/shared/sim.ts');
+
 const ROOT = new URL('../../dist/client/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const PORT = Number(process.env.PORT ?? 5599);
 const DAY = Math.floor(Date.now() / 86400000);
+const LEVEL = generateLevel(DAY);
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 
@@ -26,10 +37,10 @@ const MY_RESULT = {
 
 const state = () => ({
   dayNumber: DAY, displayDay: DAY - 20697 + 1, rerollK: 0, serverNow: Date.now(),
-  modifier: 'CROSSWIND', playedToday: played, myResult: played ? MY_RESULT : null,
+  modifier: LEVEL.modifier, playedToday: played, myResult: played ? MY_RESULT : null,
   streak: { current: streak, longest: 12, justReset: false },
   warmupPending, shotsToday: 41203, yesterdayShots: 38217, topScore: 99.94, perfectsToday: 38,
-  tomorrowModifier: 'MOON', sharedToday: false, shareConsent: false, username: anon ? null : 'tester',
+  tomorrowModifier: generateLevel(DAY + 1).modifier, sharedToday: false, shareConsent: false, username: anon ? null : 'tester',
 });
 
 createServer(async (req, res) => {
