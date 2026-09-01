@@ -72,6 +72,22 @@ export const formatWind = (windBase: number): string => {
 export const windArrow = (windBase: number): string =>
   Math.round(windBase) < 0 ? '←' : '→';
 
+/**
+ * The wind in words, for the arrow's accessible name.
+ *
+ * The arrow carries direction as a rotation and strength as a length; neither
+ * survives a screen reader, and §11 forbids the wind being legible only one
+ * way. Bands rather than a raw number, because "a strong headwind" is what the
+ * arrow actually communicates.
+ */
+export const windDirectionLabel = (windBase: number): string => {
+  const wind = Math.round(windBase);
+  if (wind === 0) return 'No wind';
+  const strength =
+    Math.abs(wind) >= 300 ? 'Strong' : Math.abs(wind) >= 120 ? 'Moderate' : 'Light';
+  return `${strength} ${wind < 0 ? 'headwind' : 'tailwind'}, ${Math.abs(wind)}`;
+};
+
 export const formatCountdown = (msRemaining: number): string => {
   const total = Math.max(0, Math.floor(msRemaining / 1000));
   const hh = Math.floor(total / 3600);
@@ -164,6 +180,8 @@ export const COPY = {
 
   // -- Help sheet -----------------------------------------------------------
   helpTitle: 'How it works',
+  /** Screen-reader name for the streak flame, which is a glyph and not text. */
+  streakLabel: 'day streak',
   /** GDD 19 */
   helpBody:
     'Hold to charge, release to shoot. Closest to center wins. Every day starts with a warm-up that does not count, then one official shot.',

@@ -3,7 +3,8 @@ import './inline.css';
 import { context, requestExpandedMode } from '@devvit/web/client';
 
 import { COPY, formatCountdown, MODIFIER_LABEL } from '../../shared/copy.ts';
-import type { ModifierId, StateResponse } from '../../shared/types.ts';
+import type { StateResponse } from '../../shared/types.ts';
+import { glyphSvg, MODIFIER_GLYPH } from '../ui/glyphs.ts';
 import { InlineScene, type SceneMode } from './scene-lite.ts';
 import { anonymousCard, cardFor, msToRollover, type FeedCard } from './states.ts';
 
@@ -22,27 +23,6 @@ import { anonymousCard, cardFor, msToRollover, type FeedCard } from './states.ts
  * and every one of them opens expanded mode. `src/tests/inline-bundle.test.ts`
  * enforces that by reading the built file rather than trusting this comment.
  */
-
-// -- modifier glyphs ---------------------------------------------------------
-
-/**
- * Seven monochrome glyphs, because §3 refuses system emoji in the UI: they
- * render differently on every OS, and the modifier is the one thing a stranger
- * should be able to read at a glance. Phase 6 gives them their full treatment
- * alongside the atmospheres; these are the shapes.
- */
-const GLYPH: Record<ModifierId, string> = {
-  CLEAR: '<path d="M8 2v3M8 11v3M2 8h3M11 8h3M4.5 4.5l2 2M11.5 4.5l-2 2M4.5 11.5l2-2M11.5 11.5l-2-2"/>',
-  CROSSWIND: '<path d="M2 5h9M2 8h12M2 11h7"/><path d="M9 2.5 11.5 5 9 7.5"/>',
-  TAILWIND: '<path d="M2 8h11"/><path d="M9.5 4.5 13 8l-3.5 3.5"/>',
-  GUSTY: '<path d="M2 5h6l2 2-2 2h4M2 11h5"/>',
-  MOON: '<path d="M11 3a5.5 5.5 0 1 0 2 6 4.5 4.5 0 0 1-2-6z"/>',
-  TINY: '<circle cx="7" cy="7" r="4"/><path d="M10 10l4 4"/>',
-  LONG: '<path d="M2 8h10"/><path d="M6 4.5 9.5 8 6 11.5M9.5 4.5 13 8l-3.5 3.5"/>',
-};
-
-const glyph = (modifier: ModifierId): string =>
-  `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GLYPH[modifier]}</svg>`;
 
 // -- metrics -----------------------------------------------------------------
 
@@ -123,7 +103,7 @@ const render = (card: FeedCard): void => {
   }
   const chips = el('div', 'chips');
   const modChip = el('span', 'chip');
-  modChip.innerHTML = glyph(card.modifier);
+  modChip.innerHTML = glyphSvg(MODIFIER_GLYPH[card.modifier]);
   modChip.appendChild(document.createTextNode(MODIFIER_LABEL[card.modifier]));
   chips.appendChild(modChip);
 

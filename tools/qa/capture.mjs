@@ -66,6 +66,8 @@ export const SHOTS = [
   { name: 'feed-mobile', url: '/splash.html', prep: 'played=0&streak=7', ...MOBILE },
   { name: 'ready-mobile', url: '/', prep: 'played=0', ...MOBILE },
   { name: 'ready-warmup', url: '/', prep: 'played=0&warmup=1', ...MOBILE },
+  // Captured mid-gauge: the vignette, the squash and the slowed air (§5).
+  { name: 'hold-mobile', url: '/', prep: 'played=0', ...MOBILE, steps: [{ hold: 900 }] },
   { name: 'ready-desktop', url: '/', prep: 'played=0', ...DESKTOP },
   { name: 'result-mobile', url: '/', prep: 'played=1', ...MOBILE },
   { name: 'result-mobile-640', url: '/', prep: 'played=1', ...SMALL },
@@ -234,21 +236,38 @@ try {
     await wait(2600); // load + the result cascade, which is ~1.6s
 
     for (const step of shot.steps ?? []) {
+      /*
+       * `hold` presses and does not release, so the screenshot is taken while
+       * the gauge is running. Only possible because rAF *does* run under
+       * headless Chrome — it is the preview pane that pauses it when hidden,
+       * which is why this state went uncaptured until phase 3.
+       */
+      const expression = step.hold
+        ? `(() => {
+            const el = document.querySelector('#root > div');
+            if (!el) return 'MISSING';
+            el.dispatchEvent(new PointerEvent('pointerdown', {
+              bubbles: true, cancelable: true, pointerId: 1,
+              pointerType: 'touch', clientX: 195, clientY: 400, isPrimary: true,
+            }));
+            return 'ok';
+          })()`
+        : `(() => {
+            const b = [...document.querySelectorAll('button')]
+              .find(x => x.textContent.trim() === ${JSON.stringify(step.click ?? '')});
+            if (!b) return 'MISSING';
+            b.click();
+            return 'ok';
+          })()`;
       const { result } = await cdp.send('Runtime.evaluate', {
-        expression: `(() => {
-          const b = [...document.querySelectorAll('button')]
-            .find(x => x.textContent.trim() === ${JSON.stringify(step.click)});
-          if (!b) return 'MISSING';
-          b.click();
-          return 'ok';
-        })()`,
+        expression,
         returnByValue: true,
       });
       if (result.value === 'MISSING') {
-        console.log(`  ! ${shot.name}: no button "${step.click}" — skipped`);
+        console.log(`  ! ${shot.name}: could not ${step.hold ? 'hold' : `click "${step.click}"`}`);
         failures++;
       }
-      await wait(700);
+      await wait(step.hold ? step.hold : 700);
     }
 
     // The viewport is the truth; never capture beyond it.

@@ -1,12 +1,14 @@
 import type { JSX } from 'react';
+import { Glyph } from '../ui/Glyph.tsx';
+import { WindArrow } from '../ui/WindArrow.tsx';
+import { MODIFIER_GLYPH } from '../ui/glyphs.ts';
 
 import {
   COPY,
   distanceLine,
   formatWind,
-  MODIFIER_EMOJI,
   MODIFIER_LABEL,
-  windArrow,
+  windDirectionLabel,
 } from '../../shared/copy.ts';
 import type { Level } from '../../shared/types.ts';
 
@@ -28,12 +30,12 @@ export const Conditions = (props: {
         className="rise flex items-center gap-1.5 font-semibold"
         style={{ animationDelay: '80ms' }}
       >
-        <span aria-hidden="true">🌬</span>
         <span>{COPY.windLabel}</span>
         <span>{formatWind(props.level.windBase)}</span>
-        <span className="text-[color:var(--accent)] text-lg leading-none">
-          {windArrow(props.level.windBase)}
-        </span>
+        <WindArrow
+          windBase={props.level.windBase}
+          label={windDirectionLabel(props.level.windBase)}
+        />
       </span>
       <span className="rise font-semibold" style={{ animationDelay: '260ms' }}>
         {distanceLine(props.level.distance)}
@@ -41,11 +43,11 @@ export const Conditions = (props: {
     </div>
 
     <span
-      className="rise rounded-[14px] border border-white/15 px-3 py-1 text-[13px] font-semibold tracking-wide"
+      className="rise inline-flex items-center gap-1.5 rounded-chip border border-white/15 px-3 py-1 text-[13px] font-semibold tracking-wide"
       style={{ animationDelay: '440ms' }}
     >
-      {MODIFIER_EMOJI[props.level.modifier]}{' '}
-      {MODIFIER_LABEL[props.level.modifier].toUpperCase()}
+      <Glyph paths={MODIFIER_GLYPH[props.level.modifier]} />
+      <span>{MODIFIER_LABEL[props.level.modifier].toUpperCase()}</span>
     </span>
 
     {props.hint && (

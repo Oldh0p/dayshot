@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 
+import { Glyph } from '../ui/Glyph.tsx';
+import { TARGET_GLYPH } from '../ui/glyphs.ts';
 import {
   cliffLine,
   COPY,
@@ -152,10 +154,11 @@ export const Result = (props: {
         {formatScore(score)}
       </div>
 
-      <div className="text-[15px] text-[color:var(--color-mist)]">
+      <div className="flex items-center justify-center gap-1.5 text-[15px] text-[color:var(--color-mist)]">
+        {props.result.impact !== 'CLIFF' && <Glyph paths={TARGET_GLYPH} />}
         {props.result.impact === 'CLIFF'
           ? cliffLine(props.result.cliffDrop)
-          : `🎯 ${fromCenterLine(props.result.dx)}`}
+          : fromCenterLine(props.result.dx)}
       </div>
 
       {props.practice ? (

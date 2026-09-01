@@ -123,3 +123,38 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   atmospheres and the vector modifier glyphs that replace the emoji still in the
   day bar and the pill; the 1.2s opening sequence; and the hold/release feel
   (squash, vignette, particles at 0.6x, shrinking pupils, freeze-and-stretch).
+
+---
+
+## Phase 3 — Game scene (part 2 of 2: atmospheres, glyphs, hold feel)
+
+- **Done.** §11's seven atmospheres exist as data — the exact skies, plus an
+  `Atmosphere` record for air style, particle density, Pip's tic and the
+  pennant — and the ambient budget now follows it instead of a flat 26 streaks
+  on every day. Every emoji is out of the UI: seven modifier glyphs, a flame and
+  a distance mark, as path data shared by the React screens and the React-free
+  feed bundle. The wind arrow is proportional to strength (§5) and carries a
+  spoken label, because §11 forbids the wind being legible only through
+  particles. Hold adds the 12% vignette and slows the air to 0.6x; Pip has a
+  screen-space size floor.
+- **Verified.** 272 tests, 21 captures, zero scroll, zero clipping. **4x CPU:
+  aiming 0 dropped frames, flight 4** (baseline 1 and 17). 6x: aiming 0, flight
+  18. The hold state is captured for the first time — rAF *does* run under
+  headless Chrome; it is the preview pane that pauses it, which is what had
+  blocked this since phase 0.
+- **The measurement caught my own regression.** After the atmospheres and the
+  vignette, flight went from 4 back to 14 dropped frames. Reproduced three times
+  before believing it, then traced to the vignette: a full-screen radial
+  gradient rasterised every frame — the exact mistake the sky cache existed to
+  fix. Rasterised once and composited with `globalAlpha`, it is back to 4.
+- **A palette decision, argued from the spec.** The seven themes carried six
+  saturated accents, which put the palette past §13's nine colours and gave five
+  different colours the job §13 reserves for coral. §11 marks `accent` optional
+  and names it for no modifier: recognition there is sky, particles and tic. So
+  the gauge, trail and middle ring are coral on every day. A test pins it.
+- **Left, deliberately, and not for lack of time:** Pip's tics (lean, squint,
+  slow) and the decor treatments (pennant, spotlight cone, distance ticks) are
+  described in `ATMOSPHERE` but not drawn — phase 7 rewrites Pip's rig into
+  twelve expressions, and half-implementing three of them now is work that phase
+  throws away. The opening sequence is partial: the condition cards already
+  stagger in, the sky settle and Pip's spring do not.

@@ -23,6 +23,9 @@ import {
 } from '../motion.ts';
 import type { Palette } from '../theme.ts';
 import { apexOf, buildCamera, flightZoom, PANEL_SHARE } from './camera.ts';
+import { ATMOSPHERE } from '../theme.ts';
+import type { ModifierId } from '../../shared/types.ts';
+import { PARTICLES } from '../ui/tokens.ts';
 import {
   ParticleField,
   makeWindStreaks,
@@ -77,6 +80,28 @@ type Runtime = {
   particles: ParticleField;
 };
 
+/**
+ * How many ambient streaks this day gets.
+ *
+ * §13 caps mobile at 40 ambient and doubles it on desktop; §11 says how much of
+ * that budget each atmosphere wants. A day with no modifier yet — the moment
+ * before the first state response — gets the calm default rather than nothing,
+ * so the scene is never empty while it waits.
+ */
+/** §5: the world dims 12% under the thumb, 20% as the ball comes down. */
+const HOLD_VIGNETTE = 0.12;
+const SLOWMO_VIGNETTE = 0.2;
+
+/** §5: particles run at 0.6x while charging. */
+const HOLD_AIR_SCALE = 0.6;
+
+const ambientBudget = (modifier: ModifierId | null): number => {
+  const wide = typeof window !== 'undefined' && window.innerWidth >= 900;
+  const ceiling = PARTICLES.mobileAmbient * (wide ? PARTICLES.desktopFactor : 1);
+  const density = modifier ? ATMOSPHERE[modifier].density : 0.6;
+  return Math.max(4, Math.round(ceiling * density));
+};
+
 export const useScene = (options: SceneOptions): {
   canvasRef: (node: HTMLCanvasElement | null) => void;
   onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -108,9 +133,22 @@ export const useScene = (options: SceneOptions): {
     slowMoLeft: 0,
     flash: 0,
     impactFired: false,
-    windStreaks: makeWindStreaks(26),
+    windStreaks: makeWindStreaks(ambientBudget(null)),
     particles: new ParticleField(),
   });
+
+  /*
+   * The air is re-seeded when the day's modifier changes, not once at boot.
+   *
+   * It used to be a flat 26 streaks on every day, which flattens §11: Tiny
+   * Target is meant to be nearly still air under a spotlight and Gusty is meant
+   * to be busy, and both looked the same. The absolute ceiling is §13's, the
+   * fraction is the atmosphere's.
+   */
+  const modifier = options.level?.modifier ?? null;
+  useEffect(() => {
+    runtime.current.windStreaks = makeWindStreaks(ambientBudget(modifier));
+  }, [modifier]);
 
   // A new shot resets the playback clock and opens the release sequence.
   const shotId = options.shot;
@@ -225,7 +263,13 @@ export const useScene = (options: SceneOptions): {
       if (state.flash > 0) state.flash = Math.max(0, state.flash - dt * 6);
 
       state.particles.update(dt);
-      updateWindStreaks(state.windStreaks, level.windBase, dt);
+      /*
+       * The air slows while the thumb is down (§5). Not stopped: a frozen sky
+       * reads as a bug, and the wind is still the thing the player is trying to
+       * account for. Six tenths is enough to feel the world hold its breath.
+       */
+      const airScale = state.holdStart !== null ? HOLD_AIR_SCALE : 1;
+      updateWindStreaks(state.windStreaks, level.windBase, dt * airScale);
 
       // -- Camera ---------------------------------------------------------
       const apex = playing ? apexOf(playing.trajectory) : 700;
@@ -257,6 +301,12 @@ export const useScene = (options: SceneOptions): {
         flash: state.flash,
         shakeX: (Math.random() - 0.5) * 2 * shakeMagnitude,
         shakeY: (Math.random() - 0.5) * 2 * shakeMagnitude,
+        vignette:
+          state.slowMoLeft > 0
+            ? SLOWMO_VIGNETTE
+            : state.holdStart !== null
+              ? HOLD_VIGNETTE
+              : 0,
       });
     };
 

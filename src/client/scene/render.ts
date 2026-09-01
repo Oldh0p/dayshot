@@ -44,9 +44,28 @@ export type SceneView = {
   /** Screen shake offset in canvas pixels. */
   readonly shakeX: number;
   readonly shakeY: number;
+  /**
+   * How much the world dims, 0 to 1 (§5).
+   *
+   * The tension of a single shot is *shown*, not announced: no red, no
+   * countdown, no warning copy. The world simply closes in a little while the
+   * thumb is down, and further still when the ball is about to land.
+   */
+  readonly vignette: number;
 };
 
 const PIP_RADIUS_UNITS = 22;
+
+/**
+ * Pip is never drawn smaller than this across, whatever the camera scale.
+ *
+ * GDD 28 makes the shot axis sacred: the full 1000-unit width is always in
+ * frame, so on a 390px phone the scale is 0.39 and 22 world units come out as a
+ * **17px** mascot — a dot with eyes. The QA checklist calls anything under 28px
+ * a failure, and it is right: the character is the brand, and at that size
+ * there is no character.
+ */
+const PIP_MIN_DIAMETER_PX = 28;
 
 export const drawScene = (
   ctx: CanvasRenderingContext2D,
@@ -91,12 +110,61 @@ export const drawScene = (
 
   ctx.restore();
 
+  if (view.vignette > 0) drawVignette(ctx, view);
+
   if (view.flash > 0) {
     ctx.fillStyle = `rgba(255,255,255,${clamp01(view.flash)})`;
     ctx.fillRect(0, 0, camera.width, camera.height);
   }
 
   if (view.practice) drawPracticeWatermark(ctx, camera, palette);
+};
+
+/**
+ * Drawn outside the shake transform: a vignette that moves with the screen
+ * reads as a moving frame rather than as the light closing in.
+ */
+let vignetteCache: { canvas: HTMLCanvasElement; key: string } | null = null;
+
+/**
+ * Rasterised once at full strength and composited with an alpha, for the same
+ * reason as the sky: a full-screen radial gradient is expensive to rasterise
+ * and cheap to blit. Drawn straight, it cost fourteen dropped frames a flight
+ * on a 4x-throttled CPU — measured, and reproduced across three runs before
+ * being believed.
+ *
+ * Strength varies only between 12% and 20% (§5), so one bitmap and a
+ * `globalAlpha` cover every case without a second cache entry.
+ */
+const drawVignette = (
+  ctx: CanvasRenderingContext2D,
+  view: SceneView
+): void => {
+  const { camera } = view;
+  const dpr = ctx.getTransform().a || 1;
+  const key = `${camera.width}x${camera.height}@${dpr}`;
+
+  if (vignetteCache?.key !== key) {
+    const canvas = vignetteCache?.canvas ?? document.createElement('canvas');
+    canvas.width = Math.max(1, Math.ceil(camera.width * dpr));
+    canvas.height = Math.max(1, Math.ceil(camera.height * dpr));
+    const off = canvas.getContext('2d');
+    if (!off) return;
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const outer = Math.hypot(cx, cy);
+    const shade = off.createRadialGradient(cx, cy, outer * 0.45, cx, cy, outer);
+    shade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    shade.addColorStop(1, 'rgba(0, 0, 0, 1)');
+    off.fillStyle = shade;
+    off.fillRect(0, 0, canvas.width, canvas.height);
+    vignetteCache = { canvas, key };
+  }
+
+  ctx.globalAlpha = clamp01(view.vignette);
+  ctx.drawImage(vignetteCache.canvas, 0, 0, camera.width, camera.height);
+  ctx.globalAlpha = 1;
 };
 
 // -- Background --------------------------------------------------------------
@@ -368,7 +436,7 @@ const pointAt = (view: SceneView): { x: number; y: number; angle: number; speed:
 const drawBall = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   const { camera, shot } = view;
   const unit = camera.scale;
-  const radius = PIP_RADIUS_UNITS * unit;
+  const radius = Math.max(PIP_RADIUS_UNITS * unit, PIP_MIN_DIAMETER_PX / 2);
 
   let mood: PipMood = 'idle';
   let squash = 0;

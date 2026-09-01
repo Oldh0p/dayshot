@@ -32,57 +32,93 @@ const BASE: Palette = {
   targetGlow: 0.6,
 };
 
+/**
+ * The seven atmospheres (§11), sky values exactly as specified.
+ *
+ * **No per-modifier accent.** These carried six saturated accents — cyan,
+ * green, purple, pink, amber — which put the palette well past the nine colours
+ * §13 allows and gave five different colours the job §13 reserves for coral:
+ * action. §11 marks `accent` optional and names it for no modifier, because
+ * recognition there comes from the sky, the particles and Pip's tic. So the
+ * gauge, the trail and the mat's middle ring are coral on every day, and the
+ * day is told by the air around them.
+ */
 const PALETTES: Record<ModifierId, Palette> = {
   CLEAR: BASE,
-  // Steel-streaked sky: the classic hated-and-loved day.
+  /** Steel. */
   CROSSWIND: {
     ...BASE,
-    skyLow: '#0B1620',
-    skyHigh: '#26506B',
-    accent: '#5FC9E8',
+    skyHigh: '#2B3D52',
+    skyLow: '#0F1A28',
     air: '#A9C8DA',
     targetGlow: 0.5,
   },
+  /** Warm: the wind is behind you. */
   TAILWIND: {
     ...BASE,
-    skyLow: '#10161F',
-    skyHigh: '#2D4A4A',
-    accent: '#63E0B0',
-    air: '#93C9B6',
+    skyHigh: '#3A2F4F',
+    skyLow: '#0D1626',
+    air: '#C2B0C9',
   },
   GUSTY: {
     ...BASE,
-    skyLow: '#0E1220',
-    skyHigh: '#39355F',
-    accent: '#C08CFF',
-    air: '#B0A6D6',
+    skyHigh: '#26364A',
+    skyLow: '#0D1626',
+    air: '#A6B6C9',
     targetGlow: 0.45,
   },
-  // Deep indigo and a big moon: the prettiest arc in the game.
+  /** Indigo, and a moon big enough to be the point. */
   MOON: {
     ...BASE,
-    skyLow: '#0A0F24',
-    skyHigh: '#2A2E6B',
-    accent: '#9FB4FF',
-    air: '#8E9BD6',
+    skyHigh: '#2A2657',
+    skyLow: '#120F2A',
+    air: '#9E9BD6',
     targetGlow: 0.85,
   },
+  /** Same sky as Clear: the day is told by the spot and the smaller mat. */
   TINY: {
     ...BASE,
-    skyLow: '#120E1C',
-    skyHigh: '#4A2C4E',
-    accent: '#FF8FB1',
-    air: '#C79BB4',
+    skyHigh: '#1E3A5C',
+    skyLow: '#0D1626',
+    air: '#8DA3BF',
     targetGlow: 0.9,
   },
+  /** Colder and deeper, so the far mat reads as far. */
   LONG: {
     ...BASE,
-    skyLow: '#0C1420',
-    skyHigh: '#1B4256',
-    accent: '#FFB35C',
+    skyHigh: '#1B3350',
+    skyLow: '#0A0F1A',
     air: '#9FBCC9',
     targetGlow: 0.55,
   },
+};
+
+/**
+ * What the day does to the air, to Pip, and to the mat (§11).
+ *
+ * Split from the palette because a colour is not an atmosphere: two days can
+ * share a sky and still be unmistakable — Tiny Target has Clear Skies' exact
+ * gradient and is recognised by a spotlight, a halved mat and a squint.
+ */
+export type Atmosphere = {
+  /** How the wind is drawn. */
+  readonly air: 'stars' | 'streaks' | 'speedlines' | 'gusts' | 'rising' | 'spot' | 'haze';
+  /** Multiplier on the ambient particle budget (§13 caps the absolute count). */
+  readonly density: number;
+  /** Pip's standing tic, on top of his breathing. */
+  readonly tic: 'none' | 'lean' | 'squint' | 'wide' | 'slow';
+  /** A pennant on the mat, for the days where the wind is the whole story. */
+  readonly pennant: boolean;
+};
+
+export const ATMOSPHERE: Record<ModifierId, Atmosphere> = {
+  CLEAR: { air: 'stars', density: 0.5, tic: 'none', pennant: false },
+  CROSSWIND: { air: 'streaks', density: 1, tic: 'lean', pennant: true },
+  TAILWIND: { air: 'speedlines', density: 0.9, tic: 'none', pennant: false },
+  GUSTY: { air: 'gusts', density: 1, tic: 'none', pennant: true },
+  MOON: { air: 'rising', density: 0.4, tic: 'slow', pennant: false },
+  TINY: { air: 'spot', density: 0.1, tic: 'squint', pennant: false },
+  LONG: { air: 'haze', density: 0.6, tic: 'wide', pennant: false },
 };
 
 /** Small per-day hue shifts so two Crosswind days do not look identical. */

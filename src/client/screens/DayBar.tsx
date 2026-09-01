@@ -1,7 +1,9 @@
 import type { JSX } from 'react';
 
-import { COPY, dayLabel, MODIFIER_EMOJI, MODIFIER_LABEL } from '../../shared/copy.ts';
+import { COPY, dayLabel, MODIFIER_LABEL } from '../../shared/copy.ts';
 import type { ModifierId } from '../../shared/types.ts';
+import { Glyph } from '../ui/Glyph.tsx';
+import { FLAME_GLYPH, MODIFIER_GLYPH } from '../ui/glyphs.ts';
 
 /**
  * The status bar of the day (GDD 9.9): number, modifier, streak, and the one
@@ -18,15 +20,21 @@ export const DayBar = (props: {
     <span className="font-bold tracking-wide text-[color:var(--color-ink)] tabular">
       {props.displayDay === null ? COPY.title : dayLabel(props.displayDay)}
     </span>
-    <span className="truncate">
-      {props.modifier === null
-        ? COPY.demoLabel
-        : `${MODIFIER_EMOJI[props.modifier]} ${MODIFIER_LABEL[props.modifier]}`}
+    <span className="flex min-w-0 items-center gap-1.5 truncate">
+      {props.modifier === null ? (
+        COPY.demoLabel
+      ) : (
+        <>
+          <Glyph paths={MODIFIER_GLYPH[props.modifier]} />
+          <span className="truncate">{MODIFIER_LABEL[props.modifier]}</span>
+        </>
+      )}
     </span>
     <span className="ml-auto flex items-center gap-3">
       {props.streak > 0 && (
-        <span className="tabular font-semibold text-[color:var(--color-ink)]">
-          🔥 {props.streak}
+        <span className="tabular flex items-center gap-1 font-semibold text-[color:var(--color-coral)]">
+          <Glyph paths={FLAME_GLYPH} label={COPY.streakLabel} />
+          {props.streak}
         </span>
       )}
       <button

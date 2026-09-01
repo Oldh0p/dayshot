@@ -27,6 +27,8 @@ import {
 } from './machine.ts';
 import type { QueueOutcome } from './queue.ts';
 import { resultOnScreen } from './result-view.ts';
+import { Glyph } from './ui/Glyph.tsx';
+import { TARGET_GLYPH } from './ui/glyphs.ts';
 import { ShotQueue } from './queue.ts';
 import { useScene } from './scene/useScene.ts';
 import { Conditions } from './screens/Conditions.tsx';
@@ -554,8 +556,9 @@ export const App = (): JSX.Element => {
             <div className="tabular text-[56px] font-extrabold leading-none">
               {state.shot.score.toFixed(2)}
             </div>
-            <div className="text-[15px] text-[color:var(--color-mist)]">
-              🎯 {state.shot.dx.toFixed(1)} from center
+            <div className="flex items-center justify-center gap-1.5 text-[15px] text-[color:var(--color-mist)]">
+              <Glyph paths={TARGET_GLYPH} /> {state.shot.dx.toFixed(1)} from
+              center
             </div>
 
             {/* Where the rank would have been. The visitor has just felt the

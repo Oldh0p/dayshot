@@ -110,6 +110,9 @@ describe('the feed bundle cannot reach the game', () => {
       'client/theme.ts',
       'client/motion.ts',
       'client/ui/tokens.ts',
+      // Path data only. `Glyph.tsx` is the React renderer and is deliberately
+      // not reachable from here: the shapes are shared, the renderer is not.
+      'client/ui/glyphs.ts',
       'shared/copy.ts',
       'shared/types.ts',
       'shared/tunables.ts',
