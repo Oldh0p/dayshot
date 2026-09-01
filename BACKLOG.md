@@ -51,3 +51,19 @@ Nothing here may be implemented until the MVP ships and is validated.
   persisted on the next submission, so a player who never comes back keeps a
   stale `streak` value in Redis. Harmless today; worth a nightly sweep if the
   value is ever used for anything other than display.
+
+## Entrypoint `styles` (found while reading the config schema, phase 2)
+
+`$defs.EntrypointStyles` is `[experimental]` and offers two things the redesign
+never asked for:
+
+- `backgroundColor` / `backgroundColorDark` (`#RRGGBBAA`) — the colour Reddit
+  paints *behind* the web view before it loads. Setting both to the `bg` token
+  would kill the white flash a feed card shows on first paint, and would make
+  the post look deliberate in Reddit's light mode, which is the thing that
+  prompted the "why doesn't the game follow the day/night button" question.
+- `height` as an exact pixel value, 72–512, instead of `short`/`regular`/`tall`.
+
+Out of spec, so out of the code. Worth revisiting once the app is approved: the
+background colour is one declarative line and the risk is only that an
+experimental field changes under us.
