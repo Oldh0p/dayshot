@@ -1,4 +1,5 @@
 import {
+  BULLSEYE_SCORE,
   PERCENTILE_MIN_PLAYERS,
   PERFECT_RADIUS,
   TARGET_R,
@@ -664,3 +665,154 @@ export const feedWaitingLine = (facts: FeedFacts): string => {
  */
 export const feedPlayedLine = (score: number, standing: string): string =>
   `TODAY ${formatScore(score)} · ${standing}`;
+
+// ---------------------------------------------------------------------------
+// The verdict (redesign spec §10.2, §10.3, §10.4)
+// ---------------------------------------------------------------------------
+
+export type Verdict =
+  | 'PERFECT'
+  | 'BULLSEYE'
+  | 'SO CLOSE'
+  | 'ON THE MAT'
+  | 'NEAR MISS'
+  | 'NOT BAD'
+  | 'ROUGH LANDING'
+  | 'SCENIC ROUTE'
+  | 'OFF THE MAP'
+  | 'INTO THE WALL';
+
+/**
+ * How far out each band reaches, in mat radii.
+ *
+ * **Anchored on geometry, not on score.** §10.2 gives its bands as score ranges
+ * and says why in the same breath: "calés sur la géométrie : 87 = bord du tapis,
+ * 99 = 12 u du centre". Those numbers were the geometry when the spec was
+ * written. The daily warm-up moved the scoring curve -- the mat edge is 76 now,
+ * not 87 -- so the score ranges would put a ball resting *on* the mat into
+ * `NEAR MISS`, which is the opposite of what the spec asks for.
+ *
+ * Reading the intent instead of the digits also fixes something the digits
+ * never handled: Tiny Target halves `targetR`, so a fixed `dx <= 32` means
+ * "inner ring" on a normal day and "well outside the mat" on a small one. In
+ * radii it means the same thing on both.
+ *
+ * The multipliers are §10.2's own distances divided by the default radius of
+ * 60: 32 (inner ring), 60 (the edge), 128 ("two mat widths"), 251, 444.
+ */
+const VERDICT_RADII = {
+  soClose: 32 / 60,
+  onTheMat: 1,
+  nearMiss: 128 / 60,
+  notBad: 251 / 60,
+  roughLanding: 444 / 60,
+} as const;
+
+/**
+ * The word that goes above the number (§10.2).
+ *
+ * Never red, never "bottom", never "fail" — a bad shot is funny, not a
+ * punishment, and the player has to want to come back tomorrow.
+ */
+export const verdictFor = (result: {
+  readonly score: number;
+  readonly dx: number;
+  readonly impact: ImpactKind;
+  readonly targetR: number;
+}): Verdict => {
+  // The wall replaces the band entirely: it is a different kind of miss, and
+  // the sub-line says how far below the top it caught.
+  if (result.impact === 'CLIFF') return 'INTO THE WALL';
+  if (result.impact === 'OFF_THE_MAP' || result.score <= 0) return 'OFF THE MAP';
+
+  if (result.score >= 100) return 'PERFECT';
+  if (result.score >= BULLSEYE_SCORE) return 'BULLSEYE';
+
+  const radii = result.dx / Math.max(1, result.targetR);
+  if (radii <= VERDICT_RADII.soClose) return 'SO CLOSE';
+  if (radii <= VERDICT_RADII.onTheMat) return 'ON THE MAT';
+  if (radii <= VERDICT_RADII.nearMiss) return 'NEAR MISS';
+  if (radii <= VERDICT_RADII.notBad) return 'NOT BAD';
+  if (radii <= VERDICT_RADII.roughLanding) return 'ROUGH LANDING';
+  return 'SCENIC ROUTE';
+};
+
+/** Which token colours the verdict (§10.2). */
+export type VerdictTone = 'gold' | 'coral' | 'ink' | 'mist';
+
+export const verdictTone = (verdict: Verdict): VerdictTone => {
+  if (verdict === 'PERFECT' || verdict === 'BULLSEYE') return 'gold';
+  if (verdict === 'SO CLOSE') return 'coral';
+  if (verdict === 'ON THE MAT' || verdict === 'NEAR MISS' || verdict === 'NOT BAD') {
+    return 'ink';
+  }
+  return 'mist';
+};
+
+/**
+ * Where it landed, in words (§10.4).
+ *
+ * Whole units only. The decimal belongs to the score, and "251.4 short" invites
+ * a precision the player cannot act on.
+ */
+export const impactDirection = (result: {
+  readonly signedDx: number;
+  readonly dx: number;
+  readonly impact: ImpactKind;
+  readonly cliffDrop: number;
+  readonly targetR: number;
+}): string => {
+  if (result.impact === 'OFF_THE_MAP') return 'off the map';
+  if (result.impact === 'CLIFF') {
+    return `into the wall, ${Math.round(result.cliffDrop)} below the top`;
+  }
+
+  const distance = Math.round(result.dx);
+  if (distance === 0) return 'dead centre';
+
+  const side = result.signedDx < 0 ? 'short' : 'over';
+  // On the mat the player wants to know they were on it, not just how far out.
+  return result.dx <= result.targetR
+    ? `${distance} ${side} — inner ring`
+    : `${distance} ${side}`;
+};
+
+/**
+ * How the day compares (§10.3).
+ *
+ * Never "bottom", and never a percentile that reads as an insult: below the
+ * halfway mark it says what you beat rather than what beat you.
+ */
+export type Standing = {
+  readonly line: string;
+  /** A chip is a filled pill; a plain line is not. */
+  readonly chip: 'gold' | 'coral' | null;
+  /** `#1,204 / 8,421`, or null while the field is too small to mean anything. */
+  readonly rankLine: string | null;
+};
+
+export const standingFor = (rank: number, total: number): Standing => {
+  if (total <= 1) {
+    return { line: 'You opened the day.', chip: null, rankLine: null };
+  }
+  if (total < PERCENTILE_MIN_PLAYERS) {
+    return {
+      line: `#${formatCount(rank)} of ${formatCount(total)} today`,
+      chip: null,
+      rankLine: null,
+    };
+  }
+
+  const rankLine = `#${formatCount(rank)} / ${formatCount(total)}`;
+  if (rank <= 3) {
+    return { line: `#${rank} TODAY`, chip: 'gold', rankLine };
+  }
+
+  const beat = ((total - rank) / total) * 100;
+  if (beat >= 50) {
+    const top = percentFor(rank, total);
+    const shown = top < 10 ? top.toFixed(1) : String(Math.round(top));
+    return { line: `TOP ${shown}% TODAY`, chip: 'coral', rankLine };
+  }
+  return { line: `You beat ${Math.round(beat)}% today`, chip: null, rankLine };
+};
