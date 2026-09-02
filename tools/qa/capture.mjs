@@ -68,6 +68,15 @@ export const SHOTS = [
   { name: 'ready-warmup', url: '/', prep: 'played=0&warmup=1', ...MOBILE },
   // Captured mid-gauge: the vignette, the squash and the slowed air (§5).
   { name: 'hold-mobile', url: '/', prep: 'played=0', ...MOBILE, steps: [{ hold: 900 }] },
+  /*
+   * Real shots, for §6's result framing. Different hold times land in different
+   * places, which is also how the gate's "mediocre / good" captures are made:
+   * the day's level decides, and that is the honest version.
+   */
+  { name: 'result-shot-short', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 240 }] },
+  { name: 'result-shot-mid', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 520 }] },
+  { name: 'result-shot-long', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 900 }] },
+  { name: 'result-shot-640', url: '/', prep: 'played=0', ...SMALL, steps: [{ shoot: 520 }] },
   { name: 'ready-desktop', url: '/', prep: 'played=0', ...DESKTOP },
   { name: 'result-mobile', url: '/', prep: 'played=1', ...MOBILE },
   { name: 'result-mobile-640', url: '/', prep: 'played=1', ...SMALL },
@@ -242,7 +251,28 @@ try {
        * headless Chrome — it is the preview pane that pauses it when hidden,
        * which is why this state went uncaptured until phase 3.
        */
-      const expression = step.hold
+      /*
+       * `shoot` plays a real one: press, release, and let the ball land.
+       *
+       * A restored result — the harness's `played=1` — has a score and no
+       * trajectory, so there is nothing for the result framing to frame and the
+       * scene behind the panel comes out empty. That is correct for a restored
+       * session and useless for checking §6, which is about what the camera
+       * does with a shot that just happened.
+       */
+      const expression = step.shoot
+        ? `(() => {
+            const el = document.querySelector('#root > div');
+            if (!el) return 'MISSING';
+            const mk = (t) => new PointerEvent(t, {
+              bubbles: true, cancelable: true, pointerId: 1,
+              pointerType: 'touch', clientX: 195, clientY: 400, isPrimary: true,
+            });
+            el.dispatchEvent(mk('pointerdown'));
+            setTimeout(() => el.dispatchEvent(mk('pointerup')), ${step.shoot});
+            return 'ok';
+          })()`
+        : step.hold
         ? `(() => {
             const el = document.querySelector('#root > div');
             if (!el) return 'MISSING';
@@ -267,7 +297,7 @@ try {
         console.log(`  ! ${shot.name}: could not ${step.hold ? 'hold' : `click "${step.click}"`}`);
         failures++;
       }
-      await wait(step.hold ? step.hold : 700);
+      await wait(step.shoot ? step.shoot + 6000 : step.hold ? step.hold : 700);
     }
 
     // The viewport is the truth; never capture beyond it.
@@ -298,10 +328,15 @@ try {
             return r.bottom > h + 0.5 || r.top < -0.5 || r.right > w + 0.5 || r.left < -0.5;
           })
           .map((el) => (el.textContent || el.tagName).trim().slice(0, 22));
+        // What the shot actually reached. A capture of the wrong screen is
+        // the most expensive kind of wrong: it looks like evidence.
+        const reached = (document.body.innerText || '')
+          .split(String.fromCharCode(10)).filter(Boolean).join(' / ').slice(0, 64);
         return w + 'x' + h +
           (d.scrollWidth > w ? ' SCROLLS-X' : '') +
           (d.scrollHeight > h ? ' SCROLLS-Y' : '') +
-          (clipped.length ? '  CLIPPED: ' + [...new Set(clipped)].slice(0, 3).join(' | ') : '');
+          (clipped.length ? '  CLIPPED: ' + [...new Set(clipped)].slice(0, 3).join(' | ') : '') +
+          '  ' + reached;
       })()`,
       returnByValue: true,
     });

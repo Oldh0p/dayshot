@@ -22,7 +22,7 @@ import {
   slowMotionScale,
 } from '../motion.ts';
 import type { Palette } from '../theme.ts';
-import { apexOf, buildCamera, flightZoom, PANEL_SHARE } from './camera.ts';
+import { apexOf, buildCamera, flightZoom, PANEL_SHARE, resultFraming } from './camera.ts';
 import { ATMOSPHERE } from '../theme.ts';
 import type { ModifierId } from '../../shared/types.ts';
 import { PARTICLES } from '../ui/tokens.ts';
@@ -58,6 +58,13 @@ export type SceneOptions = {
   /** The shot to play back, or null while aiming. */
   readonly shot: ShotResult | null;
   readonly ghost: readonly Point[] | null;
+  /**
+   * The result panel is up, so the scene is answering "where did I land"
+   * rather than "can I see the arc" (§6).
+   */
+  readonly resultFraming: boolean;
+  /** Share of the canvas the result panel covers, so the scene stays clear. */
+  readonly resultPanelShare: number;
   readonly onAimStart: () => void;
   readonly onMisfire: () => void;
   readonly onFire: (shot: ShotResult, holdMs: number) => void;
@@ -277,7 +284,20 @@ export const useScene = (options: SceneOptions): {
       // The panel only owns the bottom of the frame while the player is
       // aiming; once the ball is away it is the scene's again.
       const inset = opts.canAim ? height * PANEL_SHARE : 0;
-      const camera = buildCamera(width, height, apex, zoom, inset);
+      const base = buildCamera(width, height, apex, zoom, inset);
+      const landed = opts.shot;
+      const camera =
+        opts.resultFraming && landed
+          ? resultFraming(
+              width,
+              height,
+              landed.impactX,
+              level.distance,
+              level.targetR,
+              height * opts.resultPanelShare,
+              base
+            )
+          : base;
 
       const shakeMagnitude =
         state.shakeLeft > 0

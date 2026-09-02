@@ -158,3 +158,36 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   twelve expressions, and half-implementing three of them now is work that phase
   throws away. The opening sequence is partial: the condition cards already
   stagger in, the sky settle and Pip's spring do not.
+
+---
+
+## Phase 4 — Result V2
+
+- **Done.** Verdicts, standing and impact direction (§10.2–10.4) in `copy.ts`;
+  `ResultV2` answering §6's seven questions in order behind `UI_V2`; the
+  `resultFraming` camera, which drops GDD 28's full-width rule once no shot is
+  possible and frames the impact and the mat instead, with the mat never under
+  24px and never zoomed past 2.4x the aiming view.
+- **Verified.** 289 tests, 25 captures, zero scroll, zero clipping. The scene
+  now stays behind the panel: Pip where he stopped, the marker, the dotted line
+  to the centre. `FIRST SHOT TODAY` is gone, and so is the second filled coral
+  block — the percentile is coral *text*, which is what §13 allows.
+- **§10.2's numbers were stale, and the spec says so itself.** Its bands are
+  score ranges explained as geometry — "87 = bord du tapis" — and the daily
+  warm-up moved the mat edge to 76. Taken literally they would tell a player
+  resting *on* the mat they had a `NEAR MISS`. The function reads dx against the
+  mat radius instead, which survives the next recalibration and fixes Tiny
+  Target days, where a fixed distance means two different things.
+- **Three tooling truths, each found by a capture that lied.** The harness
+  answered every shot with a fixed `dx: 6.4`, so every result read `SO CLOSE / 6
+  over` whatever the ball did — it re-simulates from `holdMs` now, as the real
+  server does. A restored result has no trajectory, so there was nothing to
+  frame and the scene came out empty; the rig can play a real shot now. And the
+  shoot step released after `0ms` because an escaping slip wrote `${'${step.
+  shoot}'}` into the file, which `setTimeout` coerced to zero — the misfire
+  guard then swallowed every shot, exactly as designed. Captures now print the
+  screen they reached, because a capture of the wrong screen looks like evidence.
+- **Left:** the direction label is in the panel but not yet drawn beside the
+  line in the scene; the streak increment does not animate; Bullseye and Perfect
+  have no celebration yet (phase 7); the tomorrow band is a thin strip and could
+  read stronger.

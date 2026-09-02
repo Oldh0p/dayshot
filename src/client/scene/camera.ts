@@ -36,6 +36,13 @@ const TOP_MARGIN = 120;
  */
 export const PANEL_SHARE = 0.25;
 
+/**
+ * And the share the result panel covers (§6: "~50% de la hauteur"). The scene
+ * keeps the rest, which is the whole point of the redesign: the verdict is
+ * shown *over* the world, never instead of it.
+ */
+export const RESULT_PANEL_SHARE = 0.5;
+
 export const buildCamera = (
   canvasWidth: number,
   canvasHeight: number,
@@ -58,6 +65,60 @@ export const buildCamera = (
   return {
     scale,
     originX: (canvasWidth - SPACE_W * scale) / 2,
+    originY: groundPixels,
+    width: canvasWidth,
+    height: canvasHeight,
+  };
+};
+
+/**
+ * The result framing (§6).
+ *
+ * After a shot the question is no longer "can I see the whole arc" — it is
+ * "how close was that". So the camera stops obeying GDD 28's full-width rule,
+ * which it only has to obey while a shot is still possible, and frames the two
+ * points that answer the question: where the ball stopped, and the centre of
+ * the mat.
+ *
+ * Two floors keep it honest. The mat never falls under `MIN_TARGET_PX` on
+ * screen, because a verdict about a target too small to see is not a verdict;
+ * and the framing never zooms *in* past the aiming view on a near miss, which
+ * would make a good shot feel like a different game.
+ */
+const RESULT_MARGIN = 0.12;
+const MIN_TARGET_PX = 24;
+
+export const resultFraming = (
+  canvasWidth: number,
+  canvasHeight: number,
+  impactX: number,
+  targetX: number,
+  targetR: number,
+  bottomInset: number,
+  /** The aiming camera, as the zoom floor. */
+  base: Camera
+): Camera => {
+  const left = Math.min(impactX, targetX - targetR);
+  const right = Math.max(impactX, targetX + targetR);
+  const span = Math.max(targetR * 4, right - left);
+
+  const usableWidth = canvasWidth * (1 - RESULT_MARGIN * 2);
+  const wanted = usableWidth / span;
+
+  // Never further out than the aiming view, never so close that the mat is
+  // still a dot, and never past a doubling — a hair-thin miss should not throw
+  // the player into a microscope.
+  const scale = Math.min(
+    Math.max(wanted, base.scale, MIN_TARGET_PX / Math.max(1, targetR)),
+    base.scale * 2.4
+  );
+
+  const centreX = (left + right) / 2;
+  const groundPixels = canvasHeight - bottomInset;
+
+  return {
+    scale,
+    originX: canvasWidth / 2 - centreX * scale,
     originY: groundPixels,
     width: canvasWidth,
     height: canvasHeight,

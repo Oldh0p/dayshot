@@ -31,6 +31,7 @@ import { UI_V2 } from './ui/flags.ts';
 import { Glyph } from './ui/Glyph.tsx';
 import { TARGET_GLYPH } from './ui/glyphs.ts';
 import { ShotQueue } from './queue.ts';
+import { RESULT_PANEL_SHARE } from './scene/camera.ts';
 import { useScene } from './scene/useScene.ts';
 import { Conditions } from './screens/Conditions.tsx';
 import { DayBar } from './screens/DayBar.tsx';
@@ -301,6 +302,12 @@ export const App = (): JSX.Element => {
     guardMisfire: phase !== 'practice_aim' && !state.misfireUsed,
     shot: state.shot,
     ghost: practiceMode && state.ghost ? state.ghost.trajectory : null,
+    resultFraming:
+      phase === 'result' ||
+      phase === 'scoring_pending' ||
+      phase === 'practice_result' ||
+      phase === 'warmup_result',
+    resultPanelShare: RESULT_PANEL_SHARE,
     onAimStart,
     onMisfire,
     onFire,

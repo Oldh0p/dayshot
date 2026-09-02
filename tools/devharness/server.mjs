@@ -13,7 +13,7 @@ import { extname, join } from 'node:path';
  * disagreed in every screenshot. In production they cannot: both sides derive
  * the modifier from the same day number. The harness now does too.
  */
-const { generateLevel } = await import('../../src/shared/sim.ts');
+const { generateLevel, simulateLevel } = await import('../../src/shared/sim.ts');
 
 const ROOT = new URL('../../dist/client/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const PORT = Number(process.env.PORT ?? 5599);
@@ -30,9 +30,13 @@ let streak = 3;
 // The result a played-today session restores into. Having it here means the
 // result screen can be loaded directly -- which is how its layout gets checked
 // against a post-sized viewport without playing a shot first.
+const RESTORED = simulateLevel(generateLevel(DAY), 640);
 const MY_RESULT = {
-  score: 98.73, dx: 6.4, signedDx: 6.4, impact: 'MAT', holdMs: 640,
-  rank: 184, total: 41203, percentile: 4.2, isBullseye: false, isPerfect: false,
+  score: RESTORED.score, dx: RESTORED.dx,
+  signedDx: RESTORED.impactX < generateLevel(DAY).distance ? -RESTORED.dx : RESTORED.dx,
+  impact: RESTORED.impact, cliffDrop: RESTORED.cliffDrop, holdMs: 640,
+  rank: 184, total: 41203, percentile: 4.2,
+  isBullseye: RESTORED.isBullseye, isPerfect: RESTORED.isPerfect,
 };
 
 const state = () => ({
@@ -82,10 +86,22 @@ createServer(async (req, res) => {
   if (url.pathname === '/api/shot') {
     played = true;
     let body = ''; for await (const chunk of req) body += chunk;
-    const { clientScore } = JSON.parse(body || '{}');
+    const { holdMs } = JSON.parse(body || '{}');
+    /*
+     * Simulated, not stubbed.
+     *
+     * This used to answer with a fixed `dx: 6.4` and echo back whatever score
+     * the client claimed, which made every captured result read `SO CLOSE / 6
+     * over` no matter where the ball actually went -- so a verdict function
+     * keyed on distance could never be checked against a real shot. The server
+     * re-simulates from holdMs in production; so does this.
+     */
+    const shot = simulateLevel(LEVEL, Number(holdMs) || 0);
     return send(200, JSON.stringify({
-      score: clientScore, dx: 6.4, signedDx: 6.4, impact: 'MAT', holdMs: 640,
-      rank: 184, total: 41203, percentile: 4.2, isBullseye: false, isPerfect: false,
+      score: shot.score, dx: shot.dx, signedDx: shot.dx * Math.sign(shot.impactX - LEVEL.distance || 1),
+      impact: shot.impact, cliffDrop: shot.cliffDrop, holdMs: Number(holdMs) || 0,
+      rank: 184, total: 41203, percentile: 4.2,
+      isBullseye: shot.isBullseye, isPerfect: shot.isPerfect,
       perfectCountToday: 38, streak: { current: 4, longest: 12, justReset: false },
       simMismatch: false,
     }));
