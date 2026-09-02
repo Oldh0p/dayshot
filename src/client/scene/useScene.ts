@@ -79,6 +79,8 @@ type Runtime = {
   flightElapsed: number;
   playing: ShotResult | null;
   freezeLeft: number;
+  /** Seconds since the ball stopped, for reactions that play once. */
+  landedAt: number | null;
   shakeLeft: number;
   slowMoLeft: number;
   flash: number;
@@ -136,6 +138,7 @@ export const useScene = (options: SceneOptions): {
     flightElapsed: 0,
     playing: null,
     freezeLeft: 0,
+    landedAt: null,
     shakeLeft: 0,
     slowMoLeft: 0,
     flash: 0,
@@ -269,6 +272,10 @@ export const useScene = (options: SceneOptions): {
       if (state.shakeLeft > 0) state.shakeLeft -= dt;
       if (state.flash > 0) state.flash = Math.max(0, state.flash - dt * 6);
 
+      // Starts the moment the flight finishes, and only once.
+      if (flightProgress >= 1 && state.landedAt === null) state.landedAt = state.time;
+      if (flightProgress < 1) state.landedAt = null;
+
       state.particles.update(dt);
       /*
        * The air slows while the thumb is down (§5). Not stopped: a frozen sky
@@ -321,6 +328,7 @@ export const useScene = (options: SceneOptions): {
         flash: state.flash,
         shakeX: (Math.random() - 0.5) * 2 * shakeMagnitude,
         shakeY: (Math.random() - 0.5) * 2 * shakeMagnitude,
+        moodTime: state.landedAt === null ? 0 : state.time - state.landedAt,
         vignette:
           state.slowMoLeft > 0
             ? SLOWMO_VIGNETTE

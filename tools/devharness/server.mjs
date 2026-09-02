@@ -45,17 +45,27 @@ let played = false;
 let warmupPending = process.env.WARMUP_PENDING === '1';
 let anon = false;
 let streak = 3;
+/*
+ * The hold a restored result was thrown with.
+ *
+ * Bullseye and Perfect cannot be captured by timing a real gesture: on the day
+ * this was measured they are 314ms and 318ms, four milliseconds apart, and a
+ * dispatched `pointerup` does not land that precisely. Restoring a genuinely
+ * simulated result is the honest way to see those panels -- the score, the
+ * verdict and the distance are all real, they were simply not thrown live.
+ */
+let restoredHold = 640;
 
 // The result a played-today session restores into. Having it here means the
 // result screen can be loaded directly -- which is how its layout gets checked
 // against a post-sized viewport without playing a shot first.
 
 const myResult = () => {
-  const shot = simulateLevel(LEVEL, 640);
+  const shot = simulateLevel(LEVEL, restoredHold);
   return {
     score: shot.score, dx: shot.dx,
     signedDx: shot.impactX < LEVEL.distance ? -shot.dx : shot.dx,
-    impact: shot.impact, cliffDrop: shot.cliffDrop, holdMs: 640,
+    impact: shot.impact, cliffDrop: shot.cliffDrop, holdMs: restoredHold,
     rank: 184, total: 41203, percentile: 4.2,
     isBullseye: shot.isBullseye, isPerfect: shot.isPerfect,
   };
@@ -82,6 +92,7 @@ createServer(async (req, res) => {
     anon = url.searchParams.get('anon') === '1';
     streak = Number(url.searchParams.get('streak') ?? 3);
     const wanted = url.searchParams.get('mod');
+    restoredHold = Number(url.searchParams.get('hold') ?? 640);
     DAY = wanted ? dayWithModifier(wanted) : TODAY;
     LEVEL = generateLevel(DAY);
     return send(200, '{"ok":true}');

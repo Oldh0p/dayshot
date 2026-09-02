@@ -6,12 +6,13 @@ import {
   SPACE_W,
 } from '../../shared/tunables.ts';
 import { windAt } from '../../shared/sim.ts';
+import { verdictFor } from '../../shared/copy.ts';
 import type { Level, Point, ShotResult } from '../../shared/types.ts';
 import { clamp01, prefersReducedMotion } from '../motion.ts';
 import { COLOR } from '../ui/tokens.ts';
 import { ATMOSPHERE, GOLD, INK, type Palette } from '../theme.ts';
 import { toScreenX, toScreenY, type Camera } from './camera.ts';
-import { drawPip, type PipMood } from './pip.ts';
+import { drawPip, pipMoodFor, type PipMood } from './pip.ts';
 import type { ParticleField, WindStreak } from './particles.ts';
 
 /**
@@ -54,6 +55,12 @@ export type SceneView = {
    * thumb is down, and further still when the ball is about to land.
    */
   readonly vignette: number;
+  /**
+   * Seconds since the shot landed, for the reactions that play once. Separate
+   * from `time` because a two-hop celebration keyed on the scene clock hops
+   * forever.
+   */
+  readonly moodTime: number;
 };
 
 const PIP_RADIUS_UNITS = 22;
@@ -393,20 +400,48 @@ const drawMoonIfNeeded = (
   }
 };
 
+/**
+ * The air, in §11's seven styles.
+ *
+ * Three of them are the same streaks at different lengths and heights, and two
+ * are not streaks at all. The distinction that matters is at the bottom: a
+ * `spot` day draws almost nothing, because Tiny Target's identity is *stillness*
+ * under a spotlight, and a Gusty day pulses, because a gust the player can see
+ * arriving is the only warning that day gives.
+ */
 const drawWind = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   const { camera, palette, level } = view;
+  const air = ATMOSPHERE[level.modifier].air;
+  if (air === 'spot') return;
+
   const direction = level.windBase < 0 ? -1 : 1;
   const strength = clamp01(Math.abs(level.windBase) / 420);
-  if (strength < 0.02) return;
+  if (strength < 0.02 && air !== 'speedlines') return;
+
+  /*
+   * Gusty pulses: a bloom every 0.8-2s, which is what makes the flag snap and
+   * the day feel like it is doing something to the ball. Frozen under reduced
+   * motion rather than removed, so the day still reads.
+   */
+  const gustPhase =
+    air === 'gusts' && !prefersReducedMotion()
+      ? 0.6 + 0.4 * Math.max(0, Math.sin(view.time * 2.2))
+      : 1;
 
   ctx.strokeStyle = palette.air;
-  ctx.lineWidth = Math.max(1, camera.scale * 1.6);
-  ctx.globalAlpha = 0.1 + strength * 0.3;
+  ctx.lineWidth = Math.max(1, camera.scale * (air === 'speedlines' ? 1.1 : 1.6));
+  ctx.globalAlpha = (0.1 + strength * 0.3) * gustPhase;
 
   for (const streak of view.windStreaks) {
+    // Tailwind's speed lines hug the ground and run long: the wind is behind
+    // the shot, so it reads along the axis the ball travels rather than across.
+    const low = air === 'speedlines' && streak.y > 320;
+    if (air === 'speedlines' && !low) continue;
+
     const x = toScreenX(camera, streak.x);
     const y = toScreenY(camera, streak.y);
-    const length = streak.length * camera.scale * (0.4 + strength);
+    const stretch = air === 'speedlines' ? 2.2 : 1;
+    const length = streak.length * camera.scale * (0.4 + strength) * stretch;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + direction * length, y);
@@ -468,7 +503,17 @@ const drawTarget = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   const cy = toScreenY(camera, level.height);
   const unit = camera.scale;
 
-  const glow = palette.targetGlow;
+  /*
+   * §9's reward, and the only place besides the mat's own light where a glow is
+   * allowed at all (§3).
+   *
+   * A Bullseye lifts the halo from 18% to 40%; a Perfect adds the shockwave
+   * below. Both are gated on the shot having landed, so the mat does not
+   * announce a Bullseye while the ball is still in the air.
+   */
+  const landed = view.shot !== null && view.flightProgress >= 1;
+  const celebrating = landed && (view.shot?.isBullseye || view.shot?.isPerfect);
+  const glow = celebrating ? Math.max(palette.targetGlow, 1.8) : palette.targetGlow;
   if (glow > 0) {
     const gradient = ctx.createRadialGradient(
       cx,
@@ -484,6 +529,25 @@ const drawTarget = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
     ctx.beginPath();
     ctx.arc(cx, cy, level.targetR * 3.2 * unit, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  /*
+   * The Perfect shockwave: one expanding ring, 600ms, out-expo, fading as it
+   * goes. Under reduced motion it is a fade in place rather than an expansion,
+   * per §9's last line.
+   */
+  if (landed && view.shot?.isPerfect) {
+    const progress = clamp01(view.moodTime / 0.6);
+    if (progress < 1) {
+      const eased = 1 - Math.pow(1 - progress, 4);
+      const still = prefersReducedMotion();
+      const radius = level.targetR * unit * (still ? 2.4 : 1 + eased * 5);
+      ctx.strokeStyle = `rgba(255, 197, 61, ${(1 - progress) * 0.8})`;
+      ctx.lineWidth = Math.max(2, unit * 4 * (1 - progress));
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, radius, radius * 0.34, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
 
   // Flattened ellipses: the mat lies on the ground, seen from a low angle.
@@ -571,18 +635,31 @@ const drawBall = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   if (shot && view.flightProgress > 0) {
     position = pointAt(view);
     if (view.flightProgress >= 1) {
-      mood = shot.isPerfect
-        ? 'perfect'
-        : shot.score >= 87
-          ? 'impact-good'
-          : 'impact-bad';
+      /*
+       * The face comes from the verdict the player is reading, not from a
+       * second threshold beside it. It used to be `score >= 87`, which was the
+       * mat edge under the old curve and is now well inside the miss bands --
+       * so Pip did his pleased landing under `NEAR MISS`. One source, no drift.
+       */
+      mood = pipMoodFor(
+        verdictFor({
+          score: shot.score,
+          dx: shot.dx,
+          impact: shot.impact,
+          targetR: view.level.targetR,
+        })
+      );
     } else {
       mood = 'flight';
       squash = clamp01(position.speed / 1400);
     }
   } else if (view.power !== null) {
-    mood = 'aim';
+    // §8's fear: the eyes shrink as the hold lengthens.
+    mood = 'fear';
     squash = view.power;
+  } else if (ATMOSPHERE[view.level.modifier].tic === 'squint') {
+    // Tiny Target's tic, deferred from phase 3 until the rig could carry it.
+    mood = 'squint';
   }
 
   drawPip(ctx, {
@@ -593,6 +670,13 @@ const drawBall = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
     squash,
     angle: position.angle,
     time: view.time,
+    moodTime: view.moodTime,
+    // Crosswind leans Pip into the wind: 1.5 degrees, the only tic that is a
+    // rotation rather than a face.
+    lean:
+      ATMOSPHERE[view.level.modifier].tic === 'lean'
+        ? (view.level.windBase < 0 ? 1 : -1) * (Math.PI / 180) * 1.5
+        : 0,
   });
 };
 

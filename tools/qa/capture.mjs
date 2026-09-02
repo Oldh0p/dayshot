@@ -102,6 +102,16 @@ export const SHOTS = [
   { name: 'result-shot-mid', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 520 }] },
   { name: 'result-shot-long', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 900 }] },
   { name: 'result-shot-640', url: '/', prep: 'played=0', ...SMALL, steps: [{ shoot: 520 }] },
+  /*
+   * Restored rather than thrown. On the measured day a Perfect is 318ms and a
+   * Bullseye 314ms; a dispatched pointerup cannot separate four milliseconds,
+   * so these are real simulated results loaded back rather than played live.
+   * The scene-side celebration -- the 40% halo, the shockwave -- needs a live
+   * shot and is verified at playtest.
+   */
+  { name: 'result-perfect', url: '/', prep: 'played=1&mod=CLEAR&hold=318', ...MOBILE },
+  { name: 'result-bullseye', url: '/', prep: 'played=1&mod=CLEAR&hold=314', ...MOBILE },
+  { name: 'result-wall', url: '/', prep: 'played=1&mod=CLEAR&hold=168', ...MOBILE },
   // The board over a scene that is actually there: a restored result has no
   // trajectory, so it has to follow a real shot.
   {

@@ -246,3 +246,31 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   in `ATMOSPHERE` and not yet drawn — both are motion, and phase 7 owns motion.
   Tailwind currently reads as "warm sky, wind arrow right", which is thinner than
   the others.
+
+---
+
+## Phase 7 — Pip, flight, impact, rewards
+
+- **Done.** `pip.ts` rewritten to §8's anatomy: seven shapes and twelve
+  expressions, all of them transformation — eyelid coverage, pupil offset and
+  size, one star pupil, one pair of closed happy arcs. The mouth is gone,
+  because §8 does not have one and the eyes carry every state. Pip's reaction is
+  derived from the verdict, Tiny Target squints, Crosswind leans 1.5° into the
+  wind, Tailwind's low speed lines and Gusty's pulse are drawn at last, and
+  Bullseye lifts the mat's halo while Perfect adds a 600ms shockwave.
+- **Verified.** 303 tests, 43 captures, zero scroll, zero clipping, 0/4 dropped
+  frames at 4x CPU. Twelve expressions asserted distinct; the mapping from
+  verdict to face pinned against §8's table row by row.
+- **The face had drifted from the word, and by a whole band.** Pip's landing
+  mood read `score >= 87` — the mat edge under the *previous* scoring curve, and
+  now well inside the miss bands — so he did his pleased landing under `NEAR
+  MISS`. One source now: the verdict decides both, and a test states the rule
+  rather than the number.
+- **Bullseye and Perfect cannot be captured by playing.** Measured on the day
+  they were found: 314ms and 318ms. **Four milliseconds.** A dispatched
+  `pointerup` does not separate that, so those panels are captured from
+  genuinely simulated results restored through the harness — the score, verdict
+  and distance are real, they were simply not thrown live. The scene-side
+  celebration needs a live shot and is a playtest item.
+- **Left:** the streak's `7 → 8` flip is not animated; the flight camera has its
+  apex zoom but no parallax; and the ≤20s session budget has not been timed.

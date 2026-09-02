@@ -422,7 +422,7 @@ export class InlineScene {
       x,
       y,
       radius: L.pipR,
-      mood: blinking || reducedBlink ? 'impact-good' : glancing ? 'aim' : 'idle',
+      mood: blinking || reducedBlink ? 'blink' : glancing ? 'glance' : 'idle',
       squash: 0,
       angle: 0,
       time: this.#reduced ? 0 : t,
