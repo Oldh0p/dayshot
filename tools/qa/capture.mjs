@@ -77,6 +77,15 @@ export const SHOTS = [
   { name: 'result-shot-mid', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 520 }] },
   { name: 'result-shot-long', url: '/', prep: 'played=0', ...MOBILE, steps: [{ shoot: 900 }] },
   { name: 'result-shot-640', url: '/', prep: 'played=0', ...SMALL, steps: [{ shoot: 520 }] },
+  // The board over a scene that is actually there: a restored result has no
+  // trajectory, so it has to follow a real shot.
+  {
+    name: 'leaderboard-shot',
+    url: '/',
+    prep: 'played=0',
+    ...MOBILE,
+    steps: [{ shoot: 240 }, { click: 'Leaderboard' }],
+  },
   { name: 'ready-desktop', url: '/', prep: 'played=0', ...DESKTOP },
   { name: 'result-mobile', url: '/', prep: 'played=1', ...MOBILE },
   { name: 'result-mobile-640', url: '/', prep: 'played=1', ...SMALL },

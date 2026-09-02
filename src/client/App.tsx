@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { JSX } from 'react';
 import { showLoginPrompt, showToast } from '@devvit/web/client';
 
-import { COPY, shareFormatA, shareFormatB } from '../shared/copy.ts';
+import { COPY, shareFormatA, shareFormatB, standingFor } from '../shared/copy.ts';
 import { generateLevel } from '../shared/sim.ts';
 import { DEMO_DAY, TARGET_R } from '../shared/tunables.ts';
 import type {
@@ -36,6 +36,7 @@ import { useScene } from './scene/useScene.ts';
 import { Conditions } from './screens/Conditions.tsx';
 import { DayBar } from './screens/DayBar.tsx';
 import { Leaderboard } from './screens/Leaderboard.tsx';
+import { LeaderboardV2 } from './screens/LeaderboardV2.tsx';
 import {
   DayRolled,
   HelpSheet,
@@ -603,11 +604,26 @@ export const App = (): JSX.Element => {
 
         {showResult &&
           (boardOpen && board ? (
-            <Leaderboard
-              top={board.top}
-              around={board.around}
-              onBack={onCloseBoard}
-            />
+            UI_V2 ? (
+              <LeaderboardV2
+                top={board.top}
+                around={board.around}
+                total={board.total}
+                targetR={level?.targetR ?? TARGET_R}
+                standing={
+                  result
+                    ? standingFor(result.rank, result.total).line
+                    : null
+                }
+                onBack={onCloseBoard}
+              />
+            ) : (
+              <Leaderboard
+                top={board.top}
+                around={board.around}
+                onBack={onCloseBoard}
+              />
+            )
           ) : (
             (result ?? state.shot) &&
             (UI_V2 ? (

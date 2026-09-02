@@ -191,3 +191,30 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   line in the scene; the streak increment does not animate; Bullseye and Perfect
   have no celebration yet (phase 7); the tomorrow band is a thin strip and could
   read stronger.
+
+---
+
+## Phase 5 — Leaderboard V2
+
+- **Done.** `LeaderboardV2` per §7 and wireframe H: header with the day's total,
+  top three with gold/mist/coral medals, a `· · ·` separator, the window around
+  the player, a YOU row with a coral bar, and columns for rank, name, score and
+  distance. Both empty states, and a standing recap under the rows.
+- **The distance column needed no backend change.** `/api/leaderboard` sends no
+  distance and this redesign may add only `yesterdayShots`, but the score *is* a
+  monotonic function of the distance, so it is recoverable. Recovered by
+  bisecting `scoreForDx` rather than inverting it algebraically: the closed form
+  would restate five constants that have already moved once, and a search over
+  the real function cannot drift from it.
+- **Verified.** 298 tests, 26 captures, zero scroll, zero clipping. The
+  round-trip is exact to under half a unit across the whole range, across the
+  seam between mat and ground, and on a Tiny Target day. The two empty states
+  are decided by a pure function, because they are the hardest boards to reach
+  by hand and the easiest to leave untested.
+- **Client-side on purpose.** `copy.ts` is in the feed bundle's import graph, so
+  the inverse lives in `client/screens/` — putting it in `copy.ts` would have
+  pulled `sim.ts` onto the feed card and failed the phase 2 import test.
+- **Left:** §4.4's deep link from the feed is in `BACKLOG.md` with its reason —
+  the documented query-string route does not build, and the workable version
+  adds two entrypoints to an app awaiting review for a path that is already one
+  tap away. P2's streak column in the window is untouched.

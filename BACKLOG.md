@@ -67,3 +67,19 @@ never asked for:
 Out of spec, so out of the code. Worth revisiting once the app is approved: the
 background colour is one declarative line and the risk is only that an
 experimental field changes under us.
+
+## Opening the leaderboard straight from the feed (deferred in phases 2 and 5)
+
+§4.4's state C says `Practice` and `Leaderboard` should open the expanded view
+*on that screen*. The documented route -- a query string in an entrypoint's
+`entry`, e.g. `game.html?screen=board` -- is in the config schema and is not
+buildable: the Devvit vite plugin hands every `entry` to rolldown as an input
+path verbatim, and the build fails looking for a file of that name.
+
+The workable version is a separate HTML entry per screen (`board.html`,
+`practice.html`), each a few lines that set a marker and boot the game. That
+works, and it adds two entrypoints to an app currently waiting on review, for a
+secondary path: a player in state C has already shot, so `game` opens on their
+result with both screens one tap away.
+
+Worth doing once the app is approved.

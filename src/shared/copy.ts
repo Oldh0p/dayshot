@@ -169,6 +169,7 @@ export const COPY = {
   boardTitle: 'TODAY',
   boardYou: 'YOU',
   boardBack: 'Back to my shot',
+  boardNotPlayed: "Take your shot to enter today's board.",
   practiceAgain: 'Again',
   practiceLeave: 'Back to my shot',
   globalRankSuffix: 'Global',
@@ -805,6 +806,17 @@ export type Standing = {
   /** `#1,204 / 8,421`, or null while the field is too small to mean anything. */
   readonly rankLine: string | null;
 };
+
+/** §6: the Perfect line on the result panel, when there is one to report. */
+/**
+ * §7's two empty states.
+ *
+ * Neither apologises. A day with three players is early, not broken, and a
+ * player who has not shot yet is being invited rather than excluded.
+ */
+export const boardEarly = (shots: number): string =>
+  `Only ${formatCount(shots)} ${shots === 1 ? 'shot' : 'shots'} so far — you're early.`;
+
 
 /** §6: the Perfect line on the result panel, when there is one to report. */
 export const perfectsTodayLine = (perfects: number): string =>
