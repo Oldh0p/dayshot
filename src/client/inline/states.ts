@@ -3,7 +3,7 @@ import {
   feedStreakChip,
   feedWaitingLine,
   socialProofLine,
-  standingHeadline,
+  standingFor,
   type FeedFacts,
 } from '../../shared/copy.ts';
 import type { ModifierId, StateResponse } from '../../shared/types.ts';
@@ -81,7 +81,15 @@ export const cardFor = (server: StateResponse): FeedCard => {
       ...base,
       state: {
         kind: 'C',
-        summary: feedPlayedLine(score, standingHeadline(rank, total)),
+        /*
+         * `standingFor`, not the old `standingHeadline`.
+         *
+         * The result panel moved to §10.3's wordings in phase 4 and the feed
+         * did not, so a first player saw `You opened the day.` in the game and
+         * `FIRST SHOT TODAY` on the card -- two phrasings of one rank, and the
+         * longer of them truncated on the card. §15 asked for that line to go.
+         */
+        summary: feedPlayedLine(score, standingFor(rank, total).line),
         countdownFrom: server.serverNow,
         signedDx,
         streakChip,

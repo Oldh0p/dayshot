@@ -7,7 +7,7 @@ import {
   feedStreakChip,
   feedWaitingLine,
   socialProofLine,
-  standingHeadline,
+  standingFor,
   type FeedFacts,
 } from '../shared/copy.ts';
 
@@ -173,7 +173,7 @@ describe('feed states (§4.4)', () => {
   it('phrases the played state exactly as the result screen would', () => {
     // One rank, one phrasing. A player must never meet two wordings of the
     // same standing on two surfaces of the same game.
-    const standing = standingHeadline(1204, 8421);
+    const standing = standingFor(1204, 8421).line;
     assert.equal(feedPlayedLine(94.61, standing), `TODAY 94.61 · ${standing}`);
 
     // Deliberately not pinned to a wording. §10.3 rewrites these lines --
@@ -187,7 +187,7 @@ describe('feed states (§4.4)', () => {
       [3, 49],
       [1204, 8421],
     ] as const) {
-      const standing = standingHeadline(rank, total);
+      const standing = standingFor(rank, total).line;
       assert.equal(
         feedPlayedLine(50.06, standing),
         `TODAY 50.06 · ${standing}`,
