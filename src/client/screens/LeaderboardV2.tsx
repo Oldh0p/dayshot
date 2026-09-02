@@ -78,7 +78,7 @@ export const LeaderboardV2 = (props: {
   const state = boardState(props.total, window);
 
   return (
-    <section className="safe-bottom w-full rounded-t-[24px] bg-[color:var(--color-bg-elevated)] px-4 pt-4 pb-4">
+    <section className="panel-column safe-bottom w-full rounded-t-[24px] bg-[color:var(--color-bg-elevated)] px-4 pt-4 pb-4">
       <header className="flex items-baseline justify-between px-2 pb-2">
         <span className="text-[12px] font-bold tracking-[0.06em] text-[color:var(--color-mist)]">
           {COPY.boardTitle}

@@ -124,8 +124,16 @@ body,
  * §12 caps it at 480 and centres it, which is also the shape the app has on the
  * device most people will play on.
  */
+/*
+ * The *panel* is capped at 480 and centred, not the whole game.
+ *
+ * Capping `#root` turned a wide screen into a 480px column -- the player's
+ * words were "une sorte de format mobile", and they were right: it reads as a
+ * phone screenshot pasted into a desktop window. The world is landscape and
+ * should use the width it is given; only the reading column has a maximum.
+ */
 @media (min-width: 900px) {
-  #root {
+  .panel-column {
     max-width: 480px;
     margin-inline: auto;
   }

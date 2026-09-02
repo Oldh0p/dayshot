@@ -56,7 +56,7 @@ describe('the camera moves once per shot', () => {
 
   it('eases into the result framing instead of cutting to it', () => {
     const base = aiming();
-    const framed = resultFraming(W, H, 520, 600, TARGET_R, H * 0.5, base);
+    const framed = resultFraming(W, H, TARGET_R, H * 0.5, base);
 
     // At t=0 it is exactly where the shot was watched from.
     const start = lerpCamera(base, framed, 0);
@@ -75,7 +75,7 @@ describe('the camera moves once per shot', () => {
 
   it('never advances backwards, however long the clock runs', () => {
     const base = aiming();
-    const framed = resultFraming(W, H, 520, 600, TARGET_R, H * 0.5, base);
+    const framed = resultFraming(W, H, TARGET_R, H * 0.5, base);
     let previous = base.scale;
     for (const t of [0, 0.25, 0.5, 0.75, 1, 1.5, 4]) {
       const at = lerpCamera(base, framed, t).scale;
@@ -85,28 +85,29 @@ describe('the camera moves once per shot', () => {
     assert.ok(Math.abs(lerpCamera(base, framed, 9).scale - framed.scale) < 1e-9);
   });
 
-  it('pushes in rather than teleporting', () => {
-    // 2.4x made the result a different world from the one the shot was taken
-    // in. A near miss and a wild one should still look like the same game.
+  it('pushes in rather than teleporting, and never crops the launcher', () => {
+    /*
+     * The framing does not depend on where the ball landed at all, which is
+     * the fix: recentring on impact-and-mat cropped the launcher out of frame
+     * on a real phone, and a close-up of a ball on a mat is not this game.
+     * The world's horizontal framing stays the shot's own; only the ground
+     * line moves, and only far enough to clear the taller panel.
+     */
     const base = aiming();
-    for (const impactX of [200, 520, 900]) {
-      const framed = resultFraming(W, H, impactX, 600, TARGET_R, H * 0.5, base);
-      assert.ok(
-        framed.scale >= base.scale,
-        `impact at ${impactX} zoomed out below the aiming view`
-      );
-      assert.ok(
-        framed.scale <= base.scale * 1.5 + 1e-9,
-        `impact at ${impactX} zoomed to ${(framed.scale / base.scale).toFixed(2)}x`
-      );
-    }
+    const framed = resultFraming(W, H, TARGET_R, H * 0.5, base);
+    assert.ok(framed.scale >= base.scale, 'zoomed out below the aiming view');
+    assert.ok(framed.scale <= base.scale * 1.5 + 1e-9, 'zoomed too far in');
+
+    // The same world point stays under the middle of the screen.
+    const centreOf = (c: typeof base): number => (c.width / 2 - c.originX) / c.scale;
+    assert.ok(Math.abs(centreOf(framed) - centreOf(base)) < 1e-6, 'the view panned');
   });
 
   it('still keeps the mat big enough to be a verdict', () => {
     // The floor the push-in exists for: a mat too small to see is not an answer
     // to "how close was that".
     const base = aiming();
-    const framed = resultFraming(W, H, 590, 600, TARGET_R, H * 0.5, base);
+    const framed = resultFraming(W, H, TARGET_R, H * 0.5, base);
     assert.ok(TARGET_R * framed.scale >= 24, 'the mat fell under 24px');
   });
 });

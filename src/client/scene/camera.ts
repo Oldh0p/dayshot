@@ -43,6 +43,16 @@ export const PANEL_SHARE = 0.25;
  */
 export const RESULT_PANEL_SHARE = 0.5;
 
+/**
+ * ...but never more than this many pixels.
+ *
+ * The panel's content is fixed, so its height is roughly constant in pixels and
+ * *not* a constant fraction of the screen: on an 896px display half the height
+ * is 448px against a panel of about 350, which left a band of empty ground
+ * between the two. The cap keeps the ground line just above the panel.
+ */
+export const RESULT_PANEL_MAX_PX = 370;
+
 export const buildCamera = (
   canvasWidth: number,
   canvasHeight: number,
@@ -85,44 +95,43 @@ export const buildCamera = (
  * and the framing never zooms *in* past the aiming view on a near miss, which
  * would make a good shot feel like a different game.
  */
-const RESULT_MARGIN = 0.12;
 const MIN_TARGET_PX = 24;
 
 export const resultFraming = (
   canvasWidth: number,
   canvasHeight: number,
-  impactX: number,
-  targetX: number,
   targetR: number,
   bottomInset: number,
-  /** The aiming camera, as the zoom floor. */
+  /** The aiming camera. This framing stays as close to it as it can. */
   base: Camera
 ): Camera => {
-  const left = Math.min(impactX, targetX - targetR);
-  const right = Math.max(impactX, targetX + targetR);
-  const span = Math.max(targetR * 4, right - left);
+  /*
+   * **The whole world stays in frame.**
+   *
+   * The first version framed the impact and the mat with a 12% margin and
+   * recentred on the pair, which is what §6 asks for in words -- and on a real
+   * phone it cropped the launcher out entirely. The report was that you could
+   * no longer tell what game you were looking at, and that is right: DAYSHOT is
+   * a throw *across a gap*, and a close-up of a ball resting on a mat is a
+   * different picture. It also removes the only scale reference on screen, so
+   * "16 short" stops meaning anything.
+   *
+   * So the horizontal framing stays the shot's own. What has to change is the
+   * ground line, because the result panel is taller than the aiming one -- and
+   * a push-in, but only when the mat would otherwise be too small to read as a
+   * verdict at all.
+   */
+  const needed = MIN_TARGET_PX / Math.max(1, targetR);
+  const scale = Math.min(Math.max(base.scale, needed), base.scale * 1.5);
 
-  const usableWidth = canvasWidth * (1 - RESULT_MARGIN * 2);
-  const wanted = usableWidth / span;
-
-  // Never further out than the aiming view, never so close that the mat is
-  // still a dot, and never past a doubling — a hair-thin miss should not throw
-  // the player into a microscope.
-  const scale = Math.min(
-    Math.max(wanted, base.scale, MIN_TARGET_PX / Math.max(1, targetR)),
-    // A push-in, not a new scene. At 2.4x the result was a different world from
-    // the one the shot was taken in, and arriving there in a cut made three
-    // framings in about a second -- too many to follow.
-    base.scale * 1.5
-  );
-
-  const centreX = (left + right) / 2;
-  const groundPixels = canvasHeight - bottomInset;
+  // The same point of the world stays under the middle of the screen, so a
+  // push-in reads as a push-in and never as a pan.
+  const centreX = (base.width / 2 - base.originX) / base.scale;
 
   return {
     scale,
     originX: canvasWidth / 2 - centreX * scale,
-    originY: groundPixels,
+    originY: canvasHeight - bottomInset,
     width: canvasWidth,
     height: canvasHeight,
   };

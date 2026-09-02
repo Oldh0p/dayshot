@@ -29,6 +29,7 @@ import {
   lerpCamera,
   PANEL_SHARE,
   RESULT_FRAMING_MS,
+  RESULT_PANEL_MAX_PX,
   resultFraming,
 } from './camera.ts';
 import { ATMOSPHERE } from '../theme.ts';
@@ -320,10 +321,8 @@ export const useScene = (options: SceneOptions): {
           ? resultFraming(
               width,
               height,
-              landed.impactX,
-              level.distance,
               level.targetR,
-              height * opts.resultPanelShare,
+              Math.min(height * opts.resultPanelShare, RESULT_PANEL_MAX_PX),
               base
             )
           : null;

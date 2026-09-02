@@ -377,3 +377,27 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   24px floor.
 - **Six tests** state the rule that came out of it: the camera moves once per
   shot, and it moves rather than cuts. 309 tests, 56 captures, all clean.
+
+---
+
+## Post-playtest 2 — the result framing lost the game, and desktop lost its width
+
+- **"On ne voit pas à quel jeu on a à faire."** §6 says to frame the impact and
+  the mat with a 12% margin, and taken literally that is what it did — and on a
+  483×896 phone it cropped the launcher out of frame. DAYSHOT is a throw *across
+  a gap*; a close-up of a ball resting on a mat is a different picture, and it
+  removes the only scale reference on screen, so "16 short" stops meaning
+  anything. The result keeps the shot's own horizontal framing now, and pushes
+  in only when the mat would otherwise fall under 24px.
+- **A band of empty ground under the scene.** The reserved band was
+  `height × 0.5`, but the panel's content is fixed so its height is roughly
+  constant in *pixels*: on an 896px screen half the height is 448 against a
+  panel of about 340. Capped at 370px, the ground line sits just above the panel
+  on any screen.
+- **"Une sorte de format mobile" in full screen.** Phase 8 capped `#root` at
+  480px on wide screens, reading §12's "panneau portrait 480×760" as the whole
+  app. It is the *panel*: the world is landscape and should use the width it is
+  given. The cap moved to a `.panel-column` class, and a real desktop shot now
+  shows launcher, arc, Pip and mat with the panel as a centred column.
+- **Verified.** 309 tests, 58 captures, zero scroll, zero clipping — including
+  the two viewports this report added, which are in the standing set now.

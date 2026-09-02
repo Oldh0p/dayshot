@@ -121,6 +121,14 @@ export const SHOTS = [
   { name: 'result-good-desktop', url: '/', prep: 'played=1&mod=CLEAR&hold=345', ...DESKTOP },
   /* Mid-air: the only state that exists nowhere but in motion. */
   { name: 'flight-mobile', url: '/', prep: 'played=0', ...MOBILE, steps: [{ flight: 500 }] },
+  /*
+   * Two viewports that came out of a playtest report rather than the spec: a
+   * tall phone in Reddit's full-screen view, where the result framing was
+   * cropping the launcher out, and a wide desktop, where capping the whole app
+   * at 480px read as "a mobile format".
+   */
+  { name: 'tall-shot', url: '/', prep: 'played=0', w: 483, h: 896, steps: [{ shoot: 300 }] },
+  { name: 'wide-shot', url: '/', prep: 'played=0', w: 1280, h: 900, steps: [{ shoot: 300 }] },
   // The board over a scene that is actually there: a restored result has no
   // trajectory, so it has to follow a real shot.
   {
