@@ -196,6 +196,14 @@ press the button that says so, after showing you the exact text it will publish.
 
 ---
 
+## What it looks like
+
+`docs/qa/after/` holds 56 captures of every screen at every size the game is
+designed for — the feed card in its three states, aiming, the hold, the flight,
+each verdict band, the leaderboard and practice, on phones from 320px up and on
+desktop. `docs/qa/before/` holds the same screens before the interface was
+rebuilt, and `docs/qa/REPORT.md` puts the two side by side.
+
 ## Where it lives
 
 The game's home community is

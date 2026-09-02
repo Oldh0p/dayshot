@@ -255,3 +255,35 @@ whose job is to be recognised at a glance.
 
 **Not fixed here, deliberately:** `public/snoo.png` (section 6) goes out in this
 same version, since a re-upload is happening anyway.
+
+---
+
+## 8. What the UI redesign changes for review
+
+The interface was rebuilt against `DAYSHOT-UI-REDESIGN.md`. Four of those
+changes touch things a reviewer looks at, and one of them is the rejection.
+
+- **The in-line scroll trap is gone, and cannot come back quietly.** Every
+  screen is laid out to fit and `tools/qa/capture.mjs` reports scrolling and
+  clipping on all 56 captured states across six viewports. All clean.
+- **The feed card is a real scene, and it costs less than the old one.** Plain
+  DOM and canvas instead of React: **35 284 bytes gzip including the font**,
+  down from about 70 500. It cannot reach the simulation, the state machine, the
+  audio engine or a hold handler — four tests read the built files to prove it,
+  because "no shot can be thrown from the feed" is a claim that should not rest
+  on a comment.
+- **No audio in the feed**, and no audio anywhere before a user gesture.
+- **The CTA stopped lying.** `TAP TO SHOOT` promised a throw that the tap did
+  not take; it is `TAKE YOUR ONE SHOT`, which opens the game. Every number on
+  the card is real and comes from the day: `src/tests/feed-copy.test.ts`
+  asserts that no figure appears that is not in the day's facts.
+- **Accessibility.** Nine of nine text pairs pass AA (`docs/qa/contrast.md`,
+  generated); every control is at least 48px; a focus ring is measured on the
+  first Tab target of every screen; and Space or Enter takes the shot, because
+  the whole screen being a hold target left a keyboard user with one reachable
+  control.
+
+Nothing in the simulation, the scoring, the seed, the locks, the Redis keys, the
+scheduler, the sharing or the anti-cheat was touched. The only backend addition
+is `yesterdayShots` in `GET /api/state`, read from `day:{n-1}:meta`, for the feed
+card's social proof.

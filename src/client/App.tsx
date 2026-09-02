@@ -27,7 +27,6 @@ import {
 } from './machine.ts';
 import type { QueueOutcome } from './queue.ts';
 import { resultOnScreen } from './result-view.ts';
-import { UI_V2 } from './ui/flags.ts';
 import { Glyph } from './ui/Glyph.tsx';
 import { TARGET_GLYPH } from './ui/glyphs.ts';
 import { ShotQueue } from './queue.ts';
@@ -35,7 +34,6 @@ import { RESULT_PANEL_SHARE } from './scene/camera.ts';
 import { useScene } from './scene/useScene.ts';
 import { Conditions } from './screens/Conditions.tsx';
 import { DayBar } from './screens/DayBar.tsx';
-import { Leaderboard } from './screens/Leaderboard.tsx';
 import { LeaderboardV2 } from './screens/LeaderboardV2.tsx';
 import {
   DayRolled,
@@ -44,7 +42,6 @@ import {
   ShareConsent,
   StatusBanner,
 } from './screens/Overlays.tsx';
-import { Result } from './screens/Result.tsx';
 import { ResultV2 } from './screens/ResultV2.tsx';
 import {
   markHelpSeen,
@@ -611,29 +608,18 @@ export const App = (): JSX.Element => {
 
         {showResult &&
           (boardOpen && board ? (
-            UI_V2 ? (
-              <LeaderboardV2
-                top={board.top}
-                around={board.around}
-                total={board.total}
-                targetR={level?.targetR ?? TARGET_R}
-                standing={
-                  result
-                    ? standingFor(result.rank, result.total).line
-                    : null
-                }
-                onBack={onCloseBoard}
-              />
-            ) : (
-              <Leaderboard
-                top={board.top}
-                around={board.around}
-                onBack={onCloseBoard}
-              />
-            )
+            <LeaderboardV2
+              top={board.top}
+              around={board.around}
+              total={board.total}
+              targetR={level?.targetR ?? TARGET_R}
+              standing={
+                result ? standingFor(result.rank, result.total).line : null
+              }
+              onBack={onCloseBoard}
+            />
           ) : (
-            (result ?? state.shot) &&
-            (UI_V2 ? (
+            (result ?? state.shot) && (
               <ResultV2
                 result={resultOnScreen(phase, result, state.shot)}
                 targetR={level?.targetR ?? TARGET_R}
@@ -656,29 +642,7 @@ export const App = (): JSX.Element => {
                 onBoard={board ? onOpenBoard : null}
                 onLeavePractice={onLeavePractice}
               />
-            ) : (
-              <Result
-                result={resultOnScreen(phase, result, state.shot)}
-                streak={streakNow}
-                tomorrow={server.tomorrowModifier}
-                msToRollover={msToRollover}
-                perfectsToday={
-                  state.submission?.perfectCountToday ?? server.perfectsToday
-                }
-                shotsToday={server.shotsToday}
-                pending={phase === 'scoring_pending'}
-                practice={phase === 'practice_result'}
-                practiceBest={state.practiceBest}
-                practiceTries={state.practiceTries}
-                sharedUrl={state.sharedUrl}
-                sharing={sharing}
-                onShare={onShare}
-                onCopy={onCopy}
-                onPractice={onPractice}
-                onLeaveboard={onLeavePractice}
-                onBoard={board ? onOpenBoard : null}
-              />
-            ))
+            )
           ))}
         </section>
       </div>

@@ -69,14 +69,15 @@ export class ParticleField {
   confetti(x: number, y: number): void {
     if (!allowParticles()) return;
     /*
-     * §9 makes the Perfect celebration gold particles and a shockwave; phase 7
-     * rewrites it. Tokenised here rather than restyled, so this phase changes
-     * no pixels: the fourth colour is Crosswind's accent, which is a theme
-     * value and has no token by design (§13 stops at nine colours).
+     * §9: twenty-four gold particles, and the shockwave `render.ts` draws.
+     *
+     * This was sixty in four colours, one of which was a cyan that existed
+     * nowhere else in the palette -- a tenth colour §13 does not have, spent on
+     * the rarest event in the game. Gold is the colour a Perfect already owns:
+     * the verdict word, the mat's centre ring, Pip's halo.
      */
-    const CROSSWIND_ACCENT = '#5FC9E8';
-    const colors = [COLOR.gold, COLOR.coral, COLOR.ink, CROSSWIND_ACCENT];
-    for (let i = 0; i < 60; i++) {
+    const colors = [COLOR.gold, COLOR.gold, COLOR.ink];
+    for (let i = 0; i < 24; i++) {
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
       const force = 180 + Math.random() * 260;
       this.spawn({

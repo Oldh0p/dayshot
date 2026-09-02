@@ -328,3 +328,31 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   measured **one** reachable control — the help button — because the whole
   screen is a hold target. Right for a thumb, and it silently excluded anyone
   playing with a keyboard.
+
+---
+
+## Phase 10 — Visual QA, tests, cleanup
+
+- **Done.** `UI_V2` and the five files it guarded are gone — the old result
+  panel, the old board, the old React splash, its data parser and the flag
+  itself, plus the test whose subject no longer exists. The greps are clean: no
+  emoji in the UI outside comments explaining what they replaced, no hex outside
+  `tokens.ts` and the palette table, no `UI_V2`. `docs/qa/REPORT.md` puts before
+  and after side by side.
+- **Verified.** 303 tests across 64 suites, type-check, lint and build green.
+  **56 final captures, zero scroll, zero clipping**, each printing the screen it
+  reached. Nine of nine contrast pairs pass AA. Frame work 0.80ms median at 4×
+  CPU throttle against a 10ms budget.
+- **The last stray colour was the Perfect confetti**: sixty particles in four
+  colours, one of them a cyan that existed nowhere else — a tenth colour §13
+  does not have, spent on the rarest event in the game. It is §9's twenty-four
+  gold now, which is the colour a Perfect already owns.
+- **Three captures the gate names were still missing**, and getting them honest
+  took a detour each: the flight only exists in motion, so the rig learnt to
+  screenshot mid-air; and the ~45 and ~90 bands needed exact holds, which my
+  first search found on the wrong day — the harness serves day 20698 and I had
+  searched 20697.
+- **Left, and named in the report:** the streak's `7 → 8` flip is not animated,
+  the flight camera has no parallax, §12's compact type tweaks are unbuilt, and
+  six things cannot be verified outside a real device — the report says which,
+  and how to test each at playtest.

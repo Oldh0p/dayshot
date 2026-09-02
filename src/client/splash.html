@@ -11,10 +11,11 @@
   <body>
     <div id="root"></div>
     <!--
-      The feed card. Deliberately not `splash.tsx`: that entry rendered through
-      React, which costs 65 KB gzip against a 60 KB budget for everything the
-      feed loads. `splash.tsx` stays in the tree as the UI_V2 fallback until
-      phase 10 — swapping this one line restores it.
+      The feed card, in plain DOM and canvas.
+
+      Not React: the runtime chunk alone is 65 KB gzip against a 60 KB budget
+      for everything the feed loads, and this page is a canvas, four text nodes
+      and a button. Measured after: 35 KB including the font.
     -->
     <script type="module" src="inline/main.ts"></script>
   </body>

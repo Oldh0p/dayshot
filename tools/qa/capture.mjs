@@ -115,6 +115,12 @@ export const SHOTS = [
   { name: 'result-perfect', url: '/', prep: 'played=1&mod=CLEAR&hold=318', ...MOBILE },
   { name: 'result-bullseye', url: '/', prep: 'played=1&mod=CLEAR&hold=314', ...MOBILE },
   { name: 'result-wall', url: '/', prep: 'played=1&mod=CLEAR&hold=168', ...MOBILE },
+  /* The two bands the gate names, at holds chosen to land on them. */
+  { name: 'result-mediocre', url: '/', prep: 'played=1&mod=CLEAR&hold=61', ...MOBILE },
+  { name: 'result-good', url: '/', prep: 'played=1&mod=CLEAR&hold=345', ...MOBILE },
+  { name: 'result-good-desktop', url: '/', prep: 'played=1&mod=CLEAR&hold=345', ...DESKTOP },
+  /* Mid-air: the only state that exists nowhere but in motion. */
+  { name: 'flight-mobile', url: '/', prep: 'played=0', ...MOBILE, steps: [{ flight: 500 }] },
   // The board over a scene that is actually there: a restored result has no
   // trajectory, so it has to follow a real shot.
   {
@@ -322,7 +328,7 @@ try {
        * session and useless for checking §6, which is about what the camera
        * does with a shot that just happened.
        */
-      const expression = step.shoot
+      const expression = step.shoot || step.flight
         ? `(() => {
             const el = document.querySelector('#root > div');
             if (!el) return 'MISSING';
@@ -331,7 +337,7 @@ try {
               pointerType: 'touch', clientX: 195, clientY: 400, isPrimary: true,
             });
             el.dispatchEvent(mk('pointerdown'));
-            setTimeout(() => el.dispatchEvent(mk('pointerup')), ${step.shoot});
+            setTimeout(() => el.dispatchEvent(mk('pointerup')), ${step.shoot ?? step.flight});
             return 'ok';
           })()`
         : step.hold
@@ -359,7 +365,20 @@ try {
         console.log(`  ! ${shot.name}: could not ${step.hold ? 'hold' : `click "${step.click}"`}`);
         failures++;
       }
-      await wait(step.shoot ? step.shoot + 6000 : step.hold ? step.hold : 700);
+      /*
+       * `flight` releases and screenshots while the ball is still up, which is
+       * the one state that exists only in motion -- the camera zoom, the trail,
+       * Pip stretched and squinting.
+       */
+      await wait(
+        step.flight
+          ? step.flight + 900
+          : step.shoot
+            ? step.shoot + 6000
+            : step.hold
+              ? step.hold
+              : 700
+      );
     }
 
     // The viewport is the truth; never capture beyond it.

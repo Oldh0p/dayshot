@@ -55,6 +55,36 @@ code (GDD 9.12).
    on every day, whatever the modifier — the order is frozen for life because
    changing it would rewrite the game's entire history (GDD 9.3).
 
+## UI conventions (redesign V2)
+
+`DAYSHOT-UI-REDESIGN.md` is the design contract for the presentation layer, the
+way GDD Part IX is the contract for the game. `docs/ARCHITECTURE-UI.md` maps the
+tree; `docs/UI-V2-LOG.md` records what each phase did and why.
+
+1. **Colours, sizes, durations and easings come from `src/client/ui/tokens.ts`.**
+   `index.css` mirrors them and `src/tests/tokens.test.ts` asserts the two agree,
+   so a value edited on one side and not the other fails the build. No hex
+   literal outside `tokens.ts` and the per-modifier palette table.
+2. **No system emoji in the UI.** They render differently per OS and fight a
+   nine-colour palette. `src/client/ui/glyphs.ts` holds the vector set as path
+   data, shared by the React screens and the React-free feed bundle. Emoji stay
+   in the share texts, which are Reddit comments.
+3. **The feed bundle may not reach the game.** No `sim.ts`, no state machine, no
+   audio, no hold handler, no React, and a payload under 60 KB gzip.
+   `src/tests/inline-bundle.test.ts` enforces all of it against the *built*
+   files, and a whitelist stops a new dependency arriving unnoticed.
+4. **Nothing scrolls.** Reddit rejects an in-line web view that does — 0.4 was
+   rejected for exactly that. Screens are laid out to fit; anything that will
+   not fit is reached with a button.
+5. **One filled coral block per screen, and it is the CTA.** Text on coral is
+   the `bg` token, never white: white on coral is 3.03:1.
+6. **`prefers-reduced-motion` is read through `motion.ts`**, never from a media
+   query scattered through components.
+7. **QA is measured, not eyeballed.** `node tools/qa/capture.mjs <set>` reports
+   the viewport, scrolling, clipping and the screen each shot reached;
+   `perf.mjs` and `profile.mjs` measure frame cost under CPU throttling;
+   `a11y.mjs` regenerates `docs/qa/contrast.md`.
+
 ## Platform facts that shape the design
 
 - **Redis has no `zRevRank`.** Ranking uses a composite sorted-set score,
