@@ -181,7 +181,14 @@ export const COPY = {
   boardYou: 'YOU',
   boardBack: 'Back to my shot',
   boardNotPlayed: "Take your shot to enter today's board.",
+  /*
+   * `Again` is gone from the screen: practice re-arms the moment the ball
+   * stops, so the button existed only to undo a state the player never asked
+   * to be in. The key stays for the help text, which still describes practice
+   * as something you repeat.
+   */
   practiceAgain: 'Again',
+  practiceNewBest: 'NEW BEST',
   practiceLeave: 'Back to my shot',
   globalRankSuffix: 'Global',
   scoringPending: 'Confirming…',
@@ -790,6 +797,24 @@ export const verdictTone = (verdict: Verdict): VerdictTone => {
  * Whole units only. The decimal belongs to the score, and "251.4 short" invites
  * a precision the player cannot act on.
  */
+/**
+ * The change from the previous practice attempt, which is the only number in
+ * the strip that answers "did that adjustment help".
+ *
+ * A real minus sign, matching `formatWind`, and an explicit plus: a bare
+ * `4.31` next to a score reads as another score. Never coloured red -- a worse
+ * practice shot is information, not an error (§13).
+ */
+export const practiceDelta = (change: number): string => {
+  const value = Math.abs(change).toFixed(2);
+  if (Math.abs(change) < 0.005) return '±0.00';
+  return change > 0 ? `+${value}` : `−${value}`;
+};
+
+/** The goal post: the day's best practice score, as a quiet chip. */
+export const practiceBestChip = (best: number): string =>
+  `BEST ${best.toFixed(2)}`;
+
 export const impactDirection = (result: {
   readonly signedDx: number;
   readonly dx: number;

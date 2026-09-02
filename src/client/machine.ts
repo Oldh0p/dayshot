@@ -12,7 +12,7 @@ import type {
  *   boot
  *     -> (warmupPending ? warmup_aim -> warmup_result -> interstitial)
  *     -> ready -> aiming -> in_flight -> impact -> scoring_pending -> result
- *     -> result <-> practice
+ *     -> result <-> practice_aim <-> practice_flight
  *
  * Returning the same day lands straight on `result`. Transverse states —
  * offline, submission failure, rollover, logged out — are held alongside the
@@ -34,8 +34,7 @@ export type Phase =
   | 'scoring_pending'
   | 'result'
   | 'practice_aim'
-  | 'practice_flight'
-  | 'practice_result';
+  | 'practice_flight';
 
 /** Whether the current phase is a shot the player is charging. */
 export const isAiming = (phase: Phase): boolean =>
@@ -52,9 +51,7 @@ export const isFlying = (phase: Phase): boolean =>
 
 /** Practice is dressed differently and can never be mistaken for the real thing. */
 export const isPractice = (phase: Phase): boolean =>
-  phase === 'practice_aim' ||
-  phase === 'practice_flight' ||
-  phase === 'practice_result';
+  phase === 'practice_aim' || phase === 'practice_flight';
 
 export const isWarmup = (phase: Phase): boolean =>
   phase === 'warmup_aim' ||
@@ -94,6 +91,18 @@ export type GameState = {
   readonly showMisfireHint: boolean;
   readonly practiceBest: number;
   readonly practiceTries: number;
+  /**
+   * The attempt just landed, and the one before it.
+   *
+   * Deliberately not `state.shot`: that is the scene's trajectory and it is
+   * replaced the instant the player starts the next throw, which would blank
+   * the number a chaining player is reading. These two are written only at
+   * impact and survive the whole of the next charge and flight.
+   */
+  readonly practiceLast: ShotResult | null;
+  readonly practicePrevScore: number | null;
+  /** Whether that attempt set the day's best, decided against the old tally. */
+  readonly practiceIsBest: boolean;
   readonly sharedUrl: string | null;
   /**
    * Set the moment the warm-up is over, and never cleared.
@@ -140,6 +149,9 @@ export const INITIAL_STATE: GameState = {
   showMisfireHint: false,
   practiceBest: 0,
   practiceTries: 0,
+  practiceLast: null,
+  practicePrevScore: null,
+  practiceIsBest: false,
   sharedUrl: null,
   warmupDone: false,
   charging: false,
@@ -165,7 +177,12 @@ export type Action =
   | { readonly type: 'confirmed'; readonly result: ResultSummary; readonly response: ShotResponse | null }
   | { readonly type: 'warmup_done' }
   | { readonly type: 'begin_practice' }
-  | { readonly type: 'practice_scored'; readonly best: number; readonly tries: number }
+  | {
+      readonly type: 'practice_scored';
+      readonly best: number;
+      readonly tries: number;
+      readonly shot: ShotResult;
+    }
   | { readonly type: 'leave_practice' }
   | { readonly type: 'transient'; readonly value: Transient | null }
   | { readonly type: 'shared'; readonly url: string };
@@ -258,7 +275,15 @@ export const reduce = (state: GameState, action: Action): GameState => {
         return { ...state, phase: 'warmup_result' };
       }
       if (state.phase === 'practice_flight') {
-        return { ...state, phase: 'practice_result' };
+        /*
+         * Straight back to aiming, which is the whole change: there is no
+         * terminal practice state to dismiss. `canAim` already lists
+         * `practice_aim`, `guardMisfire` is already false there and `fired`
+         * already routes it to `practice_flight`, so the loop closes without a
+         * single new branch. What the player just threw stays on screen in
+         * `practiceLast`, which nothing here clears.
+         */
+        return { ...state, phase: 'practice_aim' };
       }
       return { ...state, phase: 'impact' };
     }
@@ -293,13 +318,31 @@ export const reduce = (state: GameState, action: Action): GameState => {
       };
 
     case 'begin_practice':
-      return { ...state, phase: 'practice_aim', shot: null, charging: false };
+      return {
+        ...state,
+        phase: 'practice_aim',
+        shot: null,
+        charging: false,
+        // Entering the range is a fresh lane: no last attempt, and no delta
+        // measured against a shot from a previous visit.
+        practiceLast: null,
+        practicePrevScore: null,
+        practiceIsBest: false,
+      };
 
     case 'practice_scored':
       return {
         ...state,
         practiceBest: action.best,
         practiceTries: action.tries,
+        practiceLast: action.shot,
+        practicePrevScore: state.practiceLast?.score ?? null,
+        /*
+         * Measured against the tally *before* this shot, so the very first
+         * attempt of the day is not announced as beating something. `tries`
+         * has already been incremented by `recordPractice` when it arrives.
+         */
+        practiceIsBest: state.practiceTries > 0 && action.best > state.practiceBest,
       };
 
     case 'leave_practice':

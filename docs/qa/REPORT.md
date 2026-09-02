@@ -1,11 +1,11 @@
 # DAYSHOT UI V2 — final report
 
 The redesign of `DAYSHOT-UI-REDESIGN.md`, in eleven phases. Baseline was 240
-tests; it ends at 313, with the feed's payload down from ~70.5 KB to 35 KB and
+tests; it ends at 326, with the feed's payload down from ~70.5 KB to 35 KB and
 the game holding 60fps at 6× CPU throttle where it previously ran at 30.
 
 Before and after live side by side in `docs/qa/before/` (14 shots of the old
-build) and `docs/qa/after/` (60).
+build) and `docs/qa/after/` (63).
 
 ---
 
@@ -73,6 +73,16 @@ the 56 final captures comes back clean.**
     `clamp(380px, 42%-62%)` instead, and the framing applies to a *restored*
     result too — it had been gated on a trajectory, which hid the world on
     every visit after the one where the shot was taken.
+13. **Practice has no terminal state.** Reported from a playtest: every
+    practice attempt ended on the full result panel and needed an `Again` tap
+    to aim again — ten shots, ten taps, twenty camera moves. The phase is
+    deleted; a landing returns straight to `practice_aim` and the panel is
+    replaced by a three-row readout inside the band aiming already reserves.
+14. **Sound is armed by default, with the two rules that makes mandatory.**
+    Devvit's inline-mode requirements ask for a mute button in the game and a
+    `visibilitychange` handler; neither existed, and the sound toggle was a
+    checkbox two taps deep. §13's palette gained no colour: the mute glyph
+    inherits `currentColor` like every other.
 
 ---
 
@@ -140,7 +150,7 @@ scene erased, and two coral blocks competing for the same eye.
 
 | | Before | After |
 | --- | ---: | ---: |
-| Tests | 240 | **313** |
+| Tests | 240 | **326** |
 | Feed payload (gzip, font included) | ~70 500 B | **35 284 B** |
 | Frame work, 4× CPU, aiming | not measured | **0.80 ms** median |
 | Dropped frames, 6× CPU, aiming | 88 (30fps) | **0** (60fps) |

@@ -276,12 +276,95 @@ describe('practice', () => {
       { type: 'begin_practice' },
       { type: 'fired', shot: shot({ score: 100, isPerfect: true }) },
       { type: 'impact' },
-      { type: 'practice_scored', best: 100, tries: 14 }
+      { type: 'practice_scored', best: 100, tries: 14, shot: shot({ score: 100 }) }
     );
-    assert.equal(state.phase, 'practice_result');
+    // Back to aiming, not to a result: practice has no terminal state any more.
+    assert.equal(state.phase, 'practice_aim');
     assert.equal(state.result?.score, 82.5, 'the ranked score must not move');
     assert.equal(state.practiceBest, 100);
     assert.equal(state.practiceTries, 14);
+  });
+
+  /*
+   * The loop a player reported as tedious: every practice shot ended on the
+   * full result panel and required tapping `Again` to aim once more. Ten shots
+   * meant ten taps and twenty camera moves. The landing now re-arms, so these
+   * tests state what has to stay true for the chain to work.
+   */
+  it('re-arms itself, so a chain of shots needs no button', () => {
+    let state = run(loaded(), { type: 'begin_practice' });
+    for (let i = 1; i <= 3; i++) {
+      state = run(
+        state,
+        { type: 'aim_start' },
+        { type: 'fired', shot: shot({ score: 50 + i }) },
+        { type: 'impact' },
+        { type: 'practice_scored', best: 53, tries: i, shot: shot({ score: 50 + i }) }
+      );
+      assert.equal(state.phase, 'practice_aim', `stalled after shot ${i}`);
+      assert.equal(state.charging, false, `still charging after shot ${i}`);
+    }
+    assert.equal(state.practiceTries, 3);
+  });
+
+  it('keeps the last attempt readable while the next one is thrown', () => {
+    // `practiceLast` is not `shot`: the scene's trajectory is replaced the
+    // instant the player starts the next throw, and the number they are
+    // reading must not blink out with it.
+    const landed = run(
+      loaded(),
+      { type: 'begin_practice' },
+      { type: 'fired', shot: shot({ score: 71.5 }) },
+      { type: 'impact' },
+      { type: 'practice_scored', best: 71.5, tries: 1, shot: shot({ score: 71.5 }) }
+    );
+    const charging = run(landed, { type: 'aim_start' }, {
+      type: 'fired',
+      shot: shot({ score: 12 }),
+    });
+    assert.equal(charging.practiceLast?.score, 71.5);
+  });
+
+  it('measures the delta against the previous attempt only', () => {
+    const first = run(
+      loaded(),
+      { type: 'begin_practice' },
+      { type: 'practice_scored', best: 40, tries: 1, shot: shot({ score: 40 }) }
+    );
+    assert.equal(first.practicePrevScore, null, 'the first shot has no delta');
+    assert.equal(first.practiceIsBest, false, 'the first shot beat nothing');
+
+    const second = run(first, {
+      type: 'practice_scored',
+      best: 62,
+      tries: 2,
+      shot: shot({ score: 62 }),
+    });
+    assert.equal(second.practicePrevScore, 40);
+    assert.equal(second.practiceIsBest, true);
+
+    const third = run(second, {
+      type: 'practice_scored',
+      best: 62,
+      tries: 3,
+      shot: shot({ score: 51 }),
+    });
+    assert.equal(third.practicePrevScore, 62);
+    assert.equal(third.practiceIsBest, false, 'a worse shot is not a best');
+  });
+
+  it('starts a fresh lane each time practice is entered', () => {
+    const state = run(
+      loaded(),
+      { type: 'begin_practice' },
+      { type: 'practice_scored', best: 90, tries: 1, shot: shot({ score: 90 }) },
+      { type: 'leave_practice' },
+      { type: 'begin_practice' }
+    );
+    assert.equal(state.practiceLast, null);
+    assert.equal(state.practicePrevScore, null);
+    // The day's tally survives, because it is the day's, not the visit's.
+    assert.equal(state.practiceBest, 90);
   });
 
   it('restores the official shot when leaving practice', () => {

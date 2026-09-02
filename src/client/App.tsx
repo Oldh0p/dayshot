@@ -1,8 +1,20 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type { JSX } from 'react';
 import { showLoginPrompt, showToast } from '@devvit/web/client';
 
-import { COPY, shareFormatA, shareFormatB, standingFor } from '../shared/copy.ts';
+import {
+  COPY,
+  shareFormatA,
+  shareFormatB,
+  standingFor,
+} from '../shared/copy.ts';
 import { generateLevel } from '../shared/sim.ts';
 import { DEMO_DAY, TARGET_R } from '../shared/tunables.ts';
 import type {
@@ -34,6 +46,7 @@ import { ShotQueue } from './queue.ts';
 import { useScene } from './scene/useScene.ts';
 import { Conditions } from './screens/Conditions.tsx';
 import { DayBar } from './screens/DayBar.tsx';
+import { PracticeStrip } from './screens/PracticeStrip.tsx';
 import { LeaderboardV2 } from './screens/LeaderboardV2.tsx';
 import {
   DayRolled,
@@ -176,7 +189,8 @@ export const App = (): JSX.Element => {
 
   useEffect(() => {
     const online = (): void => dispatch({ type: 'transient', value: null });
-    const offline = (): void => dispatch({ type: 'transient', value: 'offline' });
+    const offline = (): void =>
+      dispatch({ type: 'transient', value: 'offline' });
     window.addEventListener('online', online);
     window.addEventListener('offline', offline);
     return () => {
@@ -255,6 +269,7 @@ export const App = (): JSX.Element => {
           type: 'practice_scored',
           best: tally.best,
           tries: tally.tries,
+          shot,
         });
         track({
           name: 'practice_shot',
@@ -303,7 +318,6 @@ export const App = (): JSX.Element => {
     resultFraming:
       phase === 'result' ||
       phase === 'scoring_pending' ||
-      phase === 'practice_result' ||
       phase === 'warmup_result',
     onAimStart,
     onMisfire,
@@ -498,10 +512,7 @@ export const App = (): JSX.Element => {
      whether there is a board at all. */
   const board = phase === 'result' ? state.board : null;
 
-  const showResult =
-    phase === 'result' ||
-    phase === 'scoring_pending' ||
-    phase === 'practice_result';
+  const showResult = phase === 'result' || phase === 'scoring_pending';
 
   const bannerText =
     state.transient === 'offline'
@@ -559,118 +570,130 @@ export const App = (): JSX.Element => {
           instead -- which is why the leaderboard is a page and not a section.
         */}
         <section className="safe-bottom mt-auto w-full overflow-hidden pb-2">
-        {isWarmup(phase) && phase !== 'warmup_result' && (
-          <div className="pb-3 text-center text-[15px] font-bold tracking-wide text-[color:var(--color-gold)]">
-            {loggedOut ? COPY.demoBanner : COPY.warmupBanner}
-          </div>
-        )}
-
-        {phase === 'interstitial' && (
-          <div className="rise pb-8 text-center">
-            <div className="text-[22px] font-extrabold">{COPY.warmupOver}</div>
-            <div className="mt-1 text-[15px] text-[color:var(--color-mist)]">
-              {COPY.warmupOverSub}
+          {isWarmup(phase) && phase !== 'warmup_result' && (
+            <div className="pb-3 text-center text-[15px] font-bold tracking-wide text-[color:var(--color-gold)]">
+              {loggedOut ? COPY.demoBanner : COPY.warmupBanner}
             </div>
-          </div>
-        )}
+          )}
 
-        {aiming && (
-          <>
-            <Conditions
-              level={level}
-              hint={state.showMisfireHint ? COPY.misfireHint : null}
+          {phase === 'interstitial' && (
+            <div className="rise pb-8 text-center">
+              <div className="text-[22px] font-extrabold">
+                {COPY.warmupOver}
+              </div>
+              <div className="mt-1 text-[15px] text-[color:var(--color-mist)]">
+                {COPY.warmupOverSub}
+              </div>
+            </div>
+          )}
+
+          {practiceMode ? (
+            <PracticeStrip
+              last={state.practiceLast}
+              prevScore={state.practicePrevScore}
+              isBest={state.practiceIsBest}
+              best={state.practiceBest}
+              tries={state.practiceTries}
+              targetR={level.targetR}
+              distance={level.distance}
+              charging={charging}
+              onLeave={onLeavePractice}
             />
-            <div
-              className={`pt-5 text-center text-[22px] font-extrabold tracking-[0.18em] ${
-                charging ? '' : 'breathe'
-              }`}
-            >
-              {charging ? COPY.releaseToShoot : COPY.holdToAim}
-            </div>
-            {/*
+          ) : (
+            aiming && (
+              <>
+                <Conditions
+                  level={level}
+                  hint={state.showMisfireHint ? COPY.misfireHint : null}
+                />
+                <div
+                  className={`pt-5 text-center text-[22px] font-extrabold tracking-[0.18em] ${
+                    charging ? '' : 'breathe'
+                  }`}
+                >
+                  {charging ? COPY.releaseToShoot : COPY.holdToAim}
+                </div>
+                {/*
               Said once, and only for the shot it is true of. Not during the
               warm-up, which does not count, and not in practice, which is
               unlimited — claiming "no retries" there would be a lie the player
               can immediately disprove.
             */}
-            {phase === 'ready' && (
-              <div className="pt-1 pb-1 text-center text-[13px] text-[color:var(--color-mist)]">
-                {COPY.stakes}
-              </div>
-            )}
-          </>
-        )}
-
-        {phase === 'warmup_result' && state.shot && (
-          <div className="pb-6 text-center">
-            <div className="text-[13px] tracking-wide text-[color:var(--color-mist)]">
-              {COPY.warmupResultLead}
-            </div>
-            <div className="tabular text-[56px] font-extrabold leading-none">
-              {state.shot.score.toFixed(2)}
-            </div>
-            <div className="flex items-center justify-center gap-1.5 text-[15px] text-[color:var(--color-mist)]">
-              <Glyph paths={TARGET_GLYPH} /> {state.shot.dx.toFixed(1)} from
-              center
-            </div>
-
-            {/* Where the rank would have been. The visitor has just felt the
-                shot, which is the moment the account is worth something. */}
-            {loggedOut && (
-              <div className="rise mt-5 flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  onClick={showLoginPrompt}
-                  className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-7 text-[17px] font-extrabold text-bg"
-                >
-                  {COPY.loggedOut}
-                </button>
-                <span className="text-[13px] text-[color:var(--color-mist)]">
-                  {COPY.loggedOutSub}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {showResult &&
-          (boardOpen && board ? (
-            <LeaderboardV2
-              top={board.top}
-              around={board.around}
-              total={board.total}
-              targetR={level?.targetR ?? TARGET_R}
-              standing={
-                result ? standingFor(result.rank, result.total).line : null
-              }
-              onBack={onCloseBoard}
-            />
-          ) : (
-            (result ?? state.shot) && (
-              <ResultV2
-                result={resultOnScreen(phase, result, state.shot)}
-                targetR={level?.targetR ?? TARGET_R}
-                streak={streakNow}
-                tomorrow={server.tomorrowModifier}
-                msToRollover={msToRollover}
-                perfectsToday={
-                  state.submission?.perfectCountToday ?? server.perfectsToday
-                }
-                pending={phase === 'scoring_pending'}
-                practice={phase === 'practice_result'}
-                practiceBest={state.practiceBest}
-                practiceTries={state.practiceTries}
-                sharedUrl={state.sharedUrl}
-                sharing={sharing}
-                firstReveal={!server.playedToday && !returnedFromPractice}
-                onShare={onShare}
-                onCopy={onCopy}
-                onPractice={onPractice}
-                onBoard={board ? onOpenBoard : null}
-                onLeavePractice={onLeavePractice}
-              />
+                {phase === 'ready' && (
+                  <div className="pt-1 pb-1 text-center text-[13px] text-[color:var(--color-mist)]">
+                    {COPY.stakes}
+                  </div>
+                )}
+              </>
             )
-          ))}
+          )}
+
+          {phase === 'warmup_result' && state.shot && (
+            <div className="pb-6 text-center">
+              <div className="text-[13px] tracking-wide text-[color:var(--color-mist)]">
+                {COPY.warmupResultLead}
+              </div>
+              <div className="tabular text-[56px] font-extrabold leading-none">
+                {state.shot.score.toFixed(2)}
+              </div>
+              <div className="flex items-center justify-center gap-1.5 text-[15px] text-[color:var(--color-mist)]">
+                <Glyph paths={TARGET_GLYPH} /> {state.shot.dx.toFixed(1)} from
+                center
+              </div>
+
+              {/* Where the rank would have been. The visitor has just felt the
+                shot, which is the moment the account is worth something. */}
+              {loggedOut && (
+                <div className="rise mt-5 flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={showLoginPrompt}
+                    className="min-h-12 rounded-[14px] bg-[color:var(--accent)] px-7 text-[17px] font-extrabold text-bg"
+                  >
+                    {COPY.loggedOut}
+                  </button>
+                  <span className="text-[13px] text-[color:var(--color-mist)]">
+                    {COPY.loggedOutSub}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showResult &&
+            (boardOpen && board ? (
+              <LeaderboardV2
+                top={board.top}
+                around={board.around}
+                total={board.total}
+                targetR={level?.targetR ?? TARGET_R}
+                standing={
+                  result ? standingFor(result.rank, result.total).line : null
+                }
+                onBack={onCloseBoard}
+              />
+            ) : (
+              (result ?? state.shot) && (
+                <ResultV2
+                  result={resultOnScreen(phase, result, state.shot, level.distance)}
+                  targetR={level?.targetR ?? TARGET_R}
+                  streak={streakNow}
+                  tomorrow={server.tomorrowModifier}
+                  msToRollover={msToRollover}
+                  perfectsToday={
+                    state.submission?.perfectCountToday ?? server.perfectsToday
+                  }
+                  pending={phase === 'scoring_pending'}
+                        sharedUrl={state.sharedUrl}
+                  sharing={sharing}
+                  firstReveal={!server.playedToday && !returnedFromPractice}
+                  onShare={onShare}
+                  onCopy={onCopy}
+                  onPractice={onPractice}
+                  onBoard={board ? onOpenBoard : null}
+                  />
+              )
+            ))}
         </section>
       </div>
 

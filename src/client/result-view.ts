@@ -20,11 +20,13 @@ import { isPractice } from './machine.ts';
 export const resultOnScreen = (
   phase: Phase,
   official: ResultSummary | null,
-  shot: ShotResult | null
+  shot: ShotResult | null,
+  /** The mat's centre, without which a miss cannot be told short from long. */
+  distance: number | null = null
 ): ResultSummary =>
   isPractice(phase)
-    ? unranked(shot)
-    : (official ?? unranked(shot));
+    ? unranked(shot, distance)
+    : (official ?? unranked(shot, distance));
 
 /**
  * A shot dressed as a result before -- or without -- a server verdict.
@@ -34,11 +36,19 @@ export const resultOnScreen = (
  * attempt, which is never ranked at all. The rank fields are deliberately inert
  * rather than absent: a practice attempt has no standing, and `percentile: 100`
  * is the honest value for "you beat nobody, because nobody was racing".
+ *
+ * `signedDx` used to be a hard-coded 0, and `impactDirection` reads it as
+ * `signedDx < 0 ? 'short' : 'over'` -- so every shot that came through here was
+ * announced as long, including the ones that fell short. Given the day's
+ * distance it is simply the miss, signed.
  */
-export const unranked = (shot: ShotResult | null): ResultSummary => ({
+export const unranked = (
+  shot: ShotResult | null,
+  distance: number | null = null
+): ResultSummary => ({
   score: shot?.score ?? 0,
   dx: shot?.dx ?? 0,
-  signedDx: 0,
+  signedDx: shot && distance !== null ? shot.impactX - distance : 0,
   impact: shot?.impact ?? 'GROUND',
   cliffDrop: shot?.cliffDrop ?? 0,
   holdMs: 0,

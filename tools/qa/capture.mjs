@@ -166,6 +166,33 @@ export const SHOTS = [
     ...MOBILE,
     steps: [{ click: 'Practice' }],
   },
+  /*
+   * The state the practice loop actually lives in: a shot has landed and the
+   * screen is already armed for the next one. Nothing captured this before,
+   * which is how a full result panel sat there for a whole redesign.
+   */
+  {
+    name: 'practice-landed',
+    url: '/',
+    prep: 'played=1',
+    ...MOBILE,
+    steps: [{ click: 'Practice' }, { shoot: 420 }],
+  },
+  /* Two in a row, which is the point: the second one gets a delta. */
+  {
+    name: 'practice-chain',
+    url: '/',
+    prep: 'played=1',
+    ...MOBILE,
+    steps: [{ click: 'Practice' }, { shoot: 300 }, { shoot: 700 }],
+  },
+  {
+    name: 'practice-landed-compact',
+    url: '/',
+    prep: 'played=1',
+    ...COMPACT,
+    steps: [{ click: 'Practice' }, { shoot: 420 }],
+  },
   {
     name: 'help-mobile',
     url: '/',

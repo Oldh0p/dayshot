@@ -20,7 +20,12 @@ import type {
   ResultSummary,
   StreakState,
 } from '../../shared/types.ts';
-import { CASCADE_STEP_MS, COUNT_UP_MS, easeOutCubic, prefersReducedMotion } from '../motion.ts';
+import {
+  CASCADE_STEP_MS,
+  COUNT_UP_MS,
+  easeOutCubic,
+  prefersReducedMotion,
+} from '../motion.ts';
 import { paletteFor } from '../theme.ts';
 import { Glyph } from '../ui/Glyph.tsx';
 import { COPY_GLYPH, FLAME_GLYPH, MODIFIER_GLYPH } from '../ui/glyphs.ts';
@@ -57,7 +62,10 @@ const useCascade = (active: boolean): number => {
   useEffect(() => {
     if (!animate) return;
     const timers = Array.from({ length: CASCADE_STEPS }, (_, i) =>
-      window.setTimeout(() => setRevealed(i + 1), COUNT_UP_MS + i * CASCADE_STEP_MS)
+      window.setTimeout(
+        () => setRevealed(i + 1),
+        COUNT_UP_MS + i * CASCADE_STEP_MS
+      )
     );
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [animate]);
@@ -118,9 +126,6 @@ export const ResultV2 = (props: {
   readonly msToRollover: number;
   readonly perfectsToday: number;
   readonly pending: boolean;
-  readonly practice: boolean;
-  readonly practiceBest: number;
-  readonly practiceTries: number;
   readonly sharedUrl: string | null;
   readonly sharing: boolean;
   /** First reveal cascades; coming back from practice is instant (§6). */
@@ -129,10 +134,9 @@ export const ResultV2 = (props: {
   readonly onCopy: () => void;
   readonly onPractice: () => void;
   readonly onBoard: (() => void) | null;
-  readonly onLeavePractice: () => void;
 }): JSX.Element => {
   const { result } = props;
-  const animate = !props.practice && props.firstReveal;
+  const animate = props.firstReveal;
   const score = useCountUp(result.score, animate);
   const revealed = useCascade(animate);
 
@@ -153,13 +157,9 @@ export const ResultV2 = (props: {
         <span
           className={`text-[28px] font-extrabold tracking-[-0.01em] ${TONE_CLASS[tone]}`}
         >
-          {props.practice ? COPY.practiceWatermark : verdict}
+          {verdict}
         </span>
-        <span
-          className={`tabular text-[44px] font-extrabold leading-none ${
-            props.practice ? 'italic text-[color:var(--color-mist)]' : ''
-          }`}
-        >
+        <span className="tabular text-[44px] font-extrabold leading-none">
           {formatScore(score)}
         </span>
       </div>
@@ -177,162 +177,114 @@ export const ResultV2 = (props: {
             })}
       </div>
 
-      {props.practice ? (
-        <PracticeActions
-          best={props.practiceBest}
-          tries={props.practiceTries}
-          onAgain={props.onPractice}
-          onLeave={props.onLeavePractice}
-        />
-      ) : (
-        <>
-          {/* 4: how the day compares. */}
-          <Step index={0} revealed={revealed}>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px]">
-              {props.pending ? (
-                <span className="text-[color:var(--color-mist)]">
-                  {COPY.scoringPending}
-                </span>
-              ) : (
-                <>
-                  <span
-                    className={`font-extrabold tabular ${
-                      standing.chip === 'gold'
-                        ? 'text-[color:var(--color-gold)]'
-                        : standing.chip === 'coral'
-                          ? 'text-[color:var(--color-coral)]'
-                          : 'text-[color:var(--color-ink)]'
-                    }`}
-                  >
-                    {standing.line}
-                  </span>
-                  {standing.rankLine && (
-                    <span className="tabular text-[color:var(--color-mist)]">
-                      {standing.rankLine}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          </Step>
-
-          {/* 5: the streak. */}
-          <Step index={1} revealed={revealed}>
-            <div className="mt-2 flex items-center gap-1.5 text-[15px] font-semibold tabular">
-              <span className="text-[color:var(--color-coral)]">
-                <Glyph paths={FLAME_GLYPH} />
+      {/* 4: how the day compares. */}
+      <Step index={0} revealed={revealed}>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px]">
+          {props.pending ? (
+            <span className="text-[color:var(--color-mist)]">
+              {COPY.scoringPending}
+            </span>
+          ) : (
+            <>
+              <span
+                className={`font-extrabold tabular ${
+                  standing.chip === 'gold'
+                    ? 'text-[color:var(--color-gold)]'
+                    : standing.chip === 'coral'
+                      ? 'text-[color:var(--color-coral)]'
+                      : 'text-[color:var(--color-ink)]'
+                }`}
+              >
+                {standing.line}
               </span>
-              {props.streak.justReset
-                ? streakResetLine(props.streak.longest)
-                : streakTextLine(props.streak.current)}
-            </div>
-          </Step>
-
-          {result.isPerfect && props.perfectsToday > 0 && (
-            <Step index={2} revealed={revealed}>
-              <div className="mt-1 text-[13px] text-[color:var(--color-gold)]">
-                {perfectsTodayLine(props.perfectsToday)}
-              </div>
-            </Step>
+              {standing.rankLine && (
+                <span className="tabular text-[color:var(--color-mist)]">
+                  {standing.rankLine}
+                </span>
+              )}
+            </>
           )}
+        </div>
+      </Step>
 
-          {/* 6: what to do. One filled block, then two equal ghosts. */}
-          <Step index={3} revealed={revealed}>
-            <div className="mt-4 flex flex-col gap-2">
+      {/* 5: the streak. */}
+      <Step index={1} revealed={revealed}>
+        <div className="mt-2 flex items-center gap-1.5 text-[15px] font-semibold tabular">
+          <span className="text-[color:var(--color-coral)]">
+            <Glyph paths={FLAME_GLYPH} />
+          </span>
+          {props.streak.justReset
+            ? streakResetLine(props.streak.longest)
+            : streakTextLine(props.streak.current)}
+        </div>
+      </Step>
+
+      {result.isPerfect && props.perfectsToday > 0 && (
+        <Step index={2} revealed={revealed}>
+          <div className="mt-1 text-[13px] text-[color:var(--color-gold)]">
+            {perfectsTodayLine(props.perfectsToday)}
+          </div>
+        </Step>
+      )}
+
+      {/* 6: what to do. One filled block, then two equal ghosts. */}
+      <Step index={3} revealed={revealed}>
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={props.onShare}
+            disabled={props.sharing || props.sharedUrl !== null}
+            className="h-[56px] w-full rounded-button bg-[color:var(--color-coral)] text-[17px] font-extrabold tracking-wide text-bg transition-opacity disabled:opacity-55"
+          >
+            {props.sharedUrl ? COPY.sharePosted : COPY.postMyShot}
+          </button>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={props.onPractice}
+              className="h-11 min-h-12 flex-1 rounded-button border border-white/20 text-[15px]"
+            >
+              {COPY.practice}
+            </button>
+            {props.onBoard && (
               <button
                 type="button"
-                onClick={props.onShare}
-                disabled={props.sharing || props.sharedUrl !== null}
-                className="h-[56px] w-full rounded-button bg-[color:var(--color-coral)] text-[17px] font-extrabold tracking-wide text-bg transition-opacity disabled:opacity-55"
+                onClick={props.onBoard}
+                className="h-11 min-h-12 flex-1 rounded-button border border-white/20 text-[15px]"
               >
-                {props.sharedUrl ? COPY.sharePosted : COPY.postMyShot}
+                {COPY.viewBoard}
               </button>
+            )}
+            <button
+              type="button"
+              onClick={props.onCopy}
+              aria-label={COPY.copyCard}
+              className="grid h-11 min-h-12 w-12 place-items-center rounded-button border border-white/20 text-[color:var(--color-mist)]"
+            >
+              <Glyph paths={COPY_GLYPH} size={16} />
+            </button>
+          </div>
+        </div>
+      </Step>
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={props.onPractice}
-                  className="h-11 min-h-12 flex-1 rounded-button border border-white/20 text-[15px]"
-                >
-                  {COPY.practice}
-                </button>
-                {props.onBoard && (
-                  <button
-                    type="button"
-                    onClick={props.onBoard}
-                    className="h-11 min-h-12 flex-1 rounded-button border border-white/20 text-[15px]"
-                  >
-                    {COPY.viewBoard}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={props.onCopy}
-                  aria-label={COPY.copyCard}
-                  className="grid h-11 min-h-12 w-12 place-items-center rounded-button border border-white/20 text-[color:var(--color-mist)]"
-                >
-                  <Glyph paths={COPY_GLYPH} size={16} />
-                </button>
-              </div>
-            </div>
-          </Step>
-
-          {/* 7: tomorrow, as a strip of its sky and one line. */}
-          <Step index={4} revealed={revealed}>
-            <div className="mt-4">
-              <div
-                className="h-1 w-full rounded-full"
-                style={{ backgroundColor: tomorrowSky }}
-                aria-hidden="true"
-              />
-              <div className="mt-2 flex items-center justify-between text-[13px] text-[color:var(--color-mist)]">
-                <span className="flex items-center gap-1.5">
-                  <Glyph paths={MODIFIER_GLYPH[props.tomorrow]} />
-                  {tomorrowTextLine(props.tomorrow)}
-                </span>
-                <span className="tabular">{nextShotLine(props.msToRollover)}</span>
-              </div>
-            </div>
-          </Step>
-        </>
-      )}
+      {/* 7: tomorrow, as a strip of its sky and one line. */}
+      <Step index={4} revealed={revealed}>
+        <div className="mt-4">
+          <div
+            className="h-1 w-full rounded-full"
+            style={{ backgroundColor: tomorrowSky }}
+            aria-hidden="true"
+          />
+          <div className="mt-2 flex items-center justify-between text-[13px] text-[color:var(--color-mist)]">
+            <span className="flex items-center gap-1.5">
+              <Glyph paths={MODIFIER_GLYPH[props.tomorrow]} />
+              {tomorrowTextLine(props.tomorrow)}
+            </span>
+            <span className="tabular">{nextShotLine(props.msToRollover)}</span>
+          </div>
+        </div>
+      </Step>
     </section>
   );
 };
-
-/**
- * Practice keeps one private number and offers no way to share (GDD 20). The
- * score above is this attempt's; this line is the day's best, as context.
- */
-const PracticeActions = (props: {
-  readonly best: number;
-  readonly tries: number;
-  readonly onAgain: () => void;
-  readonly onLeave: () => void;
-}): JSX.Element => (
-  <div className="mt-4 flex flex-col gap-3">
-    {props.tries > 0 && (
-      <div className="text-[13px] italic tabular text-[color:var(--color-mist)]">
-        {`Practice best today: ${formatScore(props.best)} (in ${props.tries} ${
-          props.tries === 1 ? 'try' : 'tries'
-        })`}
-      </div>
-    )}
-    <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={props.onAgain}
-        className="h-[56px] flex-1 rounded-button border border-white/25 text-[17px] font-bold"
-      >
-        {COPY.practiceAgain}
-      </button>
-      <button
-        type="button"
-        onClick={props.onLeave}
-        className="h-[56px] flex-1 rounded-button text-[15px] text-[color:var(--color-mist)]"
-      >
-        {COPY.practiceLeave}
-      </button>
-    </div>
-  </div>
-);

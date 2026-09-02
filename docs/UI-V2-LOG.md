@@ -472,3 +472,45 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   modifier truncates instead, as it already did.
 - **318 tests, 60 captures, zero scroll, zero clipping.** The aiming screen went
   from 2 keyboard-reachable controls to 3, still none under 48px.
+
+---
+
+## Post-playtest 5 — practice stopped asking permission to continue
+
+- **"On est obligé d'appuyer sur Again à chaque fois."** Practice ended every
+  attempt on the full result panel — the same slab the official shot gets, with
+  a verdict word and a rank row it has no rank for — and required a tap to
+  reopen aiming. Ten shots meant ten taps. It also meant **twenty camera moves**:
+  `practice_result` was in `resultFraming`, so every landing eased the ground
+  line up over 400ms and every `Again` snapped it back down.
+- **The phase is gone.** `practice_result` is deleted from the `Phase` union and
+  `impact` returns `practice_flight` straight to `practice_aim`. That is the
+  whole mechanism: `canAim` already listed `practice_aim`, `guardMisfire` is
+  already false there, `fired` already routes it — the loop closes without a new
+  branch. Hold anywhere, or Space, and the next shot charges.
+- **A readout, not a result.** `PracticeStrip` is three fixed-height rows inside
+  the 25% band aiming already reserves (130px of 142 at 320×568): the attempt's
+  score at 44px italic, `NEW BEST` or the delta from the previous attempt, where
+  it landed, the day's best, then a breathing `HOLD TO AIM` beside the one way
+  out. Fixed heights are the point — nothing moves between attempts, so a
+  chaining player never re-finds the number they are reading.
+- **`practiceLast` is not `state.shot`.** The scene's trajectory is replaced the
+  instant the next throw begins, and the number being read must not blink out
+  with it. Written only at impact, it survives the whole next charge and flight.
+- **A live bug found on the way.** `unranked()` hard-coded `signedDx: 0`, and
+  `impactDirection` reads `signedDx < 0 ? 'short' : 'over'` — so every practice
+  attempt was announced as long, including the ones that fell short, and so was
+  the official shot for the second between impact and the server's answer. The
+  one thing practice exists to tell you is which way to correct. Given the day's
+  distance it is just the miss, signed; four tests hold the sign now.
+- **Two collisions closed.** The screen is a hold target the whole time in
+  practice, so `Back to my shot` and both day-bar buttons stop their pointer
+  events — without that, tapping mute charges a shot and letting go throws it.
+  The official shot was covered by the misfire guard; practice deliberately is
+  not, which is exactly where it would have bitten.
+- **Dead weight removed.** `ResultV2` lost its `practice`, `practiceBest`,
+  `practiceTries` and `onLeavePractice` props and the whole `PracticeActions`
+  block: practice never reaches that component again.
+- **326 tests, 63 captures, zero scroll, zero clipping.** Two of the captures are
+  new and are the state the loop actually lives in — a shot landed, the screen
+  already armed — which nothing had ever photographed.
