@@ -43,6 +43,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // -- shot list ---------------------------------------------------------------
 
 const MOBILE = { w: 390, h: 720 };
+/** §12's third mobile reference, and the compact case below 360. */
+const LARGE = { w: 430, h: 860 };
+const COMPACT = { w: 320, h: 568 };
 const SMALL = { w: 360, h: 640 };
 const TINY = { w: 360, h: 350 };
 const FEED_DESKTOP = { w: 700, h: 512 };
@@ -161,6 +164,20 @@ export const SHOTS = [
     steps: [{ click: 'POST MY SHOT' }],
   },
   ...ATMOSPHERE_SHOTS,
+
+  /*
+   * §12's full ladder. Everything above is 390x720 or 360x640; these are the
+   * two ends nobody looks at until something is cut off on them.
+   */
+  { name: 'size-ready-large', url: '/', prep: 'played=0', ...LARGE },
+  { name: 'size-ready-compact', url: '/', prep: 'played=0', ...COMPACT },
+  { name: 'size-result-large', url: '/', prep: 'played=1', ...LARGE },
+  { name: 'size-result-compact', url: '/', prep: 'played=1', ...COMPACT },
+  { name: 'size-board-compact', url: '/', prep: 'played=1', ...COMPACT, steps: [{ click: 'Leaderboard' }] },
+  { name: 'size-feed-compact', url: '/splash.html', prep: 'played=0&streak=7', w: 320, h: 350 },
+  { name: 'size-feed-large', url: '/splash.html', prep: 'played=0&streak=7', w: 430, h: 512 },
+  { name: 'size-help-compact', url: '/', prep: 'played=1', ...COMPACT, steps: [{ click: '?' }] },
+  { name: 'size-consent-compact', url: '/', prep: 'played=1', ...COMPACT, steps: [{ click: 'POST MY SHOT' }] },
 ];
 
 // -- CDP client --------------------------------------------------------------

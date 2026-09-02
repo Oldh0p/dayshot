@@ -274,3 +274,27 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   celebration needs a live shot and is a playtest item.
 - **Left:** the streak's `7 → 8` flip is not animated; the flight camera has its
   apex zoom but no parallax; and the ≤20s session budget has not been timed.
+
+---
+
+## Phase 8 — Responsive
+
+- **Done.** §12's full ladder is in the capture rig: 320×568 compact, 360×640,
+  390×720, 430×860, plus feed at 320×350 and 430×512 and expanded desktop.
+  Safe-area padding on every surface that sits against the bottom edge — the
+  result panel, the board, the aiming panel and the feed's CTA — and expanded
+  desktop is a centred 480px portrait panel rather than a game stretched across
+  a monitor.
+- **Verified.** 307 tests, **52 captures, zero scroll, zero clipping**.
+- **One real break, found by the ladder and fixed by the spec.** The leaderboard
+  was clipped at 320×568: eleven rows plus a header, a standing line and a
+  button do not fit 568px. The endpoint sends a window of radius three, and §7
+  asks for radius two — so the fix and the spec conformance were the same edit,
+  and it needed no backend change.
+- **And a second bug inside the fix.** The first version shrank the window at
+  the edges instead of sliding it, so a player in last place saw three
+  neighbours instead of five — fewer rows for exactly the player who most needs
+  to see someone ahead of them. Caught by a test written before the capture.
+- **Left:** §12's compact tweaks (score at 40px, condition cards on one line)
+  are not implemented; nothing is cut without them, so they are polish rather
+  than a fix.

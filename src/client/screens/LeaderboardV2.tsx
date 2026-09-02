@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 
 import { boardEarly, COPY, formatCount, formatScore } from '../../shared/copy.ts';
 import type { LeaderboardEntry } from '../../shared/types.ts';
-import { boardState, distanceLabel } from './board-math.ts';
+import { boardState, distanceLabel, windowAround } from './board-math.ts';
 
 /**
  * The day's board (§7, wireframe H).
@@ -70,15 +70,15 @@ export const LeaderboardV2 = (props: {
   readonly standing: string | null;
   readonly onBack: () => void;
 }): JSX.Element => {
-  const window = props.around.filter(
-    (e) => !props.top.some((t) => t.rank === e.rank)
+  const window = windowAround(
+    props.around.filter((e) => !props.top.some((t) => t.rank === e.rank))
   );
   const lastTop = props.top[props.top.length - 1]?.rank ?? 0;
   const gap = window.length > 0 && (window[0]?.rank ?? 0) > lastTop + 1;
   const state = boardState(props.total, window);
 
   return (
-    <section className="w-full rounded-t-[24px] bg-[color:var(--color-bg-elevated)] px-4 pt-4 pb-4">
+    <section className="safe-bottom w-full rounded-t-[24px] bg-[color:var(--color-bg-elevated)] px-4 pt-4 pb-4">
       <header className="flex items-baseline justify-between px-2 pb-2">
         <span className="text-[12px] font-bold tracking-[0.06em] text-[color:var(--color-mist)]">
           {COPY.boardTitle}

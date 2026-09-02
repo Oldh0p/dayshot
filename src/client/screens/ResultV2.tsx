@@ -147,7 +147,7 @@ export const ResultV2 = (props: {
   const tomorrowSky = paletteFor(props.tomorrow, 0).skyHigh;
 
   return (
-    <section className="w-full rounded-t-[24px] bg-[color:var(--color-bg-elevated)] px-5 pt-4 pb-4">
+    <section className="safe-bottom w-full rounded-t-[24px] bg-[color:var(--color-bg-elevated)] px-5 pt-4 pb-4">
       {/* 2 and 3: the word and the number, on one line (§6). */}
       <div className="flex items-baseline justify-between gap-3">
         <span

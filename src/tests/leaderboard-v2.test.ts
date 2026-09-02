@@ -6,6 +6,7 @@ import {
   distanceLabel,
   dxForScore,
   MIN_FOR_BOARD,
+  windowAround,
 } from '../client/screens/board-math.ts';
 import { boardEarly, COPY } from '../shared/copy.ts';
 import { scoreForDx } from '../shared/sim.ts';
@@ -68,6 +69,37 @@ describe('recovering the distance from the score (§7)', () => {
     const dx = 137;
     const score = scoreForDx(dx, TARGET_R);
     assert.ok(Math.abs(scoreForDx(dxForScore(score, TARGET_R), TARGET_R) - score) < 0.01);
+  });
+});
+
+describe("the window around you (§7)", () => {
+  const row = (rank: number, isMe = false) => ({ rank, isMe });
+
+  it('keeps two above and two below', () => {
+    const rows = [180, 181, 182, 183, 184, 185, 186].map((r) => row(r, r === 183));
+    const shown = windowAround(rows).map((r) => r.rank);
+    assert.deepEqual(shown, [181, 182, 183, 184, 185]);
+  });
+
+  it('slides rather than shrinking at the edges of what was sent', () => {
+    const top = [1, 2, 3, 4, 5].map((r) => row(r, r === 1));
+    assert.deepEqual(windowAround(top).map((r) => r.rank), [1, 2, 3, 4, 5]);
+    const bottom = [96, 97, 98, 99, 100].map((r) => row(r, r === 100));
+    assert.deepEqual(windowAround(bottom).map((r) => r.rank), [96, 97, 98, 99, 100]);
+  });
+
+  it('leaves the rows alone when there is no centre to trim around', () => {
+    // No `isMe` means the player has not shot; the caller shows the "not
+    // played" state, and inventing a centre here would hide rows for nothing.
+    const rows = [1, 2, 3].map((r) => row(r));
+    assert.equal(windowAround(rows).length, 3);
+  });
+
+  it('fits the shortest screen §12 designs for', () => {
+    // The bug this fixes, as a number: eleven rows plus a header, a standing
+    // line and a button do not fit 320x568, and the panel was measured clipped.
+    const rows = Array.from({ length: 7 }, (_, i) => row(180 + i, i === 3));
+    assert.ok(windowAround(rows).length <= 5);
   });
 });
 

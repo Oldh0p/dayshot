@@ -38,6 +38,38 @@ export const dxForScore = (score: number, targetR: number): number => {
   return (low + high) / 2;
 };
 
+/**
+ * §7's window: two above and two below, five rows.
+ *
+ * The endpoint sends a radius of three, which is seven rows and eleven in
+ * total with the leaders — enough to overflow a 320x568 screen, where the panel
+ * was measured clipped. Trimming here rather than changing the endpoint keeps
+ * the backend untouched (the redesign may add one field and this is not it) and
+ * happens to be what §7 asked for in the first place.
+ */
+export const WINDOW_RADIUS = 2;
+
+/**
+ * The five rows around the player, from whatever the endpoint sent.
+ *
+ * Centred on `isMe` when it is there. When it is not — the player has not shot
+ * — there is no centre to trim around, so the rows are left alone and the
+ * caller shows the "not played" state instead.
+ */
+export const windowAround = <T extends { readonly isMe: boolean }>(
+  rows: readonly T[]
+): readonly T[] => {
+  const me = rows.findIndex((r) => r.isMe);
+  if (me < 0) return rows;
+
+  const size = WINDOW_RADIUS * 2 + 1;
+  // Slide rather than shrink. A player in last place has nothing below them,
+  // and centring on that would drop two rows that exist above -- fewer
+  // neighbours precisely for the player who most needs to see someone ahead.
+  const from = Math.max(0, Math.min(me - WINDOW_RADIUS, rows.length - size));
+  return rows.slice(from, from + size);
+};
+
 /** §7: under this many players there is no ranking worth drawing. */
 export const MIN_FOR_BOARD = 5;
 

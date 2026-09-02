@@ -116,6 +116,32 @@ body,
   overflow: hidden;
 }
 
+/*
+ * Expanded on a wide screen is a portrait panel, not a stretched game (§12).
+ *
+ * The 1000-unit world is fitted to the width, so letting it fill a 1440px
+ * monitor makes the scene enormous and the panel a ribbon across the bottom.
+ * §12 caps it at 480 and centres it, which is also the shape the app has on the
+ * device most people will play on.
+ */
+@media (min-width: 900px) {
+  #root {
+    max-width: 480px;
+    margin-inline: auto;
+  }
+}
+
+/*
+ * Safe areas (§12).
+ *
+ * The bottom inset is the one that matters: every screen in this game puts
+ * something tappable against the bottom edge — the CTA, the aim pill, the
+ * board's back button — and a home indicator sits exactly there.
+ */
+.safe-bottom {
+  padding-bottom: max(var(--safe-bottom-min, 8px), env(safe-area-inset-bottom));
+}
+
 /* Scores, countdowns and ranks must not jitter as their digits change. */
 .tabular {
   font-variant-numeric: tabular-nums;

@@ -527,7 +527,7 @@ export const App = (): JSX.Element => {
           waiting for. Anything that does not fit is reached with a button
           instead -- which is why the leaderboard is a page and not a section.
         */}
-        <section className="mt-auto w-full overflow-hidden pb-2">
+        <section className="safe-bottom mt-auto w-full overflow-hidden pb-2">
         {isWarmup(phase) && phase !== 'warmup_result' && (
           <div className="pb-3 text-center text-[15px] font-bold tracking-wide text-[color:var(--color-gold)]">
             {loggedOut ? COPY.demoBanner : COPY.warmupBanner}
