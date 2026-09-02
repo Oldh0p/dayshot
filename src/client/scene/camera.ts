@@ -110,7 +110,10 @@ export const resultFraming = (
   // the player into a microscope.
   const scale = Math.min(
     Math.max(wanted, base.scale, MIN_TARGET_PX / Math.max(1, targetR)),
-    base.scale * 2.4
+    // A push-in, not a new scene. At 2.4x the result was a different world from
+    // the one the shot was taken in, and arriving there in a cut made three
+    // framings in about a second -- too many to follow.
+    base.scale * 1.5
   );
 
   const centreX = (left + right) / 2;
@@ -124,6 +127,28 @@ export const resultFraming = (
     height: canvasHeight,
   };
 };
+
+/**
+ * Between two framings, so the result arrives as a move rather than a cut.
+ *
+ * §6 asks for 400ms out-expo and the first implementation simply swapped
+ * cameras on the frame the ball landed. Combined with the ground line jumping
+ * when the aiming panel's reservation disappeared, a single shot produced three
+ * different worlds in about a second.
+ */
+export const lerpCamera = (from: Camera, to: Camera, t: number): Camera => {
+  const eased = 1 - Math.pow(1 - clamp01(t), 5); // out-expo
+  return {
+    scale: lerp(from.scale, to.scale, eased),
+    originX: lerp(from.originX, to.originX, eased),
+    originY: lerp(from.originY, to.originY, eased),
+    width: to.width,
+    height: to.height,
+  };
+};
+
+/** §6: how long the result framing takes to arrive. */
+export const RESULT_FRAMING_MS = 400;
 
 export const toScreenX = (camera: Camera, x: number): number =>
   camera.originX + x * camera.scale;

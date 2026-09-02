@@ -60,6 +60,13 @@ the 56 final captures comes back clean.**
 10. **Space and Enter take the shot.** Not in the spec; the accessibility pass
     measured the aiming screen at one keyboard-reachable control, which
     silently excluded anyone not using a thumb.
+11. **The camera moves once per shot, and it moves rather than cuts.** Reported
+    from a real playtest: a single shot produced three framings in about a
+    second. Two were bugs — the ground line jumped because the aiming panel's
+    reservation was tied to `canAim`, and §6's 400ms result framing had never
+    been interpolated — and the third was a 2.4× push-in that made the result a
+    different world. Now: nothing moves at release, and one eased move when the
+    ball stops.
 
 ---
 
@@ -127,7 +134,7 @@ scene erased, and two coral blocks competing for the same eye.
 
 | | Before | After |
 | --- | ---: | ---: |
-| Tests | 240 | **303** |
+| Tests | 240 | **309** |
 | Feed payload (gzip, font included) | ~70 500 B | **35 284 B** |
 | Frame work, 4× CPU, aiming | not measured | **0.80 ms** median |
 | Dropped frames, 6× CPU, aiming | 88 (30fps) | **0** (60fps) |

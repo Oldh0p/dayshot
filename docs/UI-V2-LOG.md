@@ -356,3 +356,24 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   the flight camera has no parallax, §12's compact type tweaks are unbuilt, and
   six things cannot be verified outside a real device — the report says which,
   and how to test each at playtest.
+
+---
+
+## Post-playtest — the camera moved three times
+
+- **Reported from a real device**, not from a capture: a single shot produced
+  three framings in about a second, and the player could not follow it. Two of
+  the three were bugs rather than design.
+- **The ground line jumped at release.** The aiming panel's reservation was
+  `canAim ? PANEL_SHARE : 0`, so the instant the thumb lifted the world dropped
+  a quarter of the screen — a hard cut at the exact moment the player is
+  watching the ball. The band is constant now: §5's wireframe F keeps the
+  condition cards on screen during the flight anyway.
+- **§6's result framing had never been interpolated.** The camera swapped on the
+  single frame the ball landed. It eases over the 400ms the spec asked for,
+  borrowing the `landedAt` clock Pip's reactions already use.
+- **And the push-in was too far.** 2.4× made the result a different world from
+  the one the shot was taken in; 1.5× is a push-in, and the mat still clears its
+  24px floor.
+- **Six tests** state the rule that came out of it: the camera moves once per
+  shot, and it moves rather than cuts. 309 tests, 56 captures, all clean.

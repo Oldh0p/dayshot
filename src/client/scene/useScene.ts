@@ -22,7 +22,15 @@ import {
   slowMotionScale,
 } from '../motion.ts';
 import type { Palette } from '../theme.ts';
-import { apexOf, buildCamera, flightZoom, PANEL_SHARE, resultFraming } from './camera.ts';
+import {
+  apexOf,
+  buildCamera,
+  flightZoom,
+  lerpCamera,
+  PANEL_SHARE,
+  RESULT_FRAMING_MS,
+  resultFraming,
+} from './camera.ts';
 import { ATMOSPHERE } from '../theme.ts';
 import type { ModifierId } from '../../shared/types.ts';
 import { PARTICLES } from '../ui/tokens.ts';
@@ -288,12 +296,26 @@ export const useScene = (options: SceneOptions): {
       // -- Camera ---------------------------------------------------------
       const apex = playing ? apexOf(playing.trajectory) : 700;
       const zoom = playing ? flightZoom(flightProgress) : 1;
-      // The panel only owns the bottom of the frame while the player is
-      // aiming; once the ball is away it is the scene's again.
-      const inset = opts.canAim ? height * PANEL_SHARE : 0;
-      const base = buildCamera(width, height, apex, zoom, inset);
+      /*
+       * One ground line for the whole session.
+       *
+       * This used to be `canAim ? PANEL_SHARE : 0`, so the instant the thumb
+       * lifted the reservation vanished and the world dropped a quarter of the
+       * screen -- a hard cut at the exact moment the player is watching the
+       * ball. The panel is still on screen during the flight (§5's wireframe F
+       * keeps the condition cards), so it keeps its band.
+       */
+      const base = buildCamera(width, height, apex, zoom, height * PANEL_SHARE);
       const landed = opts.shot;
-      const camera =
+      /*
+       * The one camera move of the session, and it is a move.
+       *
+       * `landedAt` already exists for Pip's reactions, so the framing borrows
+       * the same clock: for 400ms after the ball stops the camera eases from
+       * the shot's own framing to the one that answers "how close was that",
+       * and after that it simply is that framing.
+       */
+      const framed =
         opts.resultFraming && landed
           ? resultFraming(
               width,
@@ -304,7 +326,13 @@ export const useScene = (options: SceneOptions): {
               height * opts.resultPanelShare,
               base
             )
-          : base;
+          : null;
+
+      const settle =
+        framed && state.landedAt !== null
+          ? (state.time - state.landedAt) / (RESULT_FRAMING_MS / 1000)
+          : 1;
+      const camera = framed ? lerpCamera(base, framed, settle) : base;
 
       const shakeMagnitude =
         state.shakeLeft > 0
