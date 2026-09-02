@@ -218,3 +218,31 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   the documented query-string route does not build, and the workable version
   adds two entrypoints to an app awaiting review for a path that is already one
   tap away. P2's streak column in the window is untouched.
+
+---
+
+## Phase 6 — Atmospheres everywhere
+
+- **Done.** Four decorations that make a day nameable without reading the chip:
+  Clear Skies' seeded constellation, Long Shot's distance ticks every 100 units,
+  Tiny Target's spotlight cone, and the Crosswind/Gusty pennant — which is the
+  only decoration carrying information, and reads the wind from `windAt`, the
+  same function the ball obeys. The feed gained Moon Gravity's moon and §11's
+  per-atmosphere particle density under §13's ceiling.
+- **Verified.** 40 captures, zero scroll, zero clipping, 298 tests. Frame time
+  held: 4x CPU gives 0 dropped frames aiming and 6 in flight, with the new decor
+  in. All seven modifiers captured in the feed and in the game.
+- **The harness serves a real day, not a claimed modifier.** `?mod=MOON` searches
+  forward for a day whose seed genuinely draws it — because the client
+  regenerates the level from the day number, so overriding the field would put
+  the day bar and the scene back in the disagreement this harness already had
+  once. Every modifier turns up within about fifty days.
+- **The gate is subjective and it passes.** Tiny Target is a spotlight on a
+  visibly halved mat in near-still air; Crosswind is a sky full of streaks with a
+  coral pennant leaning the same way as the wind arrow; Moon Gravity is an
+  indigo sky and a moon behind the mat. Clear Skies and Tiny Target still share
+  a gradient, exactly as §11 specifies, and are not confusable.
+- **Left:** Tailwind's low speed lines and Gusty's periodic bursts are described
+  in `ATMOSPHERE` and not yet drawn — both are motion, and phase 7 owns motion.
+  Tailwind currently reads as "warm sky, wind arrow right", which is thinner than
+  the others.

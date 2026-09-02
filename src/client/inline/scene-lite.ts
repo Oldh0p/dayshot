@@ -1,5 +1,5 @@
 import { drawPip } from '../scene/pip.ts';
-import { paletteFor, type Palette } from '../theme.ts';
+import { ATMOSPHERE, paletteFor, type Palette } from '../theme.ts';
 import { COLOR, MAX_DPR, PARTICLES, RING } from '../ui/tokens.ts';
 import type { ModifierId } from '../../shared/types.ts';
 
@@ -80,6 +80,7 @@ export class InlineScene {
   #canvas: HTMLCanvasElement;
   #ctx: CanvasRenderingContext2D;
   #palette: Palette;
+  #modifier: ModifierId;
   #mode: SceneMode;
   #reduced: boolean;
   #drifters: Drifter[] = [];
@@ -96,6 +97,7 @@ export class InlineScene {
     if (!ctx) throw new Error('no 2d context');
     this.#ctx = ctx;
     this.#palette = paletteFor(options.modifier, 0);
+    this.#modifier = options.modifier;
     this.#mode = options.mode;
     this.#reduced = options.reducedMotion;
     this.#resize();
@@ -182,7 +184,11 @@ export class InlineScene {
   #seedDrifters(): void {
     const { w, h } = this.#box();
     // §13 caps the feed at 24 particles, whatever the modifier asks for.
-    const count = this.#reduced ? 0 : PARTICLES.feed;
+    // §11's density, under §13's absolute feed ceiling. A Tiny Target card is
+    // nearly still and a Gusty one is busy, in the feed as in the game.
+    const count = this.#reduced
+      ? 0
+      : Math.max(3, Math.round(PARTICLES.feed * ATMOSPHERE[this.#modifier].density));
     this.#drifters = Array.from({ length: count }, (_, i) => ({
       x: ((i * 97) % 100) / 100 * w,
       y: ((i * 61) % 100) / 100 * h * 0.7,
@@ -202,6 +208,7 @@ export class InlineScene {
 
     ctx.clearRect(0, 0, w, h);
     this.#sky(w, h);
+    this.#moon(w, L);
     if (!this.#reduced) this.#drift(w, h);
     this.#ground(w, h, L);
     this.#plateau(L);
@@ -220,6 +227,37 @@ export class InlineScene {
     sky.addColorStop(1, this.#palette.skyLow);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, h);
+  }
+
+  /**
+   * Moon Gravity's moon (§11), in the feed as in the game.
+   *
+   * The single strongest identifier the seven have: an indigo sky says
+   * "different day", a moon says *which* one. Without it the card was themed
+   * and still not nameable, which is the bar this phase is held to.
+   */
+  #moon(w: number, L: ReturnType<typeof layout>): void {
+    if (ATMOSPHERE[this.#modifier].air !== 'rising') return;
+    const ctx = this.#ctx;
+    const r = w * 0.15;
+    const cx = L.targetX;
+    const cy = L.plateauY - r * 0.7;
+
+    ctx.fillStyle = 'rgba(226, 232, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(170, 184, 224, 0.45)';
+    for (const [dx, dy, cr] of [
+      [-0.3, -0.2, 0.22],
+      [0.25, 0.1, 0.16],
+      [-0.05, 0.35, 0.12],
+    ] as const) {
+      ctx.beginPath();
+      ctx.arc(cx + dx * r, cy + dy * r, cr * r, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   #drift(w: number, h: number): void {

@@ -5,9 +5,11 @@ import {
   PLATEAU_HALF_WIDTH,
   SPACE_W,
 } from '../../shared/tunables.ts';
+import { windAt } from '../../shared/sim.ts';
 import type { Level, Point, ShotResult } from '../../shared/types.ts';
-import { clamp01 } from '../motion.ts';
-import { GOLD, INK, type Palette } from '../theme.ts';
+import { clamp01, prefersReducedMotion } from '../motion.ts';
+import { COLOR } from '../ui/tokens.ts';
+import { ATMOSPHERE, GOLD, INK, type Palette } from '../theme.ts';
 import { toScreenX, toScreenY, type Camera } from './camera.ts';
 import { drawPip, type PipMood } from './pip.ts';
 import type { ParticleField, WindStreak } from './particles.ts';
@@ -77,11 +79,15 @@ export const drawScene = (
   ctx.translate(view.shakeX, view.shakeY);
 
   drawSky(ctx, view);
+  drawStarsIfNeeded(ctx, view);
   drawMoonIfNeeded(ctx, view);
   drawWind(ctx, view);
   drawGround(ctx, view);
+  drawDistanceTicksIfNeeded(ctx, view);
   drawPlateau(ctx, view);
+  drawSpotlightIfNeeded(ctx, view);
   drawTarget(ctx, view);
+  drawPennantIfNeeded(ctx, view);
   drawLauncher(ctx, view);
 
   if (view.ghost) drawTrajectory(ctx, view, view.ghost, 'rgba(242,246,252,0.18)', 2);
@@ -237,6 +243,126 @@ const drawSky = (ctx: CanvasRenderingContext2D, view: SceneView): void => {
   }
   // Explicit destination size: source is device pixels, destination is CSS.
   ctx.drawImage(bitmap, -40, -40, w, h);
+};
+
+/**
+ * The four decorations that make a day nameable without reading the chip (§11).
+ *
+ * The gate for this phase is exactly that: someone should be able to say
+ * "Moon Gravity" from the picture. A sky gradient alone does not carry it —
+ * Tiny Target and Clear Skies share a gradient, deliberately — so each day gets
+ * one object that only it has.
+ */
+
+/** Clear Skies: a fixed constellation that twinkles. Seeded, so it holds still. */
+const drawStarsIfNeeded = (
+  ctx: CanvasRenderingContext2D,
+  view: SceneView
+): void => {
+  if (ATMOSPHERE[view.level.modifier].air !== 'stars') return;
+  const { camera } = view;
+  ctx.fillStyle = COLOR.ink;
+  for (let i = 0; i < 12; i++) {
+    // A cheap deterministic scatter: the same sky every frame and every day.
+    const x = ((i * 137) % 100) / 100 * camera.width;
+    const y = ((i * 61) % 70) / 100 * camera.height;
+    const twinkle = 0.35 + 0.35 * Math.sin(view.time * 1.4 + i);
+    ctx.globalAlpha = prefersReducedMotion() ? 0.5 : twinkle;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+};
+
+/**
+ * Long Shot: ticks every 100 units along the ground.
+ *
+ * The one day where the distance is the difficulty, so the ground is given a
+ * ruler. It also happens to be the most useful decoration in the game.
+ */
+const drawDistanceTicksIfNeeded = (
+  ctx: CanvasRenderingContext2D,
+  view: SceneView
+): void => {
+  if (ATMOSPHERE[view.level.modifier].air !== 'haze') return;
+  const { camera, palette } = view;
+  const groundY = toScreenY(camera, 0);
+  ctx.strokeStyle = palette.air;
+  ctx.globalAlpha = 0.28;
+  ctx.lineWidth = 1;
+  for (let x = 100; x < SPACE_W; x += 100) {
+    const sx = toScreenX(camera, x);
+    const tall = x % 200 === 0;
+    ctx.beginPath();
+    ctx.moveTo(sx, groundY);
+    ctx.lineTo(sx, groundY + (tall ? 10 : 5));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+};
+
+/** Tiny Target: a cone of light, because the mat is half the size it was. */
+const drawSpotlightIfNeeded = (
+  ctx: CanvasRenderingContext2D,
+  view: SceneView
+): void => {
+  if (ATMOSPHERE[view.level.modifier].air !== 'spot') return;
+  const { camera, level } = view;
+  const cx = toScreenX(camera, level.distance);
+  const top = toScreenY(camera, level.height + 520);
+  const base = toScreenY(camera, level.height);
+  const spread = Math.max(24, level.targetR * camera.scale * 3.2);
+
+  const cone = ctx.createLinearGradient(0, top, 0, base);
+  cone.addColorStop(0, 'rgba(255, 197, 61, 0)');
+  cone.addColorStop(1, 'rgba(255, 197, 61, 0.1)');
+  ctx.fillStyle = cone;
+  ctx.beginPath();
+  ctx.moveTo(cx - spread * 0.25, top);
+  ctx.lineTo(cx + spread * 0.25, top);
+  ctx.lineTo(cx + spread, base);
+  ctx.lineTo(cx - spread, base);
+  ctx.closePath();
+  ctx.fill();
+};
+
+/**
+ * Crosswind and Gusty: a pennant on the mat.
+ *
+ * §11 calls it a reading aid and means it — it is the only decoration that
+ * carries information, and on a Gusty day it is the only thing on screen that
+ * shows a gust arriving before the ball does.
+ */
+const drawPennantIfNeeded = (
+  ctx: CanvasRenderingContext2D,
+  view: SceneView
+): void => {
+  if (!ATMOSPHERE[view.level.modifier].pennant) return;
+  const { camera, level, palette } = view;
+  const x = toScreenX(camera, level.distance + level.targetR * 1.6);
+  const base = toScreenY(camera, level.height);
+  const height = Math.max(18, 34 * camera.scale);
+  const wind = windAt(level, view.time);
+  const direction = wind < 0 ? -1 : 1;
+  const strength = Math.min(1, Math.abs(wind) / 420);
+  const flutter = prefersReducedMotion() ? 0 : Math.sin(view.time * 6) * 2;
+
+  ctx.strokeStyle = palette.air;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, base);
+  ctx.lineTo(x, base - height);
+  ctx.stroke();
+
+  const length = height * (0.35 + strength * 0.5) * direction;
+  ctx.fillStyle = COLOR.coral;
+  ctx.beginPath();
+  ctx.moveTo(x, base - height);
+  ctx.lineTo(x + length, base - height + 4 + flutter);
+  ctx.lineTo(x, base - height + 9);
+  ctx.closePath();
+  ctx.fill();
 };
 
 /** Moon Gravity gets a moon. The prettiest day should look like one. */

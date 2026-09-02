@@ -53,6 +53,31 @@ const DESKTOP = { w: 900, h: 760 };
  * finished shot does not need one to be played. `steps` are clicks by button
  * label, for the screens that live behind a button.
  */
+/**
+ * The seven modifiers, in the feed and in the game (§11, phase 6 gate).
+ *
+ * `mod=` makes the harness serve a real day that genuinely draws that
+ * modifier, so the level the client regenerates matches the label — the same
+ * honesty the day bar and the pill needed.
+ */
+const MODIFIERS = ['CLEAR', 'CROSSWIND', 'TAILWIND', 'GUSTY', 'MOON', 'TINY', 'LONG'];
+
+const ATMOSPHERE_SHOTS = MODIFIERS.flatMap((mod) => [
+  {
+    name: `atmos-feed-${mod.toLowerCase()}`,
+    url: '/splash.html',
+    prep: `played=0&streak=7&mod=${mod}`,
+    w: 360,
+    h: 512,
+  },
+  {
+    name: `atmos-game-${mod.toLowerCase()}`,
+    url: '/',
+    prep: `played=0&mod=${mod}`,
+    ...MOBILE,
+  },
+]);
+
 export const SHOTS = [
   // §4.4's three cards, at the three sizes §12 designs for.
   { name: 'feed-A-350', url: '/splash.html', prep: 'played=0&anon=1', ...TINY },
@@ -125,6 +150,7 @@ export const SHOTS = [
     ...MOBILE,
     steps: [{ click: 'POST MY SHOT' }],
   },
+  ...ATMOSPHERE_SHOTS,
 ];
 
 // -- CDP client --------------------------------------------------------------

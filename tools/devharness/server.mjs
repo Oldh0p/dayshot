@@ -17,8 +17,27 @@ const { generateLevel, simulateLevel } = await import('../../src/shared/sim.ts')
 
 const ROOT = new URL('../../dist/client/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const PORT = Number(process.env.PORT ?? 5599);
-const DAY = Math.floor(Date.now() / 86400000);
-const LEVEL = generateLevel(DAY);
+const TODAY = Math.floor(Date.now() / 86400000);
+
+/*
+ * `?mod=MOON` serves a real day that actually draws that modifier, rather than
+ * overriding the field.
+ *
+ * The client regenerates the level from the day number, so claiming a modifier
+ * the seed does not produce puts the day bar and the scene back in
+ * disagreement -- the bug this harness already had once. Searching forward for
+ * a day that genuinely has it keeps both sides honest, and every modifier turns
+ * up within a couple of weeks.
+ */
+const dayWithModifier = (wanted) => {
+  for (let offset = 0; offset < 400; offset++) {
+    if (generateLevel(TODAY + offset).modifier === wanted) return TODAY + offset;
+  }
+  return TODAY;
+};
+
+let DAY = TODAY;
+let LEVEL = generateLevel(DAY);
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 
@@ -30,18 +49,21 @@ let streak = 3;
 // The result a played-today session restores into. Having it here means the
 // result screen can be loaded directly -- which is how its layout gets checked
 // against a post-sized viewport without playing a shot first.
-const RESTORED = simulateLevel(generateLevel(DAY), 640);
-const MY_RESULT = {
-  score: RESTORED.score, dx: RESTORED.dx,
-  signedDx: RESTORED.impactX < generateLevel(DAY).distance ? -RESTORED.dx : RESTORED.dx,
-  impact: RESTORED.impact, cliffDrop: RESTORED.cliffDrop, holdMs: 640,
-  rank: 184, total: 41203, percentile: 4.2,
-  isBullseye: RESTORED.isBullseye, isPerfect: RESTORED.isPerfect,
+
+const myResult = () => {
+  const shot = simulateLevel(LEVEL, 640);
+  return {
+    score: shot.score, dx: shot.dx,
+    signedDx: shot.impactX < LEVEL.distance ? -shot.dx : shot.dx,
+    impact: shot.impact, cliffDrop: shot.cliffDrop, holdMs: 640,
+    rank: 184, total: 41203, percentile: 4.2,
+    isBullseye: shot.isBullseye, isPerfect: shot.isPerfect,
+  };
 };
 
 const state = () => ({
   dayNumber: DAY, displayDay: DAY - 20697 + 1, rerollK: 0, serverNow: Date.now(),
-  modifier: LEVEL.modifier, playedToday: played, myResult: played ? MY_RESULT : null,
+  modifier: LEVEL.modifier, playedToday: played, myResult: played ? myResult() : null,
   streak: { current: streak, longest: 12, justReset: false },
   warmupPending, shotsToday: 41203, yesterdayShots: 38217, topScore: 99.94, perfectsToday: 38,
   tomorrowModifier: generateLevel(DAY + 1).modifier, sharedToday: false, shareConsent: false, username: anon ? null : 'tester',
@@ -59,6 +81,9 @@ createServer(async (req, res) => {
     // Feed state A needs a viewer with no account; B needs a streak worth showing.
     anon = url.searchParams.get('anon') === '1';
     streak = Number(url.searchParams.get('streak') ?? 3);
+    const wanted = url.searchParams.get('mod');
+    DAY = wanted ? dayWithModifier(wanted) : TODAY;
+    LEVEL = generateLevel(DAY);
     return send(200, '{"ok":true}');
   }
   if (url.pathname === '/api/state') return send(200, JSON.stringify(state()));
