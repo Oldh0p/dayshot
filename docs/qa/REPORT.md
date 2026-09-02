@@ -1,11 +1,11 @@
 # DAYSHOT UI V2 — final report
 
 The redesign of `DAYSHOT-UI-REDESIGN.md`, in eleven phases. Baseline was 240
-tests; it ends at 303, with the feed's payload down from ~70.5 KB to 35 KB and
+tests; it ends at 313, with the feed's payload down from ~70.5 KB to 35 KB and
 the game holding 60fps at 6× CPU throttle where it previously ran at 30.
 
 Before and after live side by side in `docs/qa/before/` (14 shots of the old
-build) and `docs/qa/after/` (56).
+build) and `docs/qa/after/` (60).
 
 ---
 
@@ -67,6 +67,12 @@ the 56 final captures comes back clean.**
     been interpolated — and the third was a 2.4× push-in that made the result a
     different world. Now: nothing moves at release, and one eased move when the
     ball stops.
+12. **The result reserves pixels, not a share of the screen.** §6 says "~50% de
+    la hauteur", and the panel's content is fixed, so on a 647px phone half the
+    height was less than the panel's own 347px and the mat was drawn behind it.
+    `clamp(380px, 42%-62%)` instead, and the framing applies to a *restored*
+    result too — it had been gated on a trajectory, which hid the world on
+    every visit after the one where the shot was taken.
 
 ---
 
@@ -134,7 +140,7 @@ scene erased, and two coral blocks competing for the same eye.
 
 | | Before | After |
 | --- | ---: | ---: |
-| Tests | 240 | **309** |
+| Tests | 240 | **313** |
 | Feed payload (gzip, font included) | ~70 500 B | **35 284 B** |
 | Frame work, 4× CPU, aiming | not measured | **0.80 ms** median |
 | Dropped frames, 6× CPU, aiming | 88 (30fps) | **0** (60fps) |
