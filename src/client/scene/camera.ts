@@ -37,21 +37,28 @@ const TOP_MARGIN = 120;
 export const PANEL_SHARE = 0.25;
 
 /**
- * And the share the result panel covers (§6: "~50% de la hauteur"). The scene
- * keeps the rest, which is the whole point of the redesign: the verdict is
- * shown *over* the world, never instead of it.
- */
-export const RESULT_PANEL_SHARE = 0.5;
-
-/**
- * ...but never more than this many pixels.
+ * What the result panel reserves, in pixels (§6: "~50% de la hauteur"). The
+ * scene keeps the rest, which is the whole point of the redesign: the verdict
+ * is shown *over* the world, never instead of it.
  *
- * The panel's content is fixed, so its height is roughly constant in pixels and
- * *not* a constant fraction of the screen: on an 896px display half the height
- * is 448px against a panel of about 350, which left a band of empty ground
- * between the two. The cap keeps the ground line just above the panel.
+ * A pixel figure and not a share, because the panel's content is fixed and so
+ * is its height -- about 350px, plus margin. A share got it wrong in both
+ * directions: half of an 896px screen is 448 and left a slab of empty ground,
+ * while half of a 647px one is 323 against a 347px panel, which put the mat
+ * *behind* the panel edge. Both were measured on real screenshots.
  */
-export const RESULT_PANEL_MAX_PX = 370;
+export const RESULT_PANEL_PX = 380;
+
+/** Clamps, so a very tall or very short screen still gets a scene. */
+export const RESULT_PANEL_MIN_SHARE = 0.42;
+export const RESULT_PANEL_MAX_SHARE = 0.62;
+
+/** The band, for a given height. */
+export const resultPanelInset = (height: number): number =>
+  Math.min(
+    Math.max(RESULT_PANEL_PX, height * RESULT_PANEL_MIN_SHARE),
+    height * RESULT_PANEL_MAX_SHARE
+  );
 
 export const buildCamera = (
   canvasWidth: number,

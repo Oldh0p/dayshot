@@ -861,23 +861,52 @@ const drawGauge = (
 
 /**
  * A screenshot of a practice shot must be impossible to pass off as an official
- * one (GDD 20). The watermark, the desaturated palette and the italic score are
- * the three signals, and they are deliberately not subtle.
+ * one (GDD 20).
+ *
+ * It used to be the word set diagonally across the whole frame at 16% of the
+ * viewport width -- **307px of type on a full-screen desktop** -- which buried
+ * the scene it was supposed to annotate. It was also redundant: the panel
+ * already prints `PRACTICE` where the verdict goes, the score is italic, the
+ * palette is desaturated and there is no share button. Four signals; the fifth
+ * did not need to be a billboard.
+ *
+ * A badge instead, at a fixed size so it never grows with the window: pinned
+ * under the day bar, always in frame, unmistakable in a screenshot and out of
+ * the way of the game.
  */
 const drawPracticeWatermark = (
   ctx: CanvasRenderingContext2D,
   camera: Camera,
   palette: Palette
 ): void => {
+  const label = 'PRACTICE';
+  const height = 22;
+  const y = 74; // clear of the day bar, which the canvas is drawn behind
+
   ctx.save();
-  ctx.translate(camera.width / 2, camera.height / 2);
-  ctx.rotate(-0.42);
-  ctx.globalAlpha = 0.1;
-  ctx.fillStyle = palette.air;
-  ctx.font = `800 ${Math.round(camera.width * 0.16)}px ${FONT_STACK}`;
+  ctx.font = `700 12px ${FONT_STACK}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('PRACTICE', 0, 0);
+
+  const width = ctx.measureText(label).width + 34;
+  const x = camera.width / 2;
+
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = 'rgba(13, 22, 38, 0.72)';
+  ctx.beginPath();
+  ctx.roundRect(x - width / 2, y - height / 2, width, height, height / 2);
+  ctx.fill();
+
+  ctx.strokeStyle = palette.air;
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = palette.air;
+  // The tracking §13 gives labels, done by hand: canvas has no letter-spacing.
+  const tracked = label.split('').join(' ');
+  ctx.fillText(tracked, x, y + 0.5);
   ctx.restore();
   ctx.globalAlpha = 1;
 };

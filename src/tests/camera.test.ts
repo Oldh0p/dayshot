@@ -6,6 +6,7 @@ import {
   lerpCamera,
   PANEL_SHARE,
   resultFraming,
+  resultPanelInset,
 } from '../client/scene/camera.ts';
 import { TARGET_R } from '../shared/tunables.ts';
 
@@ -109,5 +110,55 @@ describe('the camera moves once per shot', () => {
     const base = aiming();
     const framed = resultFraming(W, H, TARGET_R, H * 0.5, base);
     assert.ok(TARGET_R * framed.scale >= 24, 'the mat fell under 24px');
+  });
+});
+
+/**
+ * The reservation under the result panel, which had been a share of the screen.
+ *
+ * A share is wrong for this panel because its content is fixed: a verdict, a
+ * score, two lines, a CTA and a row of buttons come to about 350px whatever
+ * screen they are on. Half of a 896px phone reserved 448 and left a slab of
+ * empty ground; half of a 647px one reserved 323 against a 347px panel and put
+ * the mat *behind* the panel edge, which is the failure a player reported as
+ * "on ne voit pas à quel jeu on a à faire".
+ */
+describe('the result panel reservation', () => {
+  it('clears a real panel on the small screen that failed', () => {
+    // 376x647 is the viewport from the report, and ~347px is the panel measured
+    // in it. The reservation must clear the panel, not merely approach it.
+    assert.ok(resultPanelInset(647) >= 347, 'the panel would cover the mat');
+  });
+
+  it('does not open a band of empty ground on a tall screen', () => {
+    // The opposite failure: at 896 a half-height reservation was 448 against
+    // the same ~350px panel, and the gap read as a missing scene.
+    assert.ok(resultPanelInset(896) - 350 < 120, 'too much empty ground');
+  });
+
+  it('always leaves a scene to look at', () => {
+    /*
+     * The floor the upper clamp exists for. On a screen too short to hold both
+     * -- 480px against a ~350px panel -- the panel is allowed to overlap the
+     * bottom of the scene rather than take all of it, because a result with no
+     * world behind it is the failure this whole reservation is about.
+     */
+    for (const h of [480, 568, 647, 720, 812, 896, 1000, 1400]) {
+      const inset = resultPanelInset(h);
+      assert.ok(inset < h, `reserved the whole screen at ${h}`);
+      assert.ok(h - inset >= h * 0.38 - 1e-9, `less than 38% left at ${h}`);
+    }
+  });
+
+  it('is the framing a restored result gets too', () => {
+    /*
+     * The bug this pairs with: the framing used to be gated on there being a
+     * trajectory, from back when it centred on the impact point. It does not
+     * any more, so gating it meant every visit *after* the one where you played
+     * kept the aiming reservation and drew the world behind the panel.
+     */
+    const base = buildCamera(376, 647, 700, 1, 647 * PANEL_SHARE);
+    const framed = resultFraming(376, 647, TARGET_R, resultPanelInset(647), base);
+    assert.ok(framed.originY < base.originY, 'the ground line did not rise');
   });
 });

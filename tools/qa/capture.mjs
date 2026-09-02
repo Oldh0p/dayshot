@@ -128,6 +128,9 @@ export const SHOTS = [
    * at 480px read as "a mobile format".
    */
   { name: 'tall-shot', url: '/', prep: 'played=0', w: 483, h: 896, steps: [{ shoot: 300 }] },
+  /* Coming *back* to a result: no trajectory, and the case that was broken. */
+  { name: 'restored-small', url: '/', prep: 'played=1', w: 376, h: 647 },
+  { name: 'practice-wide', url: '/', prep: 'played=1', w: 1280, h: 900, steps: [{ click: 'Practice' }] },
   { name: 'wide-shot', url: '/', prep: 'played=0', w: 1280, h: 900, steps: [{ shoot: 300 }] },
   // The board over a scene that is actually there: a restored result has no
   // trajectory, so it has to follow a real shot.

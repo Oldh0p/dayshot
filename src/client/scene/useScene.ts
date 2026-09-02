@@ -29,7 +29,7 @@ import {
   lerpCamera,
   PANEL_SHARE,
   RESULT_FRAMING_MS,
-  RESULT_PANEL_MAX_PX,
+  resultPanelInset,
   resultFraming,
 } from './camera.ts';
 import { ATMOSPHERE } from '../theme.ts';
@@ -72,8 +72,6 @@ export type SceneOptions = {
    * rather than "can I see the arc" (§6).
    */
   readonly resultFraming: boolean;
-  /** Share of the canvas the result panel covers, so the scene stays clear. */
-  readonly resultPanelShare: number;
   readonly onAimStart: () => void;
   readonly onMisfire: () => void;
   readonly onFire: (shot: ShotResult, holdMs: number) => void;
@@ -316,19 +314,32 @@ export const useScene = (options: SceneOptions): {
        * the shot's own framing to the one that answers "how close was that",
        * and after that it simply is that framing.
        */
-      const framed =
-        opts.resultFraming && landed
+      /*
+       * No longer gated on there being a trajectory.
+       *
+       * It was, back when the framing centred on the impact point. It does not
+       * any more -- it only raises the ground line for the taller panel -- so
+       * requiring a shot meant that *coming back* to your result, where the
+       * score is restored from the server and no trajectory exists, kept the
+       * aiming reservation and put the entire world behind the panel. Which is
+       * the common case: every visit after the one where you played.
+       */
+      const framed = opts.resultFraming
           ? resultFraming(
               width,
               height,
               level.targetR,
-              Math.min(height * opts.resultPanelShare, RESULT_PANEL_MAX_PX),
+              resultPanelInset(height),
               base
             )
           : null;
 
+      /*
+       * A shot that just landed eases into the framing; a restored result is
+       * already there, because there was nothing to ease from.
+       */
       const settle =
-        framed && state.landedAt !== null
+        framed && landed && state.landedAt !== null
           ? (state.time - state.landedAt) / (RESULT_FRAMING_MS / 1000)
           : 1;
       const camera = framed ? lerpCamera(base, framed, settle) : base;

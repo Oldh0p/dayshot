@@ -401,3 +401,34 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   shows launcher, arc, Pip and mat with the panel as a centred column.
 - **Verified.** 309 tests, 58 captures, zero scroll, zero clipping — including
   the two viewports this report added, which are in the standing set now.
+
+---
+
+## Post-playtest 3 — the scene was missing on every visit but the first
+
+- **"On ne voit toujours pas la surface de tir derrière."** The previous fix was
+  right about the framing and wrong about when it applied: `resultFraming` was
+  gated on `landed`, i.e. on there being a trajectory in flight. That gate made
+  sense when the framing centred on the impact point — there was no impact to
+  centre on — but the framing had since been rewritten to do nothing except
+  raise the ground line for the taller panel. So *coming back* to your result,
+  where the score is restored from the server and no trajectory exists, kept the
+  **aiming** reservation and drew the whole world behind the panel. That is the
+  common case: every visit after the one where you played, which is exactly
+  where the player was when they reported it.
+- **And the reservation was still a share.** 370px capped a *share*, so a 647px
+  screen got `min(323, 370) = 323` against a panel measuring 347 — the mat sat
+  behind the panel edge. It is a pixel figure now, `clamp(380px, 42%–62%)`,
+  because the panel's content is fixed and so is its height. The clamps are for
+  the extremes: a 480px screen cannot hold both, and there the panel overlaps
+  the bottom of the scene rather than taking all of it.
+- **Four tests** now hold the reservation, including the two viewports that
+  failed. `settle` still requires a landing, so a restored result arrives
+  already framed instead of easing from a camera it was never at.
+- **The `PRACTICE` watermark took a third of the screen.** `camera.width × 0.16`
+  is 307px of diagonal type on a full-screen desktop, and §5 wants practice
+  marked, not announced. It is a badge now: a 22px rounded pill under the day
+  bar, 12px label, hand-tracked with thin spaces, panel fill and a 35% air
+  stroke. Same job, one line of the screen.
+- **Verified.** 313 tests, 60 captures, zero scroll, zero clipping. The result
+  captures gained about 30% in file size, which is the scene being drawn again.
