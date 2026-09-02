@@ -386,6 +386,65 @@ export const useScene = (options: SceneOptions): {
     []
   );
 
+  /**
+   * The same shot, from a keyboard (§9's gate).
+   *
+   * The whole screen is the button, which is right for a thumb and leaves a
+   * keyboard user with nothing: the accessibility pass measured the aiming
+   * screen at *one* reachable control, the help button. Space or Enter held is
+   * the same gesture -- press starts the gauge, release fires -- so it goes
+   * through the identical path and `holdMs` is measured the same way.
+   *
+   * `repeat` is ignored, because a held key fires keydown over and over and
+   * each one would restart the hold.
+   */
+  useEffect(() => {
+    const isShootKey = (event: KeyboardEvent): boolean =>
+      event.code === 'Space' || event.code === 'Enter';
+
+    const down = (event: KeyboardEvent): void => {
+      if (!isShootKey(event) || event.repeat) return;
+      const opts = optionsRef.current;
+      if (!opts.canAim || !opts.level) return;
+      // Space scrolls a page by default, and this page must not scroll at all.
+      event.preventDefault();
+      if (runtime.current.holdStart !== null) return;
+      audio.ensure();
+      audio.startAmbience();
+      runtime.current.holdStart = performance.now();
+      runtime.current.power = 0;
+      audio.startHold();
+      opts.onAimStart();
+    };
+
+    const up = (event: KeyboardEvent): void => {
+      if (!isShootKey(event)) return;
+      const opts = optionsRef.current;
+      const state = runtime.current;
+      if (state.holdStart === null || !opts.level) return;
+      event.preventDefault();
+
+      const holdMs = Math.round(performance.now() - state.holdStart);
+      state.holdStart = null;
+      state.power = null;
+      audio.stopHold();
+
+      if (opts.guardMisfire && holdMs < MISFIRE_MS) {
+        audio.play('ui');
+        opts.onMisfire();
+        return;
+      }
+      opts.onFire(simulateLevel(opts.level, holdMs), holdMs);
+    };
+
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
+
   return { canvasRef: setCanvas, onPointerDown, onPointerUp };
 };
 

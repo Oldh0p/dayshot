@@ -25,12 +25,47 @@ const arg = (name, fallback) => {
 const throttle = arg('throttle', 1);
 const seconds = arg('seconds', 5);
 
-/** Records every frame interval the page actually produced. */
+/**
+ * Two different numbers, and the phase 9 gate wants the second one.
+ *
+ * `__frames` is the interval between frames, which is capped by the display:
+ * a median of 16.7ms means 60fps and says nothing about cost. `__work` is the
+ * time the page actually spends inside its own rAF callback -- the drawing --
+ * which is what "median frame time under 10ms" has to mean, since 10ms is
+ * below the interval a 60Hz screen can even produce.
+ *
+ * Measured by wrapping `requestAnimationFrame` before the app installs its
+ * loop, so every callback the scene schedules is timed without touching the
+ * scene's code.
+ */
 const RECORDER = `
   window.__frames = [];
+  window.__work = [];
   window.__recording = true;
+
+  if (!window.__wrapped) {
+    window.__wrapped = true;
+    const raf = window.requestAnimationFrame.bind(window);
+    // Kept, so the recorder below can schedule itself without being timed.
+    window.__rawRaf = raf;
+    window.requestAnimationFrame = (cb) =>
+      raf((t) => {
+        const started = performance.now();
+        cb(t);
+        if (window.__recording) window.__work.push(performance.now() - started);
+      });
+  }
+
+  /*
+   * The recorder schedules itself through the *unwrapped* rAF.
+   *
+   * Timed through the wrapper it added a callback per frame that does almost
+   * nothing, which halved the reported median: the number stopped describing
+   * the game's drawing and started describing the average of the drawing and an
+   * empty function.
+   */
   (function record(last) {
-    requestAnimationFrame((now) => {
+    window.__rawRaf((now) => {
       if (!window.__recording) return;
       if (last !== undefined) window.__frames.push(now - last);
       record(now);
@@ -68,6 +103,7 @@ const report = await withBrowser(async (cdp) => {
   const aiming = await cdp.eval(
     'window.__frames.splice(0, window.__frames.length)'
   );
+  const aimingWork = await cdp.eval('window.__work.splice(0, window.__work.length)');
 
   // Flight: the camera moves every frame, so nothing static can be cached.
   await cdp.eval(`(() => {
@@ -84,11 +120,12 @@ const report = await withBrowser(async (cdp) => {
   const flight = await cdp.eval(
     'window.__frames.splice(0, window.__frames.length)'
   );
+  const flightWork = await cdp.eval('window.__work.splice(0, window.__work.length)');
 
   await cdp.eval('window.__recording = false');
   const text = await cdp.eval('document.body.innerText.replace(/\\n+/g, " | ")');
 
-  return { early, aiming, flight, text };
+  return { early, aiming, flight, aimingWork, flightWork, text };
 });
 
 if (report.early === 0) {
@@ -113,6 +150,30 @@ const show = (label, frames) => {
 console.log(`\nFrame time — 390x720, CPU throttle ${throttle}x\n`);
 show('aiming', report.aiming);
 show('flight', report.flight);
+
+/**
+ * The gate's number. `show` above reports the interval between frames, which a
+ * 60Hz display caps at 16.7ms whatever the page costs; this reports the time
+ * the page spends inside its own callback, which is the thing a budget of
+ * "under 10ms" can be about.
+ */
+const showWork = (label, work) => {
+  const sorted = [...work].sort((a, b) => a - b);
+  const median = percentile(sorted, 0.5);
+  console.log(
+    `  ${label.padEnd(9)} ${String(work.length).padStart(4)} callbacks` +
+      `   median ${median.toFixed(2)}ms` +
+      `   p95 ${percentile(sorted, 0.95).toFixed(2)}ms` +
+      `   worst ${(sorted[sorted.length - 1] ?? 0).toFixed(2)}ms` +
+      `   ${median < 10 ? 'under budget' : 'OVER 10ms BUDGET'}`
+  );
+};
+
+console.log('');
+console.log('Work per frame — what the page spends drawing');
+console.log('');
+showWork('aiming', report.aimingWork);
+showWork('flight', report.flightWork);
 console.log(`\n  reached: ${report.text.slice(0, 110)}`);
 console.log(
   '\n  Note: rAF caps at the display rate, so a median near 16.7ms is the' +

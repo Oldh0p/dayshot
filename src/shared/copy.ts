@@ -156,6 +156,17 @@ export const COPY = {
    */
   stakes: 'One official shot. No retries.',
 
+  /**
+   * The accessible name of the play area.
+   *
+   * The whole screen is the button, which leaves nothing for a keyboard or a
+   * screen reader to find: the accessibility pass measured this screen at one
+   * reachable control, the help button. This says what the gesture is and that
+   * a key does the same thing.
+   */
+  playAreaLabel:
+    'Aiming area. Hold anywhere to charge the shot and release to fire. Space or Enter does the same.',
+
   // -- Result ---------------------------------------------------------------
   /** GDD 9.9 */
   offTheMap: 'OFF THE MAP',

@@ -298,3 +298,33 @@ Five lines per phase: done, verified, left. Newest at the bottom.
 - **Left:** §12's compact tweaks (score at 40px, condition cards on one line)
   are not implemented; nothing is cut without them, so they are polish rather
   than a fix.
+
+---
+
+## Phase 9 — Accessibility and performance
+
+- **Done.** `tools/qa/a11y.mjs` generates `docs/qa/contrast.md` from the tokens
+  and from a real 390×720 layout. A focus ring the game did not have — the feed
+  card had one and the game did not, which is the wrong way round. A keyboard
+  can now take the shot with Space or Enter, through the identical path, so
+  `holdMs` is measured the same way. The play area carries an accessible name.
+- **Verified.** 307 tests, 52 captures, zero scroll, zero clipping. **All nine
+  text/background pairs pass AA**, from 5.58:1 up to 16.69:1. Every control is
+  at least 48px. The focus ring measures 2px on the first Tab target of all
+  three screens. The keyboard shot was driven end to end and reaches a result.
+- **The frame-time budget needed the right number first.** §9's gate asks for a
+  median under 10ms, which is below what a 60Hz display can even produce — the
+  interval between frames is capped at 16.7ms and says nothing about cost. What
+  it has to mean is the time the page spends inside its own callback:
+  **0.80ms median, 1.50ms p95 at 4× CPU throttle.**
+- **Two measurements lied before they told the truth.** The frame recorder timed
+  its own callback, which does nothing, and halved the reported median. And the
+  focus check asked for `getComputedStyle(el, ':focus-visible')`, which browsers
+  do not resolve: it returned an empty string, and the report printed a blank
+  column that looked like "no ring" and meant "no measurement". Fixed by
+  dispatching a real Tab through CDP, which sets the keyboard modality a
+  programmatic `.focus()` cannot.
+- **The gap the audit found is the one worth naming.** The aiming screen
+  measured **one** reachable control — the help button — because the whole
+  screen is a hold target. Right for a thumb, and it silently excluded anyone
+  playing with a keyboard.

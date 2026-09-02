@@ -498,6 +498,13 @@ export const App = (): JSX.Element => {
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      {...(aiming
+        ? {
+            tabIndex: 0,
+            role: 'button',
+            'aria-label': COPY.playAreaLabel,
+          }
+        : {})}
     >
       {/*
         The scene fills the frame and everything else sits on top of it. On the

@@ -142,6 +142,22 @@ body,
   padding-bottom: max(var(--safe-bottom-min, 8px), env(safe-area-inset-bottom));
 }
 
+/*
+ * The focus ring the game did not have (§9's gate).
+ *
+ * The feed card had one and the game did not, which is the wrong way round:
+ * the game is where the buttons are. `:focus-visible` rather than `:focus`, so
+ * a thumb never lights up a ring it did not ask for.
+ *
+ * Ink at 2px, offset, because the palette's own accent is coral and a coral
+ * ring around a coral CTA is not a ring.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Scores, countdowns and ranks must not jitter as their digits change. */
 .tabular {
   font-variant-numeric: tabular-nums;
