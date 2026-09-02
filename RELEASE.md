@@ -2,14 +2,23 @@
 
 Everything between the current state of the tree and `npx devvit publish`.
 
-Current state: **0.4 was rejected for an in-line scroll trap; fixed, awaiting re-upload.**
-222 tests green, Devvit 0.14.2, app published as `dayshot-game` (`dayshot` was
-taken), `[DEV]` surface removed, Terms and Privacy live.
+Current state: **0.4 was rejected for an in-line scroll trap; fixed, awaiting
+re-submission.** 326 tests green, 63 QA captures clean, Devvit 0.14.2, `[DEV]`
+surface removed, Terms and Privacy live.
+
+> **Check the app identity before publishing.** `npx devvit list apps` on
+> `u/Useful_Low101` shows `dayshot` (0.0.10, 254 versions) and `daily-one-shot`
+> (0.0.4, 14 versions). `devvit.json` says `dayshot-game`, but `npx devvit view
+> dayshot-game` answers `App name: dayshot` — the CLI resolves this project to
+> **`dayshot`**. Meanwhile `daily-one-shot` sits at exactly 0.0.4, the version
+> that was rejected. Confirm from the rejection modmail which app it named
+> before running `publish`, or the fix lands on the wrong one.
 
 | | |
 | --- | --- |
 | App | `dayshot-game` -- <https://developers.reddit.com/apps/dayshot-game> |
 | Last submitted | 0.4 -- **rejected**, one issue, fixed here (section 7) |
+| Publishes to | `dayshot` per `devvit view` -- **verify, see the note above** |
 | Home subreddit | r/DayShot -- **nothing installed there until approval** |
 | Test subreddit | r/dayshot_game_dev (CLI auto-created it, set to Public by hand) |
 | Terms | <https://oldh0p.github.io/dayshot/terms> |
@@ -265,7 +274,7 @@ changes touch things a reviewer looks at, and one of them is the rejection.
 
 - **The in-line scroll trap is gone, and cannot come back quietly.** Every
   screen is laid out to fit and `tools/qa/capture.mjs` reports scrolling and
-  clipping on all 56 captured states across six viewports. All clean.
+  clipping on all 63 captured states across six viewports. All clean.
 - **The feed card is a real scene, and it costs less than the old one.** Plain
   DOM and canvas instead of React: **35 284 bytes gzip including the font**,
   down from about 70 500. It cannot reach the simulation, the state machine, the
@@ -287,3 +296,36 @@ Nothing in the simulation, the scoring, the seed, the locks, the Redis keys, the
 scheduler, the sharing or the anti-cheat was touched. The only backend addition
 is `yesterdayShots` in `GET /api/state`, read from `day:{n-1}:meta`, for the feed
 card's social proof.
+
+---
+
+## 9. What changed since the rejected 0.4
+
+Paste-ready for the submission note. Everything here is either the rejection
+itself or a change a reviewer's checklist asks about.
+
+- **The in-line scroll trap, which was the rejection.** The result screen
+  stacked a verdict and a ten-row leaderboard into a post-sized viewport, so the
+  panel scrolled and ate the swipe the feed was waiting for. The board is a
+  separate page reached with a button, `index.css` locks the document, and
+  `src/tests/no-inline-scroll.test.ts` fails on any scrollable container
+  anywhere in the client. 63 captures across six viewports report zero scroll
+  and zero clipping.
+- **The interface was rebuilt** against `DAYSHOT-UI-REDESIGN.md`. The feed card
+  is plain DOM and canvas: **35 284 bytes gzip including the font**, down from
+  ~70 500, and four tests read the built files to prove it cannot reach the
+  simulation, the state machine, the audio engine or a hold handler. No shot can
+  be thrown from the feed.
+- **Safe use of sound — all three bullets.** Audio is created only inside a user
+  gesture (and the feed bundle cannot import the engine at all); there is a mute
+  button in the day bar, 48px, `aria-pressed`; and a `visibilitychange` handler
+  suspends the audio context when the view is hidden.
+  `src/tests/devvit-audio-rules.test.ts` holds all three.
+- **Accessibility.** Nine of nine text pairs pass WCAG AA
+  (`docs/qa/contrast.md`, generated, not hand-typed); every control is at least
+  48px; a focus ring is measured on the first Tab target of each screen; Space
+  or Enter takes the shot.
+- **No Reddit IP ships.** `public/snoo.png` was removed (section 6).
+- **Nothing in the simulation, scoring, seed, locks, Redis keys, scheduler,
+  sharing or anti-cheat was touched.** The only backend addition is
+  `yesterdayShots` in `GET /api/state`, read from `day:{n-1}:meta`.
