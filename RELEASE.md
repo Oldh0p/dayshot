@@ -2,23 +2,22 @@
 
 Everything between the current state of the tree and `npx devvit publish`.
 
-Current state: **0.4 was rejected for an in-line scroll trap; fixed, awaiting
-re-submission.** 326 tests green, 63 QA captures clean, Devvit 0.14.2, `[DEV]`
+Current state: **0.0.11 submitted for review on 2026-09-02**, carrying the fix
+for the 0.4 in-line scroll trap plus the UI rebuild, the audio compliance work
+and the practice loop. 326 tests green, 63 QA captures clean, Devvit 0.14.2, `[DEV]`
 surface removed, Terms and Privacy live.
 
-> **Check the app identity before publishing.** `npx devvit list apps` on
-> `u/Useful_Low101` shows `dayshot` (0.0.10, 254 versions) and `daily-one-shot`
-> (0.0.4, 14 versions). `devvit.json` says `dayshot-game`, but `npx devvit view
-> dayshot-game` answers `App name: dayshot` — the CLI resolves this project to
-> **`dayshot`**. Meanwhile `daily-one-shot` sits at exactly 0.0.4, the version
-> that was rejected. Confirm from the rejection modmail which app it named
-> before running `publish`, or the fix lands on the wrong one.
+> **App identity, resolved.** `devvit view` reports the app's name as `dayshot`
+> while `devvit.json` says `dayshot-game`; these are the same app — the upload
+> output links to `developers.reddit.com/apps/dayshot-game`. The separate
+> `daily-one-shot` (0.0.4, 14 versions) is an abandoned earlier shell and is not
+> what this project publishes to.
 
 | | |
 | --- | --- |
 | App | `dayshot-game` -- <https://developers.reddit.com/apps/dayshot-game> |
-| Last submitted | 0.4 -- **rejected**, one issue, fixed here (section 7) |
-| Publishes to | `dayshot` per `devvit view` -- **verify, see the note above** |
+| Last submitted | **0.0.11** -- awaiting review (0.4 was rejected; section 7) |
+| Publishes to | `dayshot` / `dayshot-game` -- one app, two names |
 | Home subreddit | r/DayShot -- **nothing installed there until approval** |
 | Test subreddit | r/dayshot_game_dev (CLI auto-created it, set to Public by hand) |
 | Terms | <https://oldh0p.github.io/dayshot/terms> |
