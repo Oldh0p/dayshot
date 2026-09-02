@@ -77,6 +77,13 @@ const RECORDER = `
 const percentile = (sorted, p) =>
   sorted.length === 0 ? 0 : sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
 
+/* Runs on import: spawns a harness and drives Chrome. See capture.mjs. */
+if (!import.meta.main) {
+  throw new Error(
+    `${import.meta.filename} is a script, not a module. Run it with node instead.`
+  );
+}
+
 const report = await withBrowser(async (cdp) => {
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width: 390,

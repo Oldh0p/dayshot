@@ -277,6 +277,19 @@ const targetUrl = async () => {
   throw new Error('Chrome DevTools endpoint never came up');
 };
 
+/*
+ * This file *runs* when imported -- it spawns a harness, drives Chrome and
+ * writes into docs/qa/. An assistant once imported it to count the shot list
+ * and silently overwrote three baseline captures with shots of the current
+ * build, destroying part of the before/after record. A tool with side effects
+ * at module scope needs to say so out loud.
+ */
+if (!import.meta.main) {
+  throw new Error(
+    `${import.meta.filename} is a script, not a module: importing it starts a browser and writes captures. Run it with node instead.`
+  );
+}
+
 // -- run ---------------------------------------------------------------------
 
 const set = process.argv[2] ?? 'before';

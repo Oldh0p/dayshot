@@ -13,6 +13,13 @@ import { withBrowser, BASE, wait } from './cdp.mjs';
 
 const flight = process.argv.includes('--flight');
 
+/* Runs on import: spawns a harness and drives Chrome. See capture.mjs. */
+if (!import.meta.main) {
+  throw new Error(
+    `${import.meta.filename} is a script, not a module. Run it with node instead.`
+  );
+}
+
 const profile = await withBrowser(async (cdp) => {
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width: 390,

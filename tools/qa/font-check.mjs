@@ -59,6 +59,13 @@ const PROBE = `(async () => {
   };
 })()`;
 
+/* Runs on import: spawns a harness and drives Chrome. See capture.mjs. */
+if (!import.meta.main) {
+  throw new Error(
+    `${import.meta.filename} is a script, not a module. Run it with node instead.`
+  );
+}
+
 const report = await withBrowser(async (cdp) => {
   await cdp.send('Page.navigate', { url: `${BASE}/splash.html` });
   await wait(2000);

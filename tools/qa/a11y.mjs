@@ -15,6 +15,19 @@ import { join } from 'node:path';
 
 import { withBrowser, BASE, wait, ROOT } from './cdp.mjs';
 
+/*
+ * This file *runs* when imported -- it spawns a harness, drives Chrome and
+ * writes into docs/qa/. An assistant once imported it to count the shot list
+ * and silently overwrote three baseline captures with shots of the current
+ * build, destroying part of the before/after record. A tool with side effects
+ * at module scope needs to say so out loud.
+ */
+if (!import.meta.main) {
+  throw new Error(
+    `${import.meta.filename} is a script, not a module: importing it starts a browser and writes captures. Run it with node instead.`
+  );
+}
+
 // -- contrast ----------------------------------------------------------------
 
 const COLOR = {
