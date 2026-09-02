@@ -39,15 +39,26 @@ const drop = (key: string): void => {
 // -- Sound -------------------------------------------------------------------
 
 /**
- * Off until the player turns it on. The game lives in a feed, where sound is
- * an ambush; GDD 27 asks for the toggle to be visible in the first session.
+ * On unless the player has turned it off.
+ *
+ * It was the other way round, and the toggle was a checkbox two taps deep
+ * inside the help sheet -- so the twelve cues of GDD 27 were unreachable in
+ * practice. `ensure()` no-ops while sound is off, and the only gesture that
+ * could ever flip it lived in an overlay almost nobody opens; a player
+ * returning to their result never even reaches a handler that would ask.
+ *
+ * "On" means *armed*, never *playing*. Nothing is audible until the player's
+ * own first press builds the AudioContext, which is both the browser's rule --
+ * a cross-origin iframe gets no audio without a gesture in its own document,
+ * and this game is one -- and Reddit's: "Audio should not play unless there is
+ * a user interaction". What makes this default honest is the mute button in
+ * the day bar, which is Reddit's very next requirement, and the fact that
+ * leaving the tab silences everything.
  */
-export const soundEnabled = (): boolean => read('sound') === 'on';
+export const soundEnabled = (): boolean => read('sound') !== 'off';
 
 export const setSoundEnabled = (on: boolean): void =>
   write('sound', on ? 'on' : 'off');
-
-export const soundChoiceMade = (): boolean => read('sound') !== null;
 
 // -- Practice ----------------------------------------------------------------
 

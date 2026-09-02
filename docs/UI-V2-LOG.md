@@ -432,3 +432,43 @@ Five lines per phase: done, verified, left. Newest at the bottom.
   stroke. Same job, one line of the screen.
 - **Verified.** 313 tests, 60 captures, zero scroll, zero clipping. The result
   captures gained about 30% in file size, which is the scene being drawn again.
+
+---
+
+## Post-playtest 4 — the sound nobody could reach
+
+- **The question was "can the sound start on its own".** It cannot, and no
+  amount of code changes that: this game runs in a cross-origin iframe, where
+  the browser grants only *transient* activation — five seconds, not sticky —
+  and activation does not descend from the parent Reddit page. On WebKit
+  nothing Reddit could do would unlock it. So the honest version of the request
+  is "on by default, first heard on the first tap", which is what shipped.
+- **The real defect was worse than the one reported.** `soundEnabled()` was
+  `read('sound') === 'on'` and `ensure()` no-ops while sound is off, so the
+  engine was inert for anyone who had not found a checkbox two taps deep inside
+  the help sheet. And the two `ensure()` call sites both sit behind `canAim`,
+  which is false on a restored result — the screen most visits open to. Twelve
+  synthesised cues, and almost nobody had heard one.
+- **Reddit publishes three audio rules and this app met one.** From the Devvit
+  docs' "Inline mode requirements", item 5 *Safe use of sound*: audio must not
+  play without interaction (already true, twice over — the feed bundle cannot
+  even import the engine); **include a button to mute in your game**; **use the
+  visibilityChange handler to mute if a user scrolls away**. The last two did
+  not exist. That list is the same one whose other items rejected 0.4, so it is
+  demonstrably the page the reviewer reads.
+- **What was built.** The default flipped to `!== 'off'`. A mute button in the
+  day bar beside the `?`, 48px, `aria-pressed`, its own glyph pair sharing one
+  speaker body. A `visibilitychange` handler that stops the hold and flight
+  oscillators, ducks the master gain and *suspends* the context — suspending
+  matters, because a suspended clock stops, and cues scheduled while hidden
+  would otherwise all come due at once on return. A document-level unlock on
+  the first qualifying gesture (`pointerup`, `touchend`, `mousedown`,
+  `keydown`, `click` — never `pointerdown`, which does not grant activation for
+  touch). And `ensure()` now resumes a suspended context instead of returning
+  blind, which is what a backgrounded webview hands back.
+- **Five tests** guard the three rules the way `no-inline-scroll.test.ts` guards
+  the last rejection, because none of this fails visibly — it fails in review.
+- **`Day #2` stopped wrapping at 320px**, which the extra button had caused; the
+  modifier truncates instead, as it already did.
+- **318 tests, 60 captures, zero scroll, zero clipping.** The aiming screen went
+  from 2 keyboard-reachable controls to 3, still none under 48px.

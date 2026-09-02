@@ -35,8 +35,8 @@ the two numbers are next to each other. `src/tests/tokens.test.ts` asserts it.
 
 | Screen | Controls | Keyboard-reachable | Under 48px | Focus ring |
 | --- | ---: | ---: | --- | --- |
-| aiming | 2 | 2 | none | 2px on Aiming area. H |
-| result | 5 | 5 | none | 2px on How it works |
+| aiming | 3 | 3 | none | 2px on Aiming area. H |
+| result | 6 | 6 | none | 2px on Mute sound |
 | feed | 1 | 1 | none | 2px on TAKE YOUR ONE  |
 
 Every control is at least 48px tall, which is the hit-area floor §13 sets.

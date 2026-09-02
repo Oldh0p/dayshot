@@ -12,6 +12,8 @@ import { soundEnabled, setSoundEnabled } from './storage.ts';
  * autoplay policies require anyway.
  */
 
+const MASTER_GAIN = 0.5;
+
 type Cue =
   | 'ambience'
   | 'hold'
@@ -37,9 +39,38 @@ class AudioEngine {
   private noiseBuffer: AudioBuffer | null = null;
 
   private enabled = soundEnabled();
+  private hidden = false;
 
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  /** Muted for either reason: the player said so, or nobody is looking. */
+  private get silent(): boolean {
+    return !this.enabled || this.hidden;
+  }
+
+  /**
+   * Reddit's third audio requirement, verbatim: "Use the visibilityChange
+   * handler to mute any sounds if a user scrolls away."
+   *
+   * Suspending the context rather than only ducking the gain matters, because
+   * a suspended context's clock stops: cues scheduled against `currentTime`
+   * while hidden would otherwise all come due at once on return.
+   */
+  setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    if (!this.ctx || !this.master) return;
+    if (hidden) {
+      this.stopHold();
+      this.stopFlight();
+      this.master.gain.setTargetAtTime(0, this.now, 0.04);
+      void this.ctx.suspend();
+    } else {
+      void this.ctx.resume();
+      this.master.gain.setTargetAtTime(MASTER_GAIN, this.now, 0.1);
+    }
   }
 
   setEnabled(on: boolean): void {
@@ -59,7 +90,18 @@ class AudioEngine {
 
   /** Must be called from inside a real user gesture. */
   ensure(): void {
-    if (!this.enabled || this.ctx) return;
+    if (!this.enabled) return;
+    if (this.ctx) {
+      /*
+       * A context that already exists is not necessarily running. A webview
+       * that was backgrounded comes back suspended, iOS suspends aggressively,
+       * and this used to return here and leave the game silent for the rest of
+       * the session with no way back. Resuming an already-running context is
+       * free, so it is never worth checking whether it is needed.
+       */
+      if (this.ctx.state === 'suspended') void this.ctx.resume();
+      return;
+    }
     const Ctor: typeof AudioContext | undefined =
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext })
@@ -68,7 +110,7 @@ class AudioEngine {
 
     this.ctx = new Ctor();
     this.master = this.ctx.createGain();
-    this.master.gain.value = 0.5;
+    this.master.gain.value = MASTER_GAIN;
     this.master.connect(this.ctx.destination);
 
     const length = this.ctx.sampleRate * 2;
@@ -89,7 +131,7 @@ class AudioEngine {
     peak: number,
     slideTo?: number
   ): void {
-    if (!this.enabled || !this.ctx || !this.master) return;
+    if (this.silent || !this.ctx || !this.master) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -109,7 +151,7 @@ class AudioEngine {
   }
 
   private noise(duration: number, peak: number, cutoff: number): void {
-    if (!this.enabled || !this.ctx || !this.master || !this.noiseBuffer) return;
+    if (this.silent || !this.ctx || !this.master || !this.noiseBuffer) return;
     const source = this.ctx.createBufferSource();
     source.buffer = this.noiseBuffer;
     const filter = this.ctx.createBiquadFilter();
@@ -125,7 +167,7 @@ class AudioEngine {
 
   /** "The world was waiting for you": a very low pad plus a breath of wind. */
   startAmbience(): void {
-    if (!this.enabled || !this.ctx || !this.master || this.ambienceGain) return;
+    if (this.silent || !this.ctx || !this.master || this.ambienceGain) return;
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = 55;
@@ -142,7 +184,7 @@ class AudioEngine {
    * information rather than decoration (GDD 27).
    */
   startHold(): void {
-    if (!this.enabled || !this.ctx || !this.master || this.holdOsc) return;
+    if (this.silent || !this.ctx || !this.master || this.holdOsc) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'triangle';
@@ -173,7 +215,7 @@ class AudioEngine {
   }
 
   startFlight(): void {
-    if (!this.enabled || !this.ctx || !this.master || this.flightOsc) return;
+    if (this.silent || !this.ctx || !this.master || this.flightOsc) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'sine';
@@ -203,7 +245,7 @@ class AudioEngine {
   }
 
   play(cue: Cue): void {
-    if (!this.enabled) return;
+    if (this.silent) return;
     this.ensure();
 
     switch (cue) {
@@ -260,3 +302,38 @@ class AudioEngine {
 }
 
 export const audio = new AudioEngine();
+
+/**
+ * Arms the engine on the player's first qualifying gesture, wherever it lands.
+ *
+ * The scene's own handlers call `ensure()`, but they sit behind `canAim`, so a
+ * player who opens the game to a result they already took -- every visit after
+ * the one where they played -- never reached one. This listens at the document,
+ * in the capture phase, and takes itself off after the first hit.
+ *
+ * The event list is deliberate. `pointerdown` is absent because it does not
+ * grant user activation for touch, and `scroll`, `wheel` and `focus` never do;
+ * these five are the ones a browser accepts as "the user did something".
+ */
+const UNLOCK_EVENTS = ['pointerup', 'touchend', 'mousedown', 'keydown', 'click'];
+
+export const unlockAudioOnFirstGesture = (): (() => void) => {
+  const stop = (): void => {
+    for (const type of UNLOCK_EVENTS) {
+      document.removeEventListener(type, unlock, true);
+    }
+  };
+  /*
+   * Synchronous on purpose: WebKit only honours the gesture for five seconds
+   * and an `await` before `resume()` can land outside that window.
+   */
+  const unlock = (): void => {
+    audio.ensure();
+    audio.startAmbience();
+    stop();
+  };
+  for (const type of UNLOCK_EVENTS) {
+    document.addEventListener(type, unlock, true);
+  }
+  return stop;
+};

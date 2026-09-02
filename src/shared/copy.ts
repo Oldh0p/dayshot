@@ -199,6 +199,14 @@ export const COPY = {
   helpBody:
     'Hold to charge, release to shoot. Closest to center wins. Every day starts with a warm-up that does not count, then one official shot.',
   soundToggle: 'Sound',
+  /*
+   * The day-bar button names the action it will perform, not the state it is
+   * in: a screen reader announcing "Sound on" on a control that turns sound
+   * off is the oldest bug in toggle labelling. `aria-pressed` carries the
+   * state.
+   */
+  soundMute: 'Mute sound',
+  soundUnmute: 'Unmute sound',
 
   // -- Logged out -----------------------------------------------------------
   /** Shown in the day bar in place of a day and a modifier the visitor has

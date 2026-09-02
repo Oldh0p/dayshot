@@ -26,6 +26,7 @@ import {
   reduce,
 } from './machine.ts';
 import type { QueueOutcome } from './queue.ts';
+import { audio, unlockAudioOnFirstGesture } from './audio.ts';
 import { resultOnScreen } from './result-view.ts';
 import { Glyph } from './ui/Glyph.tsx';
 import { TARGET_GLYPH } from './ui/glyphs.ts';
@@ -310,6 +311,32 @@ export const App = (): JSX.Element => {
     onImpact,
   });
 
+  /*
+   * Sound is armed by default, so the engine has to be reachable from the
+   * player's first gesture wherever it lands. The scene's own `ensure()` calls
+   * sit behind `canAim`, which is false on the result a returning player opens
+   * to -- for them the audio engine was never constructed at all.
+   */
+  useEffect(() => unlockAudioOnFirstGesture(), []);
+
+  /*
+   * Reddit's inline-mode requirements, item 5: "Use the visibilityChange
+   * handler to mute any sounds if a user scrolls away."
+   */
+  useEffect(() => {
+    const onVisibility = (): void => audio.setHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  const onToggleSound = useCallback((): void => {
+    // Inside a click, which is what makes it a legal moment to build the
+    // AudioContext when the player is turning sound back on.
+    const next = !audio.isEnabled();
+    audio.setEnabled(next);
+    setSoundOn(next);
+  }, []);
+
   // -- Beats -----------------------------------------------------------------
 
   useEffect(() => {
@@ -520,6 +547,8 @@ export const App = (): JSX.Element => {
           displayDay={server.displayDay}
           modifier={server.modifier}
           streak={streakNow.current}
+          soundOn={soundOn}
+          onToggleSound={onToggleSound}
           onHelp={onHelp}
         />
 

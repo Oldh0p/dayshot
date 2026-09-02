@@ -61,6 +61,29 @@ export const COPY_GLYPH: readonly string[] = [
 ];
 
 /**
+ * Sound, on and off. The speaker body is shared so the two states differ only
+ * by what is to the right of it -- waves or a cross -- which is what makes the
+ * swap read as one control changing rather than two icons alternating.
+ *
+ * It lives in the day bar because Reddit's inline-mode requirements ask for
+ * "a button to mute in your game", and a checkbox inside a help sheet is not
+ * one. The feed bundle never imports it: that surface has no audio at all.
+ */
+const SPEAKER = 'M3 6.3h2.3L8.3 3.5v9L5.3 9.7H3z';
+
+export const SOUND_ON_GLYPH: readonly string[] = [
+  SPEAKER,
+  'M10.6 6.1a2.8 2.8 0 0 1 0 3.8',
+  'M12.6 4.3a5.4 5.4 0 0 1 0 7.4',
+];
+
+export const SOUND_OFF_GLYPH: readonly string[] = [
+  SPEAKER,
+  'M10.9 6.3l3.3 3.4',
+  'M14.2 6.3l-3.3 3.4',
+];
+
+/**
  * An `<svg>` string, for the feed bundle. React callers use `<Glyph>` instead,
  * which reads the same paths.
  */
