@@ -514,3 +514,48 @@ Five lines per phase: done, verified, left. Newest at the bottom.
 - **326 tests, 63 captures, zero scroll, zero clipping.** Two of the captures are
   new and are the state the loop actually lives in — a shot landed, the screen
   already armed — which nothing had ever photographed.
+
+---
+
+## Rejection 2 — the other half of the scroll rule
+
+- **The report:** *"it looks like the scroll trap is still there in the latest
+  version under review. Once I scroll into the game post, my mouse gets stuck."*
+  Not the same failure as 0.4. Nothing inside the card scrolls — that was fixed
+  and is guarded. This is the other half of the rule: Devvit's inline
+  requirements say **"users must be able to scroll past your post naturally"**,
+  and a post can break that without scrolling at all, by refusing to pass the
+  gesture on.
+- **Requirement 2 in full, which had never been read here.** *Gesture
+  compliance: only tap or click input is allowed; no scroll traps or scroll
+  hijacking; **no zoom or pan interference**; users must be able to scroll past
+  your post naturally.* The first rejection was answered against the scroll
+  bullet alone.
+- **`user-scalable=no, maximum-scale=1.0` was on the feed card.** That is the
+  zoom bullet, in the source, on the surface under review. Removed from
+  `splash.html`; the expanded game keeps it, because expanded is a gesture
+  surface the player chose to open.
+- **`overscroll-behavior: none` is gone from both bundles.** In a document that
+  cannot scroll it has exactly one possible effect: stopping a wheel or swipe
+  from reaching the feed behind it. There is no legitimate use for it here, and
+  keeping it in an app rejected twice under this rule is indefensible — even
+  though, honestly, the rig could not show it doing harm.
+- **A measurement that did not exist.** `tools/qa/scroll-chain.mjs` puts the
+  card in a tall host page and wheels and swipes over it, same-origin and
+  cross-origin, then reports whether the host moved. Every capture in
+  `docs/qa/` shows the card *alone* in a viewport, where this behaviour cannot
+  appear. It reports clean in all four configurations — before and after the
+  changes — so it is a guard, not the diagnosis.
+- **`tools/qa/inline-perf.mjs`, likewise.** `perf.mjs` navigates to `/`, which
+  the harness maps to `game.html`: the card's own cost had never been measured,
+  though requirement 1 is explicitly about the inline post. Result at 4× CPU
+  throttle: content visible in **177 ms** (the limit is 1000), 57 KB
+  transferred, 16.7 ms median frame. Not the cause either.
+- **Two guards, both confirmed red.** `no-inline-scroll.test.ts` now fails on
+  `overscroll-behavior: none|contain` in either bundle and on `user-scalable=no`
+  or `maximum-scale` in `splash.html`. Both were checked by putting the bad code
+  back.
+- **What is still unknown.** The exact symptom was not reproduced. 328 tests, 63
+  captures, four scroll-chain configurations — all clean, before the fixes as
+  well as after. The zoom violation is real and listed; whether it is what the
+  reviewer felt is not established, and saying otherwise would be guessing.

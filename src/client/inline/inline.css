@@ -41,7 +41,17 @@ body,
   margin: 0;
   /* The card never scrolls: Reddit rejects an in-line view that does. */
   overflow: hidden;
-  overscroll-behavior: none;
+  /*
+   * No `overscroll-behavior` here, deliberately.
+   *
+   * `overflow: hidden` above means nothing in this document can scroll, so
+   * there is nothing to *over*scroll -- which leaves `overscroll-behavior:
+   * none` with exactly one possible effect: suppressing the chain that lets a
+   * wheel or a swipe over this post keep moving the feed behind it. Devvit's
+   * inline requirements are explicit that "users must be able to scroll past
+   * your post naturally", and this app was rejected twice under that rule.
+   * `tools/qa/scroll-chain.mjs` measures the chaining that must survive.
+   */
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: 'Space Grotesk', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;

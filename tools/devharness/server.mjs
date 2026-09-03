@@ -142,6 +142,36 @@ createServer(async (req, res) => {
       simMismatch: false,
     }));
   }
+  /*
+   * A tall page with the feed card in an iframe, for `tools/qa/scroll-chain.mjs`.
+   *
+   * The card is never alone on Reddit: it sits inside a feed that scrolls, and
+   * the rule it was rejected under twice is about what happens to *that* scroll
+   * when the cursor is over the post. Nothing in the repo could reproduce it
+   * until this route existed.
+   */
+  if (url.pathname === '/qa/scroll-host') {
+    const which = url.searchParams.get('entry') ?? 'splash.html';
+    /*
+     * On Reddit the web view is a CROSS-ORIGIN iframe. `127.0.0.1` and
+     * `localhost` are different origins on the same port, which is the cheapest
+     * way to reproduce that without a second server.
+     */
+    const origin = url.searchParams.get('origin') === 'cross'
+      ? `http://127.0.0.1:${PORT}`
+      : '';
+    return send(200, `<!doctype html><meta charset="utf-8"><title>scroll host</title>
+<style>
+  body { margin: 0; font: 14px system-ui; }
+  .filler { height: 900px; background: repeating-linear-gradient(#eee 0 40px, #ddd 40px 80px); }
+  iframe { display: block; width: 400px; height: 512px; border: 0; margin: 0 auto; }
+</style>
+<div class="filler">above</div>
+<iframe id="post" src="${origin}/${which}"></iframe>
+<div class="filler">below</div>
+<div class="filler">further below</div>`, 'text/html');
+  }
+
   if (url.pathname === '/api/warmup-done') { warmupPending = false; return send(200, '{"ok":true}'); }
   if (url.pathname.startsWith('/api/')) return send(200, '{"ok":true}');
 

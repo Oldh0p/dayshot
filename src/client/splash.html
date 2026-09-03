@@ -2,10 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <!--
+      No `maximum-scale` and no `user-scalable=no` here, unlike the expanded
+      game. This page is the *inline* surface, and Devvit's inline requirements
+      list "No zoom or pan interference" alongside the scroll rules: a card in
+      the feed may not take pinch-zoom away from the person scrolling past it.
+      The expanded view is where richer gesture handling belongs.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DAYSHOT</title>
   </head>
   <body>

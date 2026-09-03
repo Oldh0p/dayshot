@@ -105,7 +105,17 @@ body,
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: none;
+  /*
+   * No `overscroll-behavior` here, deliberately.
+   *
+   * `overflow: hidden` above means nothing in this document can scroll, so
+   * there is nothing to *over*scroll -- which leaves `overscroll-behavior:
+   * none` with exactly one possible effect: suppressing the chain that lets a
+   * wheel or a swipe over this post keep moving the feed behind it. Devvit's
+   * inline requirements are explicit that "users must be able to scroll past
+   * your post naturally", and this app was rejected twice under that rule.
+   * `tools/qa/scroll-chain.mjs` measures the chaining that must survive.
+   */
   /*
    * Reddit's review rules forbid a scrollable in-line web view outright: a
    * scroll inside the post competes with the feed's own gestures, so a swipe
