@@ -71,6 +71,35 @@ const swipeAt = async (cdp, x, y) => {
   return cdp.eval('window.scrollY');
 };
 
+/**
+ * Nothing on the inline surface may capture a gesture.
+ *
+ * The chaining test measures the outcome; this measures the cause, which is
+ * what you actually want in a reply to a reviewer. It walks every rendered
+ * element and names anything that could take a wheel or a swipe: a scrollable
+ * overflow, a non-default `touch-action`, a suppressed `overscroll-behavior`,
+ * or fixed positioning.
+ *
+ * Only the card is judged. Devvit's FAQ puts richer gesture handling in
+ * expanded mode on purpose, so `touch-action: none` there is sanctioned.
+ */
+const CAPTORS = `(() => {
+  const bad = [];
+  for (const el of document.querySelectorAll("*")) {
+    const s = getComputedStyle(el);
+    const cls = (typeof el.className === "string" && el.className) ? "." + el.className.trim() : "";
+    const tag = el.tagName.toLowerCase() + cls;
+    const of = s.overflowX + "/" + s.overflowY;
+    if (of.includes("auto") || of.includes("scroll")) bad.push("overflow " + tag + " -> " + of);
+    if (s.touchAction !== "auto") bad.push("touch-action " + tag + " -> " + s.touchAction);
+    if (s.overscrollBehaviorY !== "auto") bad.push("overscroll " + tag + " -> " + s.overscrollBehaviorY);
+    if (s.position === "fixed") bad.push("fixed " + tag);
+  }
+  const d = document.documentElement;
+  if (d.scrollHeight - d.clientHeight > 0) bad.push("document scrolls by " + (d.scrollHeight - d.clientHeight) + "px");
+  return bad.join(" | ");
+})()`;
+
 const ENTRIES = [
   { name: 'feed card, same-origin', entry: 'splash.html', origin: 'same' },
   { name: 'feed card, cross-origin', entry: 'splash.html', origin: 'cross' },
@@ -113,7 +142,15 @@ const rows = await withBrowser(async (cdp) => {
     const swipeControl = await swipeAt(cdp, box.cx, 300);
     const swipeOverPost = await swipeAt(cdp, box.cx, box.cy);
 
-    out.push({ name, control, overPost, swipeControl, swipeOverPost });
+    /* The cause, not just the outcome. The card only. */
+    let captors = null;
+    if (entry === 'splash.html' && origin === 'same') {
+      await cdp.send('Page.navigate', { url: `${BASE}/${entry}` });
+      await wait(2600);
+      captors = await cdp.eval(CAPTORS);
+    }
+
+    out.push({ name, control, overPost, swipeControl, swipeOverPost, captors });
   }
   return out;
 });
@@ -142,6 +179,16 @@ for (const r of rows) {
   );
 }
 console.log(`\n  (a free host page would move ${expected}px)\n`);
+
+for (const r of rows) {
+  if (r.captors === null || r.captors === undefined) continue;
+  if (r.captors === '') {
+    console.log('  Inline card: no element captures a wheel or a swipe.\n');
+  } else {
+    broken++;
+    console.log('  Inline card CAPTURES GESTURES:\n    ' + r.captors.split(' | ').join('\n    ') + '\n');
+  }
+}
 
 if (rigBroken > 0) {
   console.log('  Fix the rig before trusting this.\n');
